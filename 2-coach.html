@@ -20,8 +20,8 @@
   .app{max-width:480px;margin:0 auto;min-height:100vh;padding:0 0 40px}
 
   /* header */
-  .head{position:relative;padding:calc(14px + env(safe-area-inset-top)) 16px 22px;border-radius:0 0 24px 24px;overflow:hidden;
-        background:linear-gradient(180deg,#0A0A0B33,#0A0A0BCC 85%), url("assets/bg.jpg") center 30%/cover}
+  .head{position:relative;padding:calc(14px + env(safe-area-inset-top)) 16px 64px;margin-bottom:-44px;
+        background:linear-gradient(180deg,#0A0A0B26 0%,#0A0A0B8C 45%,#0A0A0B 100%), url("assets/bg.jpg") center 30%/cover}
   .bar{display:flex;align-items:center;justify-content:space-between}
   .icon-btn{width:42px;height:42px;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
             display:grid;place-items:center;text-decoration:none;color:#fff;font-size:22px;cursor:pointer;flex:none}
@@ -35,7 +35,7 @@
   .demo-pill{background:#fff;color:#000;font-size:10px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:5px}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 
-  .wrap{padding:16px 16px 0}
+  .wrap{position:relative;padding:0 16px}
   .banner{background:var(--danger);color:#fff;font-size:13px;font-weight:500;padding:11px 14px;border-radius:14px;margin-bottom:14px;display:none;justify-content:space-between;align-items:center;gap:10px}
   .banner.show{display:flex}
   .banner button{border:0;background:#ffffff26;color:#fff;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
@@ -110,8 +110,8 @@
   .finder{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;transform:translateY(100%);visibility:hidden;transition:transform .25s ease,visibility .25s}
   .finder.open{transform:none;visibility:visible}
   .finder-in{width:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;height:100%;padding:calc(14px + env(safe-area-inset-top)) 16px 0}
-  .s-row{display:flex;gap:10px;align-items:center}
-  .searchbox{flex:1;display:flex;align-items:center;gap:10px;height:50px;border:1.5px solid var(--line);border-radius:15px;padding:0 14px;background:var(--card)}
+  .s-row{display:flex;gap:10px;align-items:center;width:100%}
+  .searchbox{flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:50px;border:1.5px solid var(--line);border-radius:15px;padding:0 14px;background:var(--card)}
   .searchbox:focus-within{border-color:var(--orange)}
   .searchbox svg{flex:none;color:var(--muted)}
   .searchbox input{flex:1;min-width:0;border:0;background:none;font:500 16px Inter,system-ui,sans-serif;color:#fff;height:100%}

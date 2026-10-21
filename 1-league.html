@@ -20,24 +20,21 @@
 
   /* header */
   header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-  .ball{width:34px;height:34px;border-radius:50%;background:var(--orange);position:relative;overflow:hidden;flex:none;box-shadow:0 4px 14px #FF6B1A55}
-  .ball::before,.ball::after{content:"";position:absolute;border:1.7px solid #0A0A0B;border-radius:50%}
-  .ball::before{inset:-2px 13px}
-  .ball::after{inset:13px -2px}
+  .logo{width:40px;height:40px;flex:none;display:block}
+  .titles{flex:1;min-width:0}
+  .icon-btn{width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:#fff;font-size:18px;display:grid;place-items:center;cursor:pointer;flex:none;font-family:inherit}
+  .icon-btn.on{background:var(--orange);border-color:var(--orange);font-size:13px;font-weight:800;width:auto;padding:0 14px}
   header h1{font-weight:800;font-size:19px;letter-spacing:.02em;line-height:1}
   header small{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;letter-spacing:.04em}
 
   /* leader card: background art + court */
-  .leader{position:relative;border-radius:22px;overflow:hidden;min-height:210px;padding:18px;margin-bottom:18px;
+  .leader{position:relative;border-radius:22px;overflow:hidden;min-height:150px;padding:16px 18px;margin-bottom:18px;
           background:url("assets/bg.jpg") center/cover;border:1px solid #FFFFFF14;display:flex;flex-direction:column;justify-content:flex-end}
-  .leader::before{content:"";position:absolute;left:0;right:0;bottom:0;height:78%;
-          background:url("assets/court.svg") center bottom/100% auto no-repeat;opacity:.95}
   .leader::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0A0A0B00 25%,#0A0A0BD9 100%)}
   .leader > *{position:relative;z-index:1}
   .leader .lbl{font-size:11px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700}
   .leader .row1{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:6px}
   .leader .name{font-size:26px;font-weight:800;line-height:1.1}
-  .leader .team{font-size:13px;color:#FFFFFFB3;font-weight:500;margin-top:2px}
   .leader .pts{font-size:40px;font-weight:800;line-height:1;text-align:right;flex:none}
   .leader .pts span{display:block;font-size:11px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-top:4px}
 
@@ -55,20 +52,25 @@
   .score{font-size:21px;font-weight:800;text-align:right;flex:none;display:flex;align-items:center;gap:8px}
   .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite}
   .chev{color:var(--dim);font-size:20px;margin-left:2px}
+  .team-input{width:100%;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;
+              font:700 16px Inter,system-ui,sans-serif;padding:0 12px}
+  .team-input:focus{outline:none;border-color:var(--orange)}
+  .row.editing{cursor:default}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="ball"></div>
-    <div><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
+    <img class="logo" src="assets/euroleague.svg" alt="">
+    <div class="titles"><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
+    <button class="icon-btn" id="editBtn" aria-label="Edit team names">✎</button>
   </header>
 
   <div class="leader">
     <div class="lbl" id="leadLbl">LEADING THE ROUND</div>
     <div class="row1">
-      <div style="min-width:0"><div class="name" id="leadName">—</div><div class="team" id="leadTeam"></div></div>
+      <div style="min-width:0"><div class="name" id="leadName">—</div></div>
       <div class="pts"><b id="leadPts">0.0</b><span>PIR</span></div>
     </div>
   </div>
@@ -81,7 +83,7 @@
 
 <script>
 /* ───────── league (hardcoded) ───────── */
-const COACHES = [
+const DEFAULT_COACHES = [
   {name:"Justelis", team:"SPEEDsters"},
   {name:"Darius",   team:"SPERMOS VAIKAI"},
   {name:"Deivis",   team:"Kundžiai"},
@@ -89,6 +91,10 @@ const COACHES = [
   {name:"Titas",    team:"Geri Sprendimai 0.7"},
   {name:"Saimonas", team:"KĖDAINIETIS"},
 ];
+// roster storage stays keyed by coach name; team names can be renamed (saved on this device for now)
+const teamOf = c => (store.get("elf.teams", {})[c.name] || c.team);
+const COACHES = DEFAULT_COACHES;
+let editing = false;
 
 /* ───────── config (same as coach page) ───────── */
 const today = new Date();
@@ -171,17 +177,23 @@ function coachTotal(c){
 
 function render(){
   $("#roundTxt").textContent = `${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} · ROUND ${round ?? "–"}`;
-  const rows = COACHES.map(c => ({...c, ...coachTotal(c)})).sort((a, b) => b.total - a.total);
-  $("#list").innerHTML = rows.map((c, i) => `
-    <a class="row" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
-      <div class="rank">${i + 1}</div>
-      <div class="who"><b>${esc(c.name)}</b><small>${esc(c.team)}</small></div>
-      <div class="score">${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}<span class="chev">›</span></div>
-    </a>`).join("");
+  const rows = COACHES.map(c => ({...c, team: teamOf(c), ...coachTotal(c)})).sort((a, b) => b.total - a.total);
+  if (!editing || !$("#list .team-input")){
+    $("#list").innerHTML = rows.map((c, i) => editing ? `
+      <div class="row editing">
+        <div class="rank">${i + 1}</div>
+        <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name"></div>
+      </div>` : `
+      <a class="row" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
+        <div class="rank">${i + 1}</div>
+        <div class="who"><b>${esc(c.team)}</b></div>
+        <div class="score">${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}<span class="chev">›</span></div>
+      </a>`).join("");
+  }
   const l = rows[0];
   $("#leadLbl").textContent = `LEADING ROUND ${round ?? "–"}`;
-  $("#leadName").textContent = l.name;
-  $("#leadTeam").textContent = l.team;
+  $("#leadName").textContent = l.team;
+  $("#leadName").dataset.coach = l.name;
   $("#leadPts").textContent = l.total.toFixed(1);
 }
 
@@ -204,6 +216,28 @@ async function refresh(){
   timer = setTimeout(refresh, inPlay ? LIVE_POLL : next ? Math.min(IDLE_POLL, Math.max(10_000, next - now + 5_000)) : IDLE_POLL);
 }
 document.addEventListener("visibilitychange", () => document.hidden ? clearTimeout(timer) : refresh());
+
+/* edit team names */
+$("#editBtn").onclick = () => {
+  editing = !editing;
+  const b = $("#editBtn");
+  b.classList.toggle("on", editing);
+  b.textContent = editing ? "Done" : "✎";
+  b.setAttribute("aria-label", editing ? "Save team names" : "Edit team names");
+  $("#list").innerHTML = "";
+  render();
+  if (editing) $("#list .team-input")?.focus();
+};
+$("#list").addEventListener("input", e => {
+  const inp = e.target.closest(".team-input"); if (!inp) return;
+  const names = store.get("elf.teams", {});
+  const v = inp.value.trim();
+  const def = DEFAULT_COACHES.find(c => c.name === inp.dataset.coach)?.team;
+  if (v && v !== def) names[inp.dataset.coach] = v; else delete names[inp.dataset.coach];
+  store.set("elf.teams", names);
+  if ($("#leadName").dataset.coach === inp.dataset.coach) $("#leadName").textContent = v || def;
+});
+$("#list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".team-input")) e.target.blur(); });
 
 async function boot(){
   render();
