@@ -400,7 +400,10 @@ document.addEventListener("visibilitychange", () => document.hidden ? clearTimeo
 
 function currentRound(){         // latest round that has tipped off
   const now = new Date();
-  if (DEMO){ const done = games.filter(g => g.p); if (done.length) return Math.max(...done.map(g => g.r)); }
+  if (DEMO){                     // demo replays the latest round where every game is finished
+    const full = [...new Set(games.map(g => g.r))].filter(r => games.filter(g => g.r === r).every(g => g.p));
+    if (full.length) return Math.max(...full);
+  }
   const started = games.filter(g => new Date(g.u) <= now);
   return started.length ? Math.max(...started.map(g => g.r)) : Math.min(...games.map(g => g.r));
 }
