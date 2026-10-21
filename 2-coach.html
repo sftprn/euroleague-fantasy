@@ -11,6 +11,7 @@
   :root{
     --bg:#0A0A0B; --card:#18181B; --card-2:#232327; --line:#2B2B30; --text:#FFFFFF; --muted:#9A9AA3; --dim:#5E5E66;
     --orange:#FF6B1A; --orange-soft:#FF6B1A22; --win:#3DDC84; --win-soft:#123B2A; --loss:#FF5A4E; --loss-soft:#3D1715; --danger:#8E1B1B;
+    --headH:118px;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
@@ -18,29 +19,18 @@
   body{color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
   button{font:inherit;color:inherit}
 
-  /* carousel: one full-screen page per coach, swipe sideways */
-  .track{display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
-  .track::-webkit-scrollbar{display:none}
-  .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
-  .page{max-width:480px;margin:0 auto;padding:0 0 calc(64px + env(safe-area-inset-bottom))}
-
-  /* dots */
-  .dots{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:7px;align-items:center;
-        padding:8px 12px;border-radius:999px;background:#0A0A0BB3;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #FFFFFF14;z-index:5}
-  .dots button{width:7px;height:7px;border-radius:999px;border:0;background:#FFFFFF4D;cursor:pointer;transition:width .2s,background .2s;padding:0}
-  .dots button.on{width:20px;background:var(--orange)}
-
-  /* header */
-  .head{position:relative;padding:calc(14px + env(safe-area-inset-top)) 16px 64px;margin-bottom:-44px;
-        background:linear-gradient(180deg,#0A0A0B26 0%,#0A0A0B8C 45%,#0A0A0B 100%), url("assets/bg.jpg") center 30%/cover}
-  .bar{display:flex;align-items:center;justify-content:space-between}
+  /* fixed header: background art stays put, only its text dissolves between coaches */
+  .top{position:fixed;left:0;right:0;top:0;z-index:4;pointer-events:none;
+       padding:calc(14px + env(safe-area-inset-top)) 16px 40px;
+       background:linear-gradient(180deg,#0A0A0B26 0%,#0A0A0B99 50%,#0A0A0BF2 80%,#0A0A0B00 100%), url("assets/bg.jpg") center 30%/cover;
+       -webkit-mask-image:linear-gradient(180deg,#000 72%,transparent 100%);mask-image:linear-gradient(180deg,#000 72%,transparent 100%)}
+  .bar{max-width:480px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;pointer-events:auto}
   .icon-btn{width:44px;height:44px;padding:0;line-height:1;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
             display:grid;place-items:center;text-decoration:none;color:#fff;font-size:24px;font-weight:500;cursor:pointer;flex:none}
   .icon-btn svg{display:block}
-  .plus{background:var(--orange);border-color:var(--orange)}
-  .plus:active{transform:scale(.95)}
-  .plus:disabled{background:#2B2B30;border-color:#2B2B30;color:#6A6A72;cursor:default;transform:none}
-  .title{text-align:center;min-width:0;flex:1;padding:0 10px}
+  .icon-btn.has-wc{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange) inset}
+  .title{text-align:center;min-width:0;flex:1;padding:0 10px;transition:opacity .16s ease,transform .16s ease}
+  .title.fade{opacity:0;transform:translateY(-2px)}
   .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;justify-content:center;align-items:center;gap:6px;white-space:nowrap}
   .meta b{color:#fff;font-weight:800}
@@ -48,11 +38,27 @@
   .demo-pill{background:#fff;color:#000;font-size:10px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:5px}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 
-  .wrap{position:relative;padding:0 16px}
-  .banner{position:fixed;left:50%;top:calc(66px + env(safe-area-inset-top));transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;z-index:6;
+  /* carousel: one full-screen list per coach, swipe sideways */
+  .track{display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+  .track::-webkit-scrollbar{display:none}
+  .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+  .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(64px + env(safe-area-inset-bottom))}
+
+  /* dots */
+  .dots{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:7px;align-items:center;
+        padding:8px 12px;border-radius:999px;background:#0A0A0BB3;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #FFFFFF14;z-index:5}
+  .dots button{width:7px;height:7px;border-radius:999px;border:0;background:#FFFFFF4D;cursor:pointer;transition:width .2s,background .2s;padding:0}
+  .dots button.on{width:20px;background:var(--orange)}
+
+  .banner{position:fixed;left:50%;top:calc(76px + env(safe-area-inset-top));transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;z-index:6;
           background:var(--danger);color:#fff;font-size:13px;font-weight:500;padding:11px 14px;border-radius:14px;display:none;justify-content:space-between;align-items:center;gap:10px}
   .banner.show{display:flex}
   .banner button{border:0;background:#ffffff26;color:#fff;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
+
+  /* wild card badges above the list */
+  .wcs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 0 12px}
+  .wc{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:.02em;padding:6px 11px;border-radius:999px;
+      background:linear-gradient(90deg,#FF6B1A,#FF3D7F);color:#fff;box-shadow:0 4px 14px #FF6B1A40}
 
   /* the single list */
   .list{background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
@@ -66,8 +72,11 @@
      user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
   .gh + .p{border-top:0}
   .p:active{background:#1F1F23}
+  .phw{position:relative;flex:none}
   .ph{width:46px;height:46px;border-radius:50%;background:var(--card-2);flex:none;overflow:hidden;position:relative;display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--muted)}
   .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;-webkit-user-drag:none;pointer-events:none}
+  .capt{position:absolute;right:-4px;bottom:-3px;min-width:20px;height:20px;padding:0 4px;border-radius:10px;background:var(--orange);color:#fff;
+        font-size:10.5px;font-weight:800;display:grid;place-items:center;border:2px solid var(--card)}
   .who{flex:1;min-width:0}
   .who b{display:block;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .who small{margin-top:3px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
@@ -77,7 +86,7 @@
   .val{min-width:56px;text-align:right;font-size:20px;font-weight:800}
   .p.up .val,.p.soon .val,.p.none .val{color:var(--dim);font-weight:700}
   .z-zero .p .val{color:var(--dim)}
-  .z-zero .p .ph,.z-zero .p .who{opacity:.7}
+  .z-zero .p .phw,.z-zero .p .who{opacity:.7}
 
   .p.live{background:linear-gradient(90deg,#FF6B1A1F,transparent 75%)}
   .p.live::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--orange)}
@@ -100,7 +109,7 @@
   .skel{height:70px;border-top:1px solid var(--line);background:linear-gradient(90deg,#18181B,#232327,#18181B);background-size:200% 100%;animation:sk 1.2s infinite}
   @keyframes sk{to{background-position:-200% 0}}
 
-  /* action sheet */
+  /* sheets */
   .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
   .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:24px 24px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom));transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11}
   .open .scrim{opacity:1;pointer-events:auto}
@@ -113,12 +122,23 @@
   .calc strong{display:block;font-size:24px;font-weight:800;color:#fff}
   .act{display:flex;align-items:center;gap:12px;width:100%;padding:13px 6px;border:0;background:none;font-weight:600;font-size:15px;cursor:pointer;border-radius:12px;text-align:left}
   .act:active{background:var(--card-2)}
-  .act .ic{width:36px;height:36px;border-radius:11px;background:var(--card-2);display:grid;place-items:center;font-size:15px;flex:none}
+  .act .ic{width:36px;height:36px;border-radius:11px;background:var(--card-2);display:grid;place-items:center;font-size:15px;font-weight:800;flex:none}
   .act small{margin-left:auto;font-size:12px;color:var(--muted);font-weight:500}
+  .act.capt-act .ic{background:var(--orange);color:#fff}
   .act.danger{color:var(--loss)} .act.danger .ic{background:var(--loss-soft)}
   .act[disabled]{opacity:.35;pointer-events:none}
   .act.here{display:none}
   .note{font-size:12px;color:var(--dim);padding:8px 6px 0}
+
+  /* wild card toggles */
+  .tg{display:flex;align-items:center;gap:14px;width:100%;padding:14px 6px;border:0;background:none;text-align:left;cursor:pointer;border-radius:12px}
+  .tg:active{background:var(--card-2)}
+  .tg .txt{flex:1;min-width:0}
+  .tg .txt b{display:block;font-size:16px;font-weight:800}
+  .tg .txt small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .sw{width:50px;height:30px;border-radius:999px;background:#3A3A40;position:relative;flex:none;transition:background .2s}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+  .tg.on .sw{background:var(--orange)} .tg.on .sw::after{left:23px}
 
   /* full-screen add overlay */
   .finder{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;transform:translateY(100%);visibility:hidden;transition:transform .25s ease,visibility .25s}
@@ -150,14 +170,19 @@
 </style>
 </head>
 <body>
+<header class="top" id="top">
+  <div class="bar">
+    <a class="icon-btn" href="1-league.html" aria-label="Back">‹</a>
+    <div class="title" id="title"><h1 id="coachName">&nbsp;</h1><div class="meta" id="meta">Loading…</div></div>
+    <button class="icon-btn" id="wcBtn" aria-label="Wild Cards">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
+    </button>
+  </div>
+</header>
+
 <div class="track" id="track">
   <section class="slide"><div class="page">
-    <header class="head"><div class="bar">
-      <a class="icon-btn" href="1-league.html" aria-label="Back">‹</a>
-      <div class="title"><h1>&nbsp;</h1><div class="meta">Loading…</div></div>
-      <button class="icon-btn plus" disabled aria-label="Add player">+</button>
-    </div></header>
-    <div class="wrap"><div class="list"><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div></div></div>
+    <div class="list"><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>
   </div></section>
 </div>
 <nav class="dots" id="dots" aria-label="Coaches"></nav>
@@ -172,9 +197,25 @@
       <div style="min-width:0"><b id="shName"></b><small id="shMeta"></small></div>
       <div class="calc" id="shCalc"></div>
     </div>
+    <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
     <div id="moves"></div>
     <button class="act danger" id="removeBtn"><span class="ic">✕</span>Remove from roster</button>
     <p class="note">Tip: press and hold a player, then drag onto another player to swap them.</p>
+  </div>
+</div>
+
+<!-- wild cards -->
+<div id="wcWrap">
+  <div class="scrim" data-close></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sh-head"><div><b>Wild Cards</b><small id="wcSub"></small></div></div>
+    <button class="tg" data-wc="tc">
+      <div class="txt"><b>Triple Captain</b><small>Your captain gets 3× PIR instead of 2×.</small></div><i class="sw"></i>
+    </button>
+    <button class="tg" data-wc="bb">
+      <div class="txt"><b>Bench Boost</b><small>All 10 players in 100% and 50% get 100%. The 0% players stay as they are.</small></div><i class="sw"></i>
+    </button>
   </div>
 </div>
 
@@ -217,7 +258,6 @@ const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competi
 const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
 const ORDER = ["full", "half", "zero"];
 const SLOTS = {full:6, half:4, zero:3};
-const MULT  = {full:1, half:0.5, zero:0};
 const LABEL = {full:"100%", half:"50%", zero:"0%"};
 const MAX = 13;
 const LIVE_POLL = 30_000, IDLE_POLL = 5 * 60_000;
@@ -227,17 +267,24 @@ const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 };
-const rkey = n => `elf.${DEMO ? "demo." : ""}roster.${n}`;
+const PFX = `elf.${DEMO ? "demo." : ""}`;
+const rkey = n => `${PFX}roster.${n}`;
+const wkey = n => `${PFX}chips.${n}`;          // wild cards, per coach per round: {"7": {tc:true, bb:false}}
 const rosters = {};
 const save = n => store.set(rkey(n), rosters[n]);
 const slotCount = (n, s) => rosters[n].filter(p => p.slot === s).length;
 const freeSlot = n => ORDER.find(s => slotCount(n, s) < SLOTS[s]);
 const LEGACY = {active:"full", bench:"half", inactive:"zero"};
+function fixCaptain(n){            // captain: at most one, and only from the 100% group
+  let seen = false;
+  rosters[n].forEach(p => { if (p.captain && (p.slot !== "full" || seen)) delete p.captain; else if (p.captain) seen = true; });
+}
 COACHES.forEach(({name}) => {          // load + migrate rosters saved by earlier versions
   const list = rosters[name] = store.get(rkey(name), []);
   list.forEach(p => { if (LEGACY[p.slot]) p.slot = LEGACY[p.slot]; if (!p.slot) p.slot = p.active === false ? "zero" : "full"; delete p.active; });
   ORDER.forEach(s => list.filter(p => p.slot === s).slice(SLOTS[s]).forEach(p => p.slot = null));
   list.filter(p => !p.slot).forEach(p => p.slot = freeSlot(name) || "zero");
+  fixCaptain(name);
   save(name);
 });
 
@@ -252,6 +299,22 @@ const fmt = v => r1(v).toFixed(1);
 const norm = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const track = $("#track");
+
+/* wild cards */
+const chipsOf = n => (round != null && store.get(wkey(n), {})[round]) || {};
+function setChip(n, k, on){
+  const all = store.get(wkey(n), {});
+  const c = all[round] = all[round] || {};
+  if (on) c[k] = true; else delete c[k];
+  store.set(wkey(n), all);
+}
+/* share of a player's PIR: group (100/50/0 — Bench Boost lifts 50% to 100%) × captain (2×, Triple Captain 3×) */
+function shareOf(n, p){
+  const wc = chipsOf(n);
+  const group = p.slot === "full" ? 1 : p.slot === "half" ? (wc.bb ? 1 : 0.5) : 0;
+  const capt = p.captain && p.slot === "full" ? (wc.tc ? 3 : 2) : 1;
+  return group * capt;
+}
 
 function niceName(raw){            // "WALKER IV, LONNIE" → "Lonnie Walker IV"
   const [last, first = ""] = raw.split(/,\s*/);
@@ -313,8 +376,8 @@ async function loadBox(g){
 
 /* ───────── fantasy logic ─────────
    PIR = raw PIR while live; once final ±10% for the team's win/loss.
-   Then the group share applies: 100% / 50% / 0%. */
-function stateOf(p){
+   Then the share applies (group %, captain multiplier, wild cards). */
+function stateOf(p, n){
   const g = games.find(g => g.r === round && (g.h.c === p.club || g.a.c === p.club));
   if (!g) return {kind:"none"};
   const home = g.h.c === p.club, opp = home ? g.a : g.h;
@@ -330,13 +393,13 @@ function stateOf(p){
   const mult = win ? 1.1 : 0.9;
   const live = b.live;
   const base = live ? raw : r1(raw * mult);
-  const share = MULT[p.slot] ?? 0;
+  const share = shareOf(n, p);
   return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, mult, base, share,
           val: r1(base * share), score: `${me.pts}–${them.pts}`, q: b.q, t: b.t};
 }
 function coachTotal(n){
   let total = 0, live = false;
-  if (games.length) rosters[n].forEach(p => { const s = stateOf(p); if (s.kind === "live" || s.kind === "final"){ total += s.val; live ||= s.kind === "live" && s.share > 0; } });
+  if (games.length) rosters[n].forEach(p => { const s = stateOf(p, n); if (s.kind === "live" || s.kind === "final"){ total += s.val; live ||= s.kind === "live" && s.share > 0; } });
   return {total: r1(total), live};
 }
 
@@ -359,29 +422,27 @@ function subline(p, s){
     default:      return `${tv} · no game this round`;
   }
 }
-function rowHTML({p, i, s}){
+function rowHTML({p, i, s}, n){
   const has = s.kind === "live" || s.kind === "final";
+  const capt = p.captain && p.slot === "full" ? `<span class="capt">${chipsOf(n).tc ? "3×" : "C"}</span>` : "";
   return `<div class="p ${s.kind}" data-i="${i}">
-    ${photo(p)}
+    <div class="phw">${photo(p)}${capt}</div>
     <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
     <div class="val">${has ? fmt(s.val) : "–"}</div>
   </div>`;
 }
-const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="ph">+</div><div class="who"><b>Empty slot</b></div></div>`;
+const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
 const sortKey = r => r.s.kind === "live" ? [0, -r.s.base] : r.s.kind === "final" ? [1, -r.s.base]
                    : r.s.kind === "soon" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
-const byKey = (a, b) => { const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1]; };
+const byKey = (a, b) => (b.p.captain ? 1 : 0) - (a.p.captain ? 1 : 0) || (() => { const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1]; })();
 const slideOf = n => track.querySelector(`.slide[data-coach="${CSS.escape(n)}"]`);
+const WC_NAMES = {tc:"Triple Captain", bb:"Bench Boost"};
 
 function buildSlides(){
   track.innerHTML = order.map(n => `
     <section class="slide" data-coach="${esc(n)}"><div class="page">
-      <header class="head"><div class="bar">
-        <a class="icon-btn" href="1-league.html" aria-label="Back">‹</a>
-        <div class="title"><h1>${esc(n)}</h1><div class="meta"></div></div>
-        <button class="icon-btn plus" data-plus aria-label="Add player">+</button>
-      </div></header>
-      <div class="wrap"><div class="list"></div></div>
+      <div class="wcs"></div>
+      <div class="list"></div>
     </div></section>`).join("");
   $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" aria-label="${esc(n)}"></button>`).join("");
   built = true;
@@ -390,41 +451,60 @@ function buildSlides(){
 }
 function renderSlide(n){
   const el = slideOf(n); if (!el) return;
-  const rows = rosters[n].map((p, i) => ({p, i, s: games.length ? stateOf(p) : {kind:"none"}}));
-  el.querySelector(".list").innerHTML = ORDER.map(slot => {
-    const list = rows.filter(r => r.p.slot === slot).sort(byKey);
-    const open = Math.max(0, SLOTS[slot] - list.length);
-    return `<div class="zone z-${slot}" data-zone="${slot}">
-      <div class="gh">${LABEL[slot]}</div>
-      ${list.map(rowHTML).join("")}${emptyHTML(slot).repeat(open)}
+  const rows = rosters[n].map((p, i) => ({p, i, s: games.length ? stateOf(p, n) : {kind:"none"}}));
+  const wc = chipsOf(n);
+  // Bench Boost merges 100% and 50% into one 100% block
+  const groups = wc.bb ? [{key:"full", label:"100%", slots:["full", "half"]}, {key:"zero", label:"0%", slots:["zero"]}]
+                       : ORDER.map(s => ({key:s, label:LABEL[s], slots:[s]}));
+  el.querySelector(".list").innerHTML = groups.map(gr => {
+    const list = rows.filter(r => gr.slots.includes(r.p.slot)).sort(byKey);
+    const empties = gr.slots.map(s => emptyHTML(s).repeat(Math.max(0, SLOTS[s] - slotCount(n, s)))).join("");
+    return `<div class="zone z-${gr.key}" data-zone="${gr.key}">
+      <div class="gh">${gr.label}</div>
+      ${list.map(r => rowHTML(r, n)).join("")}${empties}
     </div>`;
   }).join("");
-  const {total, live} = coachTotal(n);
-  el.querySelector(".meta").innerHTML = round
+  el.querySelector(".wcs").innerHTML = Object.keys(WC_NAMES).filter(k => wc[k]).map(k => `<span class="wc">★ ${WC_NAMES[k]}</span>`).join("");
+  el.querySelector(".wcs").hidden = !wc.tc && !wc.bb;
+}
+function renderHeader(){
+  $("#coachName").textContent = cur;
+  const {total, live} = coachTotal(cur);
+  $("#meta").innerHTML = round
     ? `${live ? '<i class="dot"></i>' : ""}Round ${round} · <b>${fmt(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
     : "Loading…";
-  el.querySelector("[data-plus]").disabled = rosters[n].length >= MAX;
+  const wc = chipsOf(cur);
+  $("#wcBtn").classList.toggle("has-wc", !!(wc.tc || wc.bb));
 }
 function render(){
   if (!built) return;
   if (drag && drag.on){ drag.pendingRender = true; return; }   // don't redraw under a finger mid-drag
   order.forEach(renderSlide);
+  renderHeader();
   updateDots();
 }
 
 /* ───────── carousel ───────── */
+function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height - 4) + "px"); }
+sizeHeader(); addEventListener("resize", sizeHeader);
 function goTo(n, smooth = true){
   const i = order.indexOf(n); if (i < 0) return;
   track.scrollTo({left: i * track.clientWidth, behavior: smooth ? "smooth" : "instant"});
-  setCurrent(n);
+  setCurrent(n, !smooth);
 }
-function setCurrent(n){
-  if (n === cur && document.title.includes(n)) { updateDots(); return; }
+let fadeT = 0;
+function setCurrent(n, instant){
+  const changed = n !== cur;
   cur = n;
   updateDots();
   document.title = `${n} · EL Fantasy`;
   const u = new URL(location.href); u.searchParams.set("coach", n);
   history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
+  if (!changed || instant){ renderHeader(); return; }
+  // dissolve header text into the new coach while the art stays put
+  const t = $("#title"); t.classList.add("fade");
+  clearTimeout(fadeT);
+  fadeT = setTimeout(() => { renderHeader(); t.classList.remove("fade"); }, 150);
 }
 function updateDots(){
   $("#dots").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.go === cur));
@@ -495,6 +575,7 @@ function currentRound(){         // latest round that has tipped off
 }
 
 async function boot(){
+  renderHeader();
   try{
     [people, games] = await Promise.all([loadPeople(), loadGames()]);
     round = currentRound();
@@ -518,28 +599,30 @@ function seedDemo(){         // demo: give every empty coach a different set of 
       const p = people.find(x => x.club === c && x.img && !used.has(x.code));
       if (p){ used.add(p.code); rosters[name].push({...p, slot: freeSlot(name)}); n++; }
     });
+    if (rosters[name][0]) rosters[name][0].captain = true;
     save(name);
   });
 }
 
 /* ───────── interactions ───────── */
 $("#retry").onclick = boot;
-const actWrap = $("#actWrap"), finder = $("#finder");
-document.querySelectorAll("[data-close]").forEach(s => s.onclick = () => actWrap.classList.remove("open"));
+const actWrap = $("#actWrap"), wcWrap = $("#wcWrap"), finder = $("#finder");
+document.querySelectorAll("[data-close]").forEach(s => s.onclick = () => { actWrap.classList.remove("open"); wcWrap.classList.remove("open"); });
 const coachOf = el => el.closest(".slide")?.dataset.coach;
 
 document.addEventListener("click", e => {
-  const plus = e.target.closest("[data-plus]");
-  if (plus){ const n = coachOf(plus); openFinder(n, freeSlot(n)); return; }
   const add = e.target.closest("[data-add]");
   if (add){ openFinder(coachOf(add), add.dataset.add); return; }
   const r = e.target.closest(".slide .p[data-i]"); if (!r) return;
   const n = coachOf(r);
-  sel = {n, i: +r.dataset.i}; const p = rosters[n][sel.i], s = stateOf(p);
+  sel = {n, i: +r.dataset.i}; const p = rosters[n][sel.i], s = stateOf(p, n);
   $("#shName").textContent = p.name;
-  $("#shMeta").textContent = `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}`;
-  $("#shCalc").innerHTML = (s.kind === "final" || s.kind === "live")
-    ? `${s.kind === "final" ? `${s.raw} × ${s.mult}` : "live"} × ${LABEL[p.slot]}<strong>${fmt(s.val)} PIR</strong>` : `<strong>–</strong>`;
+  $("#shMeta").textContent = `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`;
+  const parts = [s.kind === "final" ? `${s.raw} × ${s.mult}` : "live", `× ${s.share}`];
+  $("#shCalc").innerHTML = (s.kind === "final" || s.kind === "live") ? `${parts.join(" ")}<strong>${fmt(s.val)} PIR</strong>` : `<strong>–</strong>`;
+  const canCapt = p.slot === "full";
+  $("#captBtn").hidden = !canCapt;
+  $("#captLbl").textContent = p.captain ? "Remove captain" : `Make captain (${chipsOf(n).tc ? "3" : "2"}× PIR)`;
   $("#moves").innerHTML = ORDER.map(slot => {
     const isFull = slotCount(n, slot) >= SLOTS[slot];
     return `<button class="act ${slot === p.slot ? "here" : ""}" data-slot="${slot}" ${isFull ? "disabled" : ""}>
@@ -547,12 +630,35 @@ document.addEventListener("click", e => {
   }).join("");
   actWrap.classList.add("open");
 });
+$("#captBtn").onclick = () => {
+  const list = rosters[sel.n], p = list[sel.i];
+  const make = !p.captain;
+  list.forEach(x => delete x.captain);
+  if (make) p.captain = true;
+  save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader();
+  toast(make ? `${p.name} is captain` : "Captain removed");
+};
 $("#moves").addEventListener("click", e => {
   const b = e.target.closest("[data-slot]"); if (!b) return;
-  const p = rosters[sel.n][sel.i]; p.slot = b.dataset.slot; save(sel.n);
-  actWrap.classList.remove("open"); renderSlide(sel.n); toast(`${p.name} → ${LABEL[p.slot]}`);
+  const p = rosters[sel.n][sel.i]; p.slot = b.dataset.slot; fixCaptain(sel.n); save(sel.n);
+  actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} → ${LABEL[p.slot]}`);
 });
-$("#removeBtn").onclick = () => { const [p] = rosters[sel.n].splice(sel.i, 1); save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); toast(`${p.name} removed`); };
+$("#removeBtn").onclick = () => { const [p] = rosters[sel.n].splice(sel.i, 1); save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} removed`); };
+
+/* wild cards */
+function renderWc(){
+  const wc = chipsOf(cur);
+  $("#wcSub").textContent = `${cur} · Round ${round ?? "–"}`;
+  wcWrap.querySelectorAll("[data-wc]").forEach(b => b.classList.toggle("on", !!wc[b.dataset.wc]));
+}
+$("#wcBtn").onclick = () => { if (round == null) return; renderWc(); wcWrap.classList.add("open"); };
+wcWrap.addEventListener("click", e => {
+  const b = e.target.closest("[data-wc]"); if (!b) return;
+  const k = b.dataset.wc, on = !chipsOf(cur)[k];
+  setChip(cur, k, on);
+  renderWc(); renderSlide(cur); renderHeader();
+  if (on && k === "tc" && !rosters[cur].some(p => p.captain)) toast("Pick a captain in the 100% group for Triple Captain to count");
+});
 
 /* full-screen add player */
 $("#closeFinder").onclick = closeFinder;
@@ -598,7 +704,7 @@ $("#results").addEventListener("click", e => {
   const p = people.find(x => x.code === r.dataset.code);
   rosters[n].push({...p, slot: target.slot}); save(n);
   toast(`${p.name} → ${LABEL[target.slot]}`);
-  renderSlide(n); refresh();
+  renderSlide(n); renderHeader(); refresh();
   if (slotCount(n, target.slot) >= SLOTS[target.slot]){ target.slot = freeSlot(n); if (!target.slot){ setTimeout(closeFinder, 500); return; } }
   renderResults();
 });
@@ -647,8 +753,8 @@ function startDrag(){
   moveDrag();
   (function scroll(){                                       // auto-scroll near screen edges
     if (!drag || !drag.on) return;
-    const edge = 80, y = drag.ly;
-    const v = y < edge ? -(edge - y) / 6 : y > innerHeight - edge ? (y - (innerHeight - edge)) / 6 : 0;
+    const top = $("#top").getBoundingClientRect().bottom - 30, edge = 80, y = drag.ly;
+    const v = y < top + edge ? -(top + edge - y) / 6 : y > innerHeight - edge ? (y - (innerHeight - edge)) / 6 : 0;
     if (v){ drag.slide.scrollBy(0, v); highlight(); }
     requestAnimationFrame(scroll);
   })();
@@ -689,12 +795,14 @@ function applyDrop(n, i, t){
     [src.slot, o.slot] = [o.slot, src.slot];
     toast(`${src.name} ⇄ ${o.name}`);
   } else {
-    const slot = t.dataset.zone;
+    let slot = t.dataset.zone;
+    if (slot === "full" && chipsOf(n).bb && slotCount(n, "full") >= SLOTS.full && src.slot !== "half") slot = "half";   // Bench Boost: one merged block
     if (slot === src.slot) return;
     if (slotCount(n, slot) >= SLOTS[slot]){ toast(`${LABEL[slot]} is full — drop onto a player to swap`); return; }
     src.slot = slot;
-    toast(`${src.name} → ${LABEL[slot]}`);
+    toast(`${src.name} → ${t.dataset.zone === "full" ? "100%" : LABEL[slot]}`);
   }
+  fixCaptain(n);
   save(n);
 }
 

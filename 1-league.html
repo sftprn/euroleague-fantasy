@@ -115,7 +115,15 @@ const $ = s => document.querySelector(s);
 const r1 = v => Math.round(v * 10) / 10;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const rosterOf = name => store.get(`elf.roster.${name}`, []);
-const shareOf = p => p.slot ? (MULT[p.slot] ?? 0) : (p.active === false ? 0 : 1);
+// share of a player's PIR — same rules as the coach page:
+// group (100/50/0; Bench Boost lifts 50% → 100%) × captain (2×, Triple Captain 3×)
+const chipsOf = name => (round != null && store.get(`elf.chips.${name}`, {})[round]) || {};
+function shareOf(p, wc){
+  const slot = p.slot || (p.active === false ? "zero" : "full");
+  const group = (slot === "half" || slot === "bench") ? (wc.bb ? 1 : 0.5) : (MULT[slot] ?? 0);
+  const full = slot === "full" || slot === "active";
+  return group * (p.captain && full ? (wc.tc ? 3 : 2) : 1);
+}
 
 let games = [], round = null, box = {}, timer = null;
 
@@ -168,8 +176,9 @@ function playerPir(p){
 }
 function coachTotal(c){
   let t = 0, live = false;
+  const wc = chipsOf(c.name);
   rosterOf(c.name).forEach(p => {
-    const share = shareOf(p); if (!share) return;
+    const share = shareOf(p, wc); if (!share) return;
     const s = playerPir(p); if (s){ t += r1(s.f * share); live ||= s.live; }
   });
   return {total: r1(t), live};
