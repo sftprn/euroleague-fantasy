@@ -1,0 +1,3 @@
+# Proxy the Euroleague API through this site so the browser never makes cross-site calls
+/el-api/*   https://api-live.euroleague.net/:splat   200
+/el-live/*  https://live.euroleague.net/api/:splat   200

@@ -84,8 +84,11 @@ const COACHES = [
 /* ───────── config (same as coach page) ───────── */
 const today = new Date();
 const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1);
-const V2 = `https://api-live.euroleague.net/v2/competitions/E/seasons/${SEASON}`;
-const LIVE_API = "https://live.euroleague.net/api";
+// On the website, API calls go through Netlify's proxy (see _redirects) — Euroleague's
+// servers don't reliably allow browser calls from other sites. Opened as a local file → call directly.
+const DIRECT = location.protocol === "file:";
+const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
+const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
 const LIVE_POLL = 30_000, IDLE_POLL = 5 * 60_000;
 
 const store = {
