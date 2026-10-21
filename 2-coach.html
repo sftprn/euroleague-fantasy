@@ -14,29 +14,43 @@
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
-  html{background:var(--bg)}
-  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
+  html,body{height:100%;overflow:hidden;background:var(--bg)}
+  body{color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
   button{font:inherit;color:inherit}
-  .app{max-width:480px;margin:0 auto;min-height:100vh;padding:0 0 40px}
+
+  /* carousel: one full-screen page per coach, swipe sideways */
+  .track{display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+  .track::-webkit-scrollbar{display:none}
+  .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+  .page{max-width:480px;margin:0 auto;padding:0 0 calc(64px + env(safe-area-inset-bottom))}
+
+  /* dots */
+  .dots{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:7px;align-items:center;
+        padding:8px 12px;border-radius:999px;background:#0A0A0BB3;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #FFFFFF14;z-index:5}
+  .dots button{width:7px;height:7px;border-radius:999px;border:0;background:#FFFFFF4D;cursor:pointer;transition:width .2s,background .2s;padding:0}
+  .dots button.on{width:20px;background:var(--orange)}
 
   /* header */
   .head{position:relative;padding:calc(14px + env(safe-area-inset-top)) 16px 64px;margin-bottom:-44px;
         background:linear-gradient(180deg,#0A0A0B26 0%,#0A0A0B8C 45%,#0A0A0B 100%), url("assets/bg.jpg") center 30%/cover}
   .bar{display:flex;align-items:center;justify-content:space-between}
-  .icon-btn{width:42px;height:42px;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-            display:grid;place-items:center;text-decoration:none;color:#fff;font-size:22px;cursor:pointer;flex:none}
-  .plus{background:var(--orange);border-color:var(--orange);font-size:26px;font-weight:500;box-shadow:0 6px 18px #FF6B1A55}
+  .icon-btn{width:44px;height:44px;padding:0;line-height:1;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+            display:grid;place-items:center;text-decoration:none;color:#fff;font-size:24px;font-weight:500;cursor:pointer;flex:none}
+  .icon-btn svg{display:block}
+  .plus{background:var(--orange);border-color:var(--orange)}
   .plus:active{transform:scale(.95)}
+  .plus:disabled{background:#2B2B30;border-color:#2B2B30;color:#6A6A72;cursor:default;transform:none}
   .title{text-align:center;min-width:0;flex:1;padding:0 10px}
   .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;justify-content:center;align-items:center;gap:6px}
+  .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;justify-content:center;align-items:center;gap:6px;white-space:nowrap}
   .meta b{color:#fff;font-weight:800}
   .meta .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite}
   .demo-pill{background:#fff;color:#000;font-size:10px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:5px}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 
   .wrap{position:relative;padding:0 16px}
-  .banner{background:var(--danger);color:#fff;font-size:13px;font-weight:500;padding:11px 14px;border-radius:14px;margin-bottom:14px;display:none;justify-content:space-between;align-items:center;gap:10px}
+  .banner{position:fixed;left:50%;top:calc(66px + env(safe-area-inset-top));transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;z-index:6;
+          background:var(--danger);color:#fff;font-size:13px;font-weight:500;padding:11px 14px;border-radius:14px;display:none;justify-content:space-between;align-items:center;gap:10px}
   .banner.show{display:flex}
   .banner button{border:0;background:#ffffff26;color:#fff;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
 
@@ -73,7 +87,6 @@
   @keyframes blink{50%{opacity:.25}}
   .score{font-weight:700;color:#fff}
 
-  .p.empty{cursor:pointer}
   .p.empty .ph{background:transparent;border:1.5px dashed #46464D;color:var(--orange);font-size:22px;font-weight:500}
   .p.empty .who b{color:var(--dim);font-weight:600}
 
@@ -82,6 +95,7 @@
   .p.drop{box-shadow:inset 0 0 0 2px var(--orange);background:#FF6B1A1A!important;opacity:1!important}
   .ghost{position:fixed;z-index:30;pointer-events:none;margin:0;background:#232327;border:1px solid #3A3A40;border-radius:16px;box-shadow:0 18px 40px #000000AA;transform:scale(1.03) rotate(-1deg);opacity:1!important}
   body.dragging, body.dragging *{cursor:grabbing!important}
+  body.dragging .track{overflow:hidden}
 
   .skel{height:70px;border-top:1px solid var(--line);background:linear-gradient(90deg,#18181B,#232327,#18181B);background-size:200% 100%;animation:sk 1.2s infinite}
   @keyframes sk{to{background-position:-200% 0}}
@@ -128,30 +142,26 @@
   .r .add{width:38px;height:38px;border-radius:12px;border:0;background:var(--orange);color:#fff;font-size:22px;font-weight:500;flex:none;cursor:pointer}
   .r.taken{cursor:default}
   .r.taken .add{background:var(--card-2);color:var(--muted);font-size:15px}
+  .r .owner{flex:none;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--card-2);padding:5px 8px;border-radius:8px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .r-hint{padding:40px 10px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5}
 
-  .toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#fff;color:#000;font-size:13px;font-weight:600;padding:10px 14px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;z-index:40}
+  .toast{position:fixed;left:50%;bottom:calc(60px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#fff;color:#000;font-size:13px;font-weight:600;padding:10px 14px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;z-index:40}
   .toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
-<div class="app">
-  <header class="head">
-    <div class="bar">
+<div class="track" id="track">
+  <section class="slide"><div class="page">
+    <header class="head"><div class="bar">
       <a class="icon-btn" href="1-league.html" aria-label="Back">‹</a>
-      <div class="title">
-        <h1 id="coachName"></h1>
-        <div class="meta" id="meta">Loading…</div>
-      </div>
-      <button class="icon-btn plus" id="plusBtn" aria-label="Add player">+</button>
-    </div>
-  </header>
-
-  <div class="wrap">
-    <div class="banner" id="banner"><span>Couldn't reach the Euroleague API.</span><button id="retry">Retry</button></div>
-    <div class="list" id="list"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>
-  </div>
+      <div class="title"><h1>&nbsp;</h1><div class="meta">Loading…</div></div>
+      <button class="icon-btn plus" disabled aria-label="Add player">+</button>
+    </div></header>
+    <div class="wrap"><div class="list"><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div></div></div>
+  </div></section>
 </div>
+<nav class="dots" id="dots" aria-label="Coaches"></nav>
+<div class="banner" id="banner"><span>Couldn't reach the Euroleague API.</span><button id="retry">Retry</button></div>
 
 <!-- player actions -->
 <div id="actWrap">
@@ -185,9 +195,18 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/* ───────── league (hardcoded, same as the league page) ───────── */
+const COACHES = [
+  {name:"Justelis", team:"SPEEDsters"},
+  {name:"Darius",   team:"SPERMOS VAIKAI"},
+  {name:"Deivis",   team:"Kundžiai"},
+  {name:"Novikas",  team:"Vilkmergė"},
+  {name:"Titas",    team:"Geri Sprendimai 0.7"},
+  {name:"Saimonas", team:"KĖDAINIETIS"},
+];
+
 /* ───────── config ───────── */
 const qs = new URLSearchParams(location.search);
-const COACH = qs.get("coach") || "Darius";
 const DEMO = qs.has("demo");                  // ?demo → replays the last finished round as if live
 const today = new Date();
 const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1);
@@ -208,30 +227,31 @@ const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 };
-const RKEY = `elf.${DEMO ? "demo." : ""}roster.${COACH}`;
-let roster = store.get(RKEY, []);
-const saveRoster = () => store.set(RKEY, roster);
-const slotCount = s => roster.filter(p => p.slot === s).length;
-const freeSlot = () => ORDER.find(s => slotCount(s) < SLOTS[s]);
-// migrate rosters saved by earlier versions (active/bench/inactive or active: true/false)
+const rkey = n => `elf.${DEMO ? "demo." : ""}roster.${n}`;
+const rosters = {};
+const save = n => store.set(rkey(n), rosters[n]);
+const slotCount = (n, s) => rosters[n].filter(p => p.slot === s).length;
+const freeSlot = n => ORDER.find(s => slotCount(n, s) < SLOTS[s]);
 const LEGACY = {active:"full", bench:"half", inactive:"zero"};
-roster.forEach(p => {
-  if (LEGACY[p.slot]) p.slot = LEGACY[p.slot];
-  if (!p.slot) p.slot = p.active === false ? "zero" : "full";
-  delete p.active;
+COACHES.forEach(({name}) => {          // load + migrate rosters saved by earlier versions
+  const list = rosters[name] = store.get(rkey(name), []);
+  list.forEach(p => { if (LEGACY[p.slot]) p.slot = LEGACY[p.slot]; if (!p.slot) p.slot = p.active === false ? "zero" : "full"; delete p.active; });
+  ORDER.forEach(s => list.filter(p => p.slot === s).slice(SLOTS[s]).forEach(p => p.slot = null));
+  list.filter(p => !p.slot).forEach(p => p.slot = freeSlot(name) || "zero");
+  save(name);
 });
-ORDER.forEach(s => { roster.filter(p => p.slot === s).slice(SLOTS[s]).forEach(p => p.slot = null); });
-roster.filter(p => !p.slot).forEach(p => p.slot = freeSlot() || "zero");
-saveRoster();
 
 /* ───────── state ───────── */
-let people = [], games = [], round = null, box = {}, timer = null, busy = false, sel = null, target = null;
-let drag = null, suppressClick = false;
+let people = [], games = [], round = null, box = {}, timer = null, busy = false;
+let order = COACHES.map(c => c.name);            // carousel order (most → least PIR, set once data loads)
+let cur = COACHES.some(c => c.name === qs.get("coach")) ? qs.get("coach") : COACHES[0].name;
+let built = false, sel = null, target = null, drag = null, suppressClick = false;
 const $ = s => document.querySelector(s);
 const r1 = v => Math.round(v * 10) / 10;
 const fmt = v => r1(v).toFixed(1);
 const norm = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const track = $("#track");
 
 function niceName(raw){            // "WALKER IV, LONNIE" → "Lonnie Walker IV"
   const [last, first = ""] = raw.split(/,\s*/);
@@ -314,6 +334,11 @@ function stateOf(p){
   return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, mult, base, share,
           val: r1(base * share), score: `${me.pts}–${them.pts}`, q: b.q, t: b.t};
 }
+function coachTotal(n){
+  let total = 0, live = false;
+  if (games.length) rosters[n].forEach(p => { const s = stateOf(p); if (s.kind === "live" || s.kind === "final"){ total += s.val; live ||= s.kind === "live" && s.share > 0; } });
+  return {total: r1(total), live};
+}
 
 /* ───────── rendering ───────── */
 const when = u => new Date(u).toLocaleString([], {weekday:"short", hour:"2-digit", minute:"2-digit"});
@@ -346,13 +371,27 @@ const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="p
 const sortKey = r => r.s.kind === "live" ? [0, -r.s.base] : r.s.kind === "final" ? [1, -r.s.base]
                    : r.s.kind === "soon" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
 const byKey = (a, b) => { const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1]; };
+const slideOf = n => track.querySelector(`.slide[data-coach="${CSS.escape(n)}"]`);
 
-function render(){
-  if (drag && drag.on){ drag.pendingRender = true; return; }   // don't redraw under a finger mid-drag
-  $("#coachName").textContent = COACH;
-  const rows = roster.map((p, i) => ({p, i, s: games.length ? stateOf(p) : {kind:"none"}}));
-
-  $("#list").innerHTML = ORDER.map(slot => {
+function buildSlides(){
+  track.innerHTML = order.map(n => `
+    <section class="slide" data-coach="${esc(n)}"><div class="page">
+      <header class="head"><div class="bar">
+        <a class="icon-btn" href="1-league.html" aria-label="Back">‹</a>
+        <div class="title"><h1>${esc(n)}</h1><div class="meta"></div></div>
+        <button class="icon-btn plus" data-plus aria-label="Add player">+</button>
+      </div></header>
+      <div class="wrap"><div class="list"></div></div>
+    </div></section>`).join("");
+  $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" aria-label="${esc(n)}"></button>`).join("");
+  built = true;
+  render();
+  goTo(cur, false);
+}
+function renderSlide(n){
+  const el = slideOf(n); if (!el) return;
+  const rows = rosters[n].map((p, i) => ({p, i, s: games.length ? stateOf(p) : {kind:"none"}}));
+  el.querySelector(".list").innerHTML = ORDER.map(slot => {
     const list = rows.filter(r => r.p.slot === slot).sort(byKey);
     const open = Math.max(0, SLOTS[slot] - list.length);
     return `<div class="zone z-${slot}" data-zone="${slot}">
@@ -360,19 +399,58 @@ function render(){
       ${list.map(rowHTML).join("")}${emptyHTML(slot).repeat(open)}
     </div>`;
   }).join("");
-
-  const scored = rows.filter(r => r.s.kind === "live" || r.s.kind === "final");
-  const total = scored.reduce((t, r) => t + r.s.val, 0);
-  const anyLive = rows.some(r => r.s.kind === "live" && r.s.share > 0);
-  $("#meta").innerHTML = round
-    ? `${anyLive ? '<i class="dot"></i>' : ""}Round ${round} · <b>${fmt(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
+  const {total, live} = coachTotal(n);
+  el.querySelector(".meta").innerHTML = round
+    ? `${live ? '<i class="dot"></i>' : ""}Round ${round} · <b>${fmt(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
     : "Loading…";
-  $("#plusBtn").hidden = roster.length >= MAX;
+  el.querySelector("[data-plus]").disabled = rosters[n].length >= MAX;
+}
+function render(){
+  if (!built) return;
+  if (drag && drag.on){ drag.pendingRender = true; return; }   // don't redraw under a finger mid-drag
+  order.forEach(renderSlide);
+  updateDots();
 }
 
+/* ───────── carousel ───────── */
+function goTo(n, smooth = true){
+  const i = order.indexOf(n); if (i < 0) return;
+  track.scrollTo({left: i * track.clientWidth, behavior: smooth ? "smooth" : "instant"});
+  setCurrent(n);
+}
+function setCurrent(n){
+  if (n === cur && document.title.includes(n)) { updateDots(); return; }
+  cur = n;
+  updateDots();
+  document.title = `${n} · EL Fantasy`;
+  const u = new URL(location.href); u.searchParams.set("coach", n);
+  history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
+}
+function updateDots(){
+  $("#dots").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.go === cur));
+}
+let scrollRaf = 0;
+track.addEventListener("scroll", () => {
+  cancelAnimationFrame(scrollRaf);
+  scrollRaf = requestAnimationFrame(() => {
+    const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    if (order[i] && order[i] !== cur) setCurrent(order[i]);
+  });
+}, {passive:true});
+addEventListener("resize", () => { if (built) track.scrollTo({left: order.indexOf(cur) * track.clientWidth, behavior:"instant"}); });
+$("#dots").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) goTo(b.dataset.go); });
+document.addEventListener("keydown", e => {
+  if ($("#finder").classList.contains("open") || document.activeElement?.tagName === "INPUT") return;
+  const i = order.indexOf(cur);
+  if (e.key === "ArrowRight" && order[i + 1]) goTo(order[i + 1]);
+  if (e.key === "ArrowLeft" && order[i - 1]) goTo(order[i - 1]);
+});
+
 /* ───────── refresh loop ───────── */
+const allPlayers = () => COACHES.flatMap(c => rosters[c.name]);
 function relevantGames(){
-  return games.filter(g => g.r === round && roster.some(p => p.club === g.h.c || p.club === g.a.c));
+  const clubs = new Set(allPlayers().map(p => p.club));
+  return games.filter(g => g.r === round && (clubs.has(g.h.c) || clubs.has(g.a.c)));
 }
 async function refresh(){
   if (busy || !games.length) return;
@@ -384,7 +462,10 @@ async function refresh(){
     $("#banner").classList.remove("show");
   }catch{ $("#banner").classList.add("show"); }
   busy = false;
-  render();
+  if (!built){       // first load: order coaches by this round's PIR, most → least
+    order = COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n);
+    buildSlides();
+  } else render();
   schedule();
 }
 function schedule(){
@@ -414,110 +495,124 @@ function currentRound(){         // latest round that has tipped off
 }
 
 async function boot(){
-  render();
   try{
     [people, games] = await Promise.all([loadPeople(), loadGames()]);
     round = currentRound();
-    if (DEMO && !roster.length) seedDemo();
+    if (DEMO) seedDemo();
     $("#banner").classList.remove("show");
   }catch{
-    $("#banner").classList.add("show"); render(); return;
+    $("#banner").classList.add("show");
+    if (!built) buildSlides();
+    return;
   }
   refresh();
 }
-function seedDemo(){         // one player per club playing this round
+function seedDemo(){         // demo: give every empty coach a different set of players from this round
   const clubs = games.filter(g => g.r === round).flatMap(g => [g.h.c, g.a.c]);
-  const picks = [];
-  clubs.forEach(c => { const p = people.find(x => x.club === c && x.img && !picks.includes(x)); if (p && picks.length < MAX) picks.push(p); });
-  roster = [];
-  picks.forEach(p => roster.push({...p, slot: freeSlot()}));
-  saveRoster();
+  const used = new Set(allPlayers().map(p => p.code));
+  COACHES.forEach(({name}, k) => {
+    if (rosters[name].length) return;
+    let n = 0;
+    clubs.forEach((c, j) => {
+      if (n >= MAX || (j + k) % 2) return;                      // vary clubs between coaches
+      const p = people.find(x => x.club === c && x.img && !used.has(x.code));
+      if (p){ used.add(p.code); rosters[name].push({...p, slot: freeSlot(name)}); n++; }
+    });
+    save(name);
+  });
 }
 
 /* ───────── interactions ───────── */
 $("#retry").onclick = boot;
 const actWrap = $("#actWrap"), finder = $("#finder");
 document.querySelectorAll("[data-close]").forEach(s => s.onclick = () => actWrap.classList.remove("open"));
+const coachOf = el => el.closest(".slide")?.dataset.coach;
 
 document.addEventListener("click", e => {
+  const plus = e.target.closest("[data-plus]");
+  if (plus){ const n = coachOf(plus); openFinder(n, freeSlot(n)); return; }
   const add = e.target.closest("[data-add]");
-  if (add){ openFinder(add.dataset.add); return; }
-  const r = e.target.closest(".p"); if (!r || !r.dataset.i) return;
-  sel = +r.dataset.i; const p = roster[sel], s = stateOf(p);
+  if (add){ openFinder(coachOf(add), add.dataset.add); return; }
+  const r = e.target.closest(".slide .p[data-i]"); if (!r) return;
+  const n = coachOf(r);
+  sel = {n, i: +r.dataset.i}; const p = rosters[n][sel.i], s = stateOf(p);
   $("#shName").textContent = p.name;
   $("#shMeta").textContent = `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}`;
   $("#shCalc").innerHTML = (s.kind === "final" || s.kind === "live")
     ? `${s.kind === "final" ? `${s.raw} × ${s.mult}` : "live"} × ${LABEL[p.slot]}<strong>${fmt(s.val)} PIR</strong>` : `<strong>–</strong>`;
   $("#moves").innerHTML = ORDER.map(slot => {
-    const isFull = slotCount(slot) >= SLOTS[slot];
+    const isFull = slotCount(n, slot) >= SLOTS[slot];
     return `<button class="act ${slot === p.slot ? "here" : ""}" data-slot="${slot}" ${isFull ? "disabled" : ""}>
-      <span class="ic">⇅</span>Move to ${LABEL[slot]}<small>${isFull ? "full" : `${slotCount(slot)}/${SLOTS[slot]}`}</small></button>`;
+      <span class="ic">⇅</span>Move to ${LABEL[slot]}<small>${isFull ? "full" : `${slotCount(n, slot)}/${SLOTS[slot]}`}</small></button>`;
   }).join("");
   actWrap.classList.add("open");
 });
 $("#moves").addEventListener("click", e => {
   const b = e.target.closest("[data-slot]"); if (!b) return;
-  const p = roster[sel]; p.slot = b.dataset.slot; saveRoster();
-  actWrap.classList.remove("open"); render(); toast(`${p.name} → ${LABEL[p.slot]}`);
+  const p = rosters[sel.n][sel.i]; p.slot = b.dataset.slot; save(sel.n);
+  actWrap.classList.remove("open"); renderSlide(sel.n); toast(`${p.name} → ${LABEL[p.slot]}`);
 });
-$("#removeBtn").onclick = () => { const [p] = roster.splice(sel, 1); saveRoster(); actWrap.classList.remove("open"); render(); toast(`${p.name} removed`); };
+$("#removeBtn").onclick = () => { const [p] = rosters[sel.n].splice(sel.i, 1); save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); toast(`${p.name} removed`); };
 
 /* full-screen add player */
-$("#plusBtn").onclick = () => openFinder(freeSlot());
 $("#closeFinder").onclick = closeFinder;
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeFinder(); });
-function openFinder(slot){
+function openFinder(n, slot){
   if (!slot){ toast("Roster is full (13/13)"); return; }
-  target = slot;
+  target = {n, slot};
   finder.classList.add("open");
-  document.body.style.overflow = "hidden";
   renderResults();
   setTimeout(() => $("#q").focus(), 260);
 }
 function closeFinder(){
   finder.classList.remove("open");
-  document.body.style.overflow = "";
   $("#q").blur();
 }
 $("#q").addEventListener("input", renderResults);
 function renderResults(){
-  const open = SLOTS[target] - slotCount(target);
-  $("#slots").innerHTML = `Adding to <b>${LABEL[target]}</b> · ${open} open slot${open === 1 ? "" : "s"} · ${roster.length}/13 players`;
+  if (!target) return;
+  const {n, slot} = target;
+  const open = SLOTS[slot] - slotCount(n, slot);
+  $("#slots").innerHTML = `${esc(n)} · adding to <b>${LABEL[slot]}</b> · ${open} open slot${open === 1 ? "" : "s"} · ${rosters[n].length}/13`;
   const q = norm($("#q").value.trim());
   const out = $("#results");
   if (!people.length){ out.innerHTML = `<div class="r-hint">Loading Euroleague players…</div>`; return; }
   if (q.length < 2){ out.innerHTML = `<div class="r-hint">Type a player name or team.<br>${people.length} players in the ${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} season.</div>`; return; }
   const hits = people.filter(p => norm(p.name).includes(q) || norm(p.clubName).includes(q) || norm(p.tv) === q || norm(p.club) === q).slice(0, 60);
-  const mine = new Set(roster.map(p => p.code));
-  out.innerHTML = hits.map(p => `
-    <div class="r ${mine.has(p.code) ? "taken" : ""}" data-code="${p.code}">
+  const owner = {};
+  COACHES.forEach(c => rosters[c.name].forEach(p => owner[p.code] = c.name));
+  out.innerHTML = hits.map(p => {
+    const o = owner[p.code], mine = o === n;
+    return `<div class="r ${o ? "taken" : ""}" data-code="${p.code}">
       ${photo(p)}
       <div class="who"><b>${esc(p.name)}</b><small>${p.crest ? `<img class="crest" src="${esc(p.crest)}" alt="">` : ""}<span class="tv">${esc(p.tv)}</span> ${esc(p.clubName)} · ${esc(p.pos)}</small></div>
-      <button class="add" aria-label="Add">${mine.has(p.code) ? "✓" : "+"}</button>
-    </div>`).join("") || `<div class="r-hint">No players match “${esc($("#q").value)}”.</div>`;
+      ${o && !mine ? `<span class="owner">${esc(o)}</span>` : `<button class="add" aria-label="Add">${mine ? "✓" : "+"}</button>`}
+    </div>`;
+  }).join("") || `<div class="r-hint">No players match “${esc($("#q").value)}”.</div>`;
 }
 $("#results").addEventListener("click", e => {
   const r = e.target.closest(".r"); if (!r || r.classList.contains("taken")) return;
-  if (slotCount(target) >= SLOTS[target]) target = freeSlot();
-  if (!target){ toast("Roster is full (13/13)"); closeFinder(); return; }
+  const n = target.n;
+  if (slotCount(n, target.slot) >= SLOTS[target.slot]) target.slot = freeSlot(n);
+  if (!target.slot){ toast("Roster is full (13/13)"); closeFinder(); return; }
   const p = people.find(x => x.code === r.dataset.code);
-  roster.push({...p, slot: target}); saveRoster();
-  toast(`${p.name} → ${LABEL[target]}`);
-  render(); refresh();
-  if (slotCount(target) >= SLOTS[target]){ target = freeSlot(); if (!target){ setTimeout(closeFinder, 500); return; } }
+  rosters[n].push({...p, slot: target.slot}); save(n);
+  toast(`${p.name} → ${LABEL[target.slot]}`);
+  renderSlide(n); refresh();
+  if (slotCount(n, target.slot) >= SLOTS[target.slot]){ target.slot = freeSlot(n); if (!target.slot){ setTimeout(closeFinder, 500); return; } }
   renderResults();
 });
 
 function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); }
 
-/* ───────── drag & swap ─────────
+/* ───────── drag & swap (within one coach) ─────────
    Touch: press and hold ~0.3s, then drag. Mouse: just drag.
    Drop on a player in another group → they swap groups.
    Drop on another group's heading / empty slot → move there if it has room. */
 document.addEventListener("pointerdown", e => {
-  const card = e.target.closest("#list .p[data-i]");
+  const card = e.target.closest(".slide .p[data-i]");
   if (!card || e.button > 0) return;
-  drag = {card, i:+card.dataset.i, x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, id:e.pointerId, type:e.pointerType, on:false};
+  drag = {card, n: coachOf(card), slide: card.closest(".slide"), i:+card.dataset.i, x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, id:e.pointerId, type:e.pointerType, on:false};
   if (e.pointerType !== "mouse") drag.timer = setTimeout(() => drag && startDrag(), 300);
 });
 document.addEventListener("pointermove", e => {
@@ -526,7 +621,7 @@ document.addEventListener("pointermove", e => {
   if (!drag.on){
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8){
       if (drag.type === "mouse") startDrag();
-      else { clearTimeout(drag.timer); drag = null; }        // finger moved first → it's a scroll
+      else { clearTimeout(drag.timer); drag = null; }        // finger moved first → it's a scroll or swipe
     }
     return;
   }
@@ -554,14 +649,14 @@ function startDrag(){
     if (!drag || !drag.on) return;
     const edge = 80, y = drag.ly;
     const v = y < edge ? -(edge - y) / 6 : y > innerHeight - edge ? (y - (innerHeight - edge)) / 6 : 0;
-    if (v){ scrollBy(0, v); highlight(); }
+    if (v){ drag.slide.scrollBy(0, v); highlight(); }
     requestAnimationFrame(scroll);
   })();
 }
 function dropTarget(){
   const el = document.elementFromPoint(drag.lx, drag.ly);
-  if (!el) return null;
-  return el.closest("#list .p[data-i]") || el.closest("[data-zone]");
+  if (!el || el.closest(".slide") !== drag.slide) return null;
+  return el.closest(".p[data-i]") || el.closest("[data-zone]");
 }
 function highlight(){
   document.querySelectorAll(".drop").forEach(n => n.classList.remove("drop"));
@@ -582,13 +677,13 @@ function endDrag(commit){
   d.ghost.remove();
   document.body.classList.remove("dragging");
   document.querySelectorAll(".drop,.lifted").forEach(n => n.classList.remove("drop", "lifted"));
-  if (commit && d.target) applyDrop(d.i, d.target);
+  if (commit && d.target) applyDrop(d.n, d.i, d.target);
   render();
 }
-function applyDrop(i, t){
-  const src = roster[i];
+function applyDrop(n, i, t){
+  const list = rosters[n], src = list[i];
   if (t.matches(".p")){
-    const o = roster[+t.dataset.i];
+    const o = list[+t.dataset.i];
     if (!o || o === src) return;
     if (o.slot === src.slot){ toast("They're already in the same group"); return; }
     [src.slot, o.slot] = [o.slot, src.slot];
@@ -596,11 +691,11 @@ function applyDrop(i, t){
   } else {
     const slot = t.dataset.zone;
     if (slot === src.slot) return;
-    if (slotCount(slot) >= SLOTS[slot]){ toast(`${LABEL[slot]} is full — drop onto a player to swap`); return; }
+    if (slotCount(n, slot) >= SLOTS[slot]){ toast(`${LABEL[slot]} is full — drop onto a player to swap`); return; }
     src.slot = slot;
     toast(`${src.name} → ${LABEL[slot]}`);
   }
-  saveRoster();
+  save(n);
 }
 
 boot();
