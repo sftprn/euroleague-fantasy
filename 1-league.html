@@ -186,7 +186,7 @@ function render(){
       <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
         <div class="who">${i === 0 ? `<span class="lbl">LEADING ROUND ${round ?? "–"}</span>` : ""}<b>${esc(c.team)}</b></div>
-        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.total.toFixed(1)}<small>PIR</small></div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}`}<span class="chev">›</span></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.total.toFixed(1)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
 }
