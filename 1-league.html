@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>League · EL Fantasy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F3EF; --card:#FFFFFF; --ink:#111113; --muted:#8A8A90; --line:#E6E4DE;
+    --orange:#FF5A00; --orange-soft:#FFF0E6;
+    --cond:"Barlow Condensed","Arial Narrow",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px}
+  .app{max-width:440px;margin:0 auto;min-height:100vh;padding:0 16px 40px}
+
+  /* header */
+  header{padding:22px 0 18px;display:flex;align-items:center}
+  .brand{display:flex;align-items:center;gap:10px}
+  .ball{width:30px;height:30px;border-radius:50%;background:var(--orange);position:relative;overflow:hidden;flex:none}
+  .ball::before,.ball::after{content:"";position:absolute;border:1.6px solid #111;border-radius:50%}
+  .ball::before{inset:-2px 12px}
+  .ball::after{inset:12px -2px}
+  .brand h1{font-family:var(--cond);font-weight:800;font-size:20px;letter-spacing:.04em;line-height:1}
+  .brand small{display:block;font-size:11px;color:var(--muted);letter-spacing:.12em;font-weight:600;margin-top:2px}
+
+  /* leader card */
+  .leader{background:var(--ink);color:#fff;border-radius:18px;padding:18px;position:relative;overflow:hidden;margin-bottom:22px}
+  .leader::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;border:28px solid var(--orange);opacity:.9}
+  .leader .lbl{font-size:11px;letter-spacing:.14em;color:#ffffff99;font-weight:600}
+  .leader .name{font-family:var(--cond);font-size:30px;font-weight:700;margin-top:6px;position:relative;z-index:1}
+  .leader .team{font-size:13px;color:#ffffffaa;position:relative;z-index:1}
+  .leader .pts{font-family:var(--cond);font-size:48px;font-weight:800;line-height:1;margin-top:8px;position:relative;z-index:1}
+  .leader .pts span{font-size:16px;font-weight:600;color:#ffffff99;margin-left:4px}
+
+  /* standings */
+  .list{background:var(--card);border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+  .row{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;transition:background .15s}
+  .row:last-child{border-bottom:0}
+  .row:active{background:#FAF9F6}
+  .rank{width:22px;font-family:var(--cond);font-weight:700;font-size:20px;color:var(--muted);text-align:center;flex:none}
+  .row:first-child .rank{color:var(--orange)}
+  .who{flex:1;min-width:0}
+  .who b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who small{color:var(--muted);font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .score{font-family:var(--cond);font-size:24px;font-weight:700;line-height:1;text-align:right;flex:none}
+  .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--orange);margin-right:6px;vertical-align:2px;animation:pulse 1.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 #FF5A0080}70%{box-shadow:0 0 0 6px #FF5A0000}100%{box-shadow:0 0 0 0 #FF5A0000}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="ball"></div>
+      <div><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
+    </div>
+  </header>
+
+  <div class="leader">
+    <div class="lbl" id="leadLbl">LEADING THE ROUND</div>
+    <div class="name" id="leadName">—</div>
+    <div class="team" id="leadTeam"></div>
+    <div class="pts" id="leadPts">0.0<span>PIR</span></div>
+  </div>
+
+  <div class="list" id="list"></div>
+</div>
+
+<script>
+/* ───────── league (hardcoded) ───────── */
+const COACHES = [
+  {name:"Justelis", team:"SPEEDsters"},
+  {name:"Darius",   team:"SPERMOS VAIKAI"},
+  {name:"Deivis",   team:"Kundžiai"},
+  {name:"Novikas",  team:"Vilkmergė"},
+  {name:"Titas",    team:"Geri Sprendimai 0.7"},
+  {name:"Saimonas", team:"KĖDAINIETIS"},
+];
+
+/* ───────── config (same as coach page) ───────── */
+const today = new Date();
+const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1);
+const V2 = `https://api-live.euroleague.net/v2/competitions/E/seasons/${SEASON}`;
+const LIVE_API = "https://live.euroleague.net/api";
+const LIVE_POLL = 30_000, IDLE_POLL = 5 * 60_000;
+
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+const $ = s => document.querySelector(s);
+const r1 = v => Math.round(v * 10) / 10;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rosterOf = name => store.get(`elf.roster.${name}`, []);
+
+let games = [], round = null, box = {}, timer = null;
+
+async function getJSON(url){
+  const r = await fetch(url, {cache:"no-store"});
+  if (!r.ok) throw new Error(r.status);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+async function cached(key, ttl, loader){
+  const c = store.get(key);
+  if (c && Date.now() - c.t < ttl) return c.v;
+  try{ const v = await loader(); store.set(key, {t:Date.now(), v}); return v; }
+  catch(e){ if (c) return c.v; throw e; }
+}
+const loadGames = () => cached(`elf.games.${SEASON}`, 30 * 60e3, async () => {
+  const d = (await getJSON(`${V2}/games`)).data;
+  const side = s => ({c:s.club.code, tv:s.club.tvCode || s.club.code});
+  return d.map(x => ({c:x.gameCode, r:x.round, u:x.utcDate, p:x.played, h:side(x.local), a:side(x.road)}));
+});
+async function loadBox(g){
+  const key = `elf.box.${SEASON}.${g.c}`;
+  const c = store.get(key);
+  if (c && c.final) return c;
+  const d = await getJSON(`${LIVE_API}/Boxscore?gamecode=${g.c}&seasoncode=${SEASON}`);
+  if (!d || !d.Stats || d.Stats.length < 2) return {pending:true};
+  const teams = d.Stats.map(s => {
+    const pl = {};
+    s.PlayersStats.forEach(p => pl[p.Player_ID.replace(/^P/, "").trim()] = {pir:p.Valuation, min:p.Minutes});
+    return {pts: +(s.totr?.Points || 0), pl};
+  });
+  const tot = teams[0].pts + teams[1].pts;
+  const b = {live: !!d.Live, final: !d.Live && tot > 0, pending: !d.Live && tot === 0, teams};
+  if (b.final) store.set(key, b);
+  return b;
+}
+
+/* PIR for one player this round (null = not played yet) */
+function playerFpts(p){
+  const g = games.find(g => g.r === round && (g.h.c === p.club || g.a.c === p.club));
+  if (!g) return null;
+  const b = box[g.c];
+  if (!b || b.pending) return null;
+  const home = g.h.c === p.club;
+  const ti = b.teams[0].pl[p.code] ? 0 : b.teams[1].pl[p.code] ? 1 : (home ? 0 : 1);
+  const me = b.teams[ti], them = b.teams[1 - ti], st = me.pl[p.code];
+  const pir = st && !/dnp/i.test(st.min || "") ? st.pir : 0;
+  // live: raw PIR · final: ±10% for the team's win/loss (same rule as the coach page)
+  return {f: b.live ? pir : r1(pir * (me.pts > them.pts ? 1.1 : 0.9)), live: b.live};
+}
+function coachTotal(c){
+  let t = 0, live = false;
+  rosterOf(c.name).filter(p => p.slot ? p.slot !== "inactive" : p.active).forEach(p => { const s = playerFpts(p); if (s){ t += s.f; live ||= s.live; } });
+  return {total: r1(t), live};
+}
+
+function render(){
+  $("#roundTxt").textContent = `${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} · ROUND ${round ?? "–"}`;
+  const rows = COACHES.map(c => ({...c, ...coachTotal(c)})).sort((a, b) => b.total - a.total);
+  $("#list").innerHTML = rows.map((c, i) => `
+    <a class="row" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
+      <div class="rank">${i + 1}</div>
+      <div class="who"><b>${esc(c.name)}</b><small>${esc(c.team)}</small></div>
+      <div class="score">${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}</div>
+    </a>`).join("");
+  const l = rows[0];
+  $("#leadLbl").textContent = `LEADING ROUND ${round ?? "–"}`;
+  $("#leadName").textContent = l.name;
+  $("#leadTeam").textContent = l.team;
+  $("#leadPts").innerHTML = l.total.toFixed(1) + "<span>PIR</span>";
+}
+
+/* ───────── refresh loop ───────── */
+function relevantGames(){
+  const clubs = new Set(COACHES.flatMap(c => rosterOf(c.name).map(p => p.club)));
+  return games.filter(g => g.r === round && (clubs.has(g.h.c) || clubs.has(g.a.c)));
+}
+async function refresh(){
+  if (!games.length) return;
+  const need = relevantGames().filter(g => new Date(g.u) <= new Date());
+  const res = await Promise.all(need.map(g => loadBox(g).then(b => [g.c, b]).catch(() => [g.c, box[g.c]])));
+  res.forEach(([c, b]) => { if (b) box[c] = b; });
+  render();
+  clearTimeout(timer);
+  if (document.hidden) return;
+  const now = Date.now(), rel = relevantGames();
+  const inPlay = rel.some(g => new Date(g.u) <= now && !(box[g.c] && box[g.c].final));
+  const next = rel.map(g => +new Date(g.u)).filter(t => t > now).sort((a, b) => a - b)[0];
+  timer = setTimeout(refresh, inPlay ? LIVE_POLL : next ? Math.min(IDLE_POLL, Math.max(10_000, next - now + 5_000)) : IDLE_POLL);
+}
+document.addEventListener("visibilitychange", () => document.hidden ? clearTimeout(timer) : refresh());
+
+async function boot(){
+  render();
+  try{
+    games = await loadGames();
+    const started = games.filter(g => new Date(g.u) <= new Date());
+    round = started.length ? Math.max(...started.map(g => g.r)) : Math.min(...games.map(g => g.r));
+  }catch{ render(); return; }
+  refresh();
+}
+boot();
+</script>
+</body>
+</html>

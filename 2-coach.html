@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roster · EL Fantasy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F3EF; --card:#FFFFFF; --ink:#111113; --muted:#8A8A90; --line:#E6E4DE;
+    --orange:#FF5A00; --orange-soft:#FFF0E6; --win:#14975A; --win-soft:#E5F5EC; --loss:#D93A2B; --loss-soft:#FDECEA;
+    --cond:"Barlow Condensed","Arial Narrow",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px}
+  .app{max-width:440px;margin:0 auto;min-height:100vh;padding:0 16px 40px}
+  button{font:inherit;color:inherit}
+
+  /* top */
+  .top{display:flex;align-items:center;gap:12px;padding:18px 0 22px}
+  .icon-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;text-decoration:none;color:var(--ink);font-size:20px;flex:none}
+  .title{flex:1;min-width:0;text-align:center;padding-right:52px}
+  .title h1{font-family:var(--cond);font-weight:800;font-size:26px;letter-spacing:.02em;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta{font-family:var(--cond);font-weight:600;font-size:15px;letter-spacing:.08em;color:var(--muted);margin-top:3px;display:flex;justify-content:center;align-items:center;gap:6px}
+  .meta b{color:var(--orange);font-weight:700}
+  .meta .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite}
+  .demo-pill{background:var(--ink);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;padding:2px 6px;border-radius:5px;font-family:Inter}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 #FF5A0080}70%{box-shadow:0 0 0 6px #FF5A0000}100%{box-shadow:0 0 0 0 #FF5A0000}}
+
+  .sec{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 10px}
+  .sec h2{font-family:var(--cond);font-size:14px;letter-spacing:.14em;font-weight:700}
+  .sec span{font-size:12px;color:var(--muted);font-weight:500}
+  .gap{margin-top:26px}
+  .inactive .sec h2{color:var(--muted)}
+
+  .list{background:var(--card);border-radius:16px;border:1px solid var(--line);overflow:hidden}
+  .p{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;position:relative}
+  .p:last-child{border-bottom:0}
+  .p:active{background:#FAF9F6}
+  .ph{width:38px;height:38px;border-radius:50%;background:#F1EFEA;flex:none;overflow:hidden;position:relative;display:grid;place-items:center;font-family:var(--cond);font-weight:700;font-size:14px;color:var(--muted)}
+  .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+  .who{flex:1;min-width:0}
+  .who b{display:block;font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who small{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+  .tv{font-weight:600;color:#6c6c72}
+  .res{font-size:10px;font-weight:700;padding:2px 5px;border-radius:5px;letter-spacing:.04em}
+  .res.W{background:var(--win-soft);color:var(--win)} .res.L{background:var(--loss-soft);color:var(--loss)} .res.D{background:#F1EFEA;color:var(--muted)}
+  .val{min-width:52px;text-align:right;font-family:var(--cond);font-size:24px;font-weight:700}
+  .p.up .val,.p.soon .val,.p.none .val{color:#C9C6BE;font-weight:600}
+
+  /* drag & swap */
+  .p{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  .p img{-webkit-user-drag:none;pointer-events:none}
+  .p.lifted{opacity:.25}
+  .p.drop{box-shadow:inset 0 0 0 2px var(--orange);background:var(--orange-soft)!important;opacity:1!important}
+  .zone{border-radius:18px;transition:box-shadow .15s}
+  .zone.drop{box-shadow:0 0 0 2px var(--orange);background:#FF5A000a}
+  .ghost{position:fixed;z-index:30;pointer-events:none;margin:0;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 36px #00000030;transform:scale(1.03) rotate(-1deg);opacity:1!important;transition:transform .12s}
+  body.dragging, body.dragging *{cursor:grabbing!important}
+
+  /* live row */
+  .p.live{background:linear-gradient(90deg,#FFF3EA,#FFFFFF 70%)}
+  .p.live::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--orange)}
+  .p.live .val{color:var(--orange)}
+  .lchip{display:inline-flex;align-items:center;gap:4px;background:var(--orange);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;letter-spacing:.04em}
+  .lchip i{width:5px;height:5px;border-radius:50%;background:#fff;animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .score{font-weight:600;color:var(--ink)}
+
+  /* inactive */
+  .inactive .list{background:transparent;border-style:dashed;border-width:1.5px;border-color:#D6D3CB}
+  .inactive .p{opacity:.55;border-bottom-style:dashed}
+  .inactive .p.live{opacity:.8;background:transparent}
+  .inactive .val{text-decoration:line-through;text-decoration-thickness:1.5px}
+
+  .add-slot{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 14px;margin-top:6px;border:0;border-radius:14px;background:transparent;cursor:pointer;color:var(--orange);font-family:var(--cond);font-size:16px;font-weight:700;letter-spacing:.06em}
+  .add-slot:active{background:var(--orange-soft)}
+  .add-slot .plus{width:24px;height:24px;border-radius:8px;background:var(--orange-soft);display:grid;place-items:center;font-size:17px;line-height:1}
+
+  .banner{background:var(--loss-soft);color:var(--loss);font-size:13px;padding:10px 12px;border-radius:12px;margin-bottom:14px;display:none;justify-content:space-between;align-items:center;gap:10px}
+  .banner.show{display:flex}
+  .banner button{border:0;background:var(--loss);color:#fff;font-weight:600;font-size:12px;padding:6px 10px;border-radius:8px;cursor:pointer}
+
+
+  /* sheets */
+  .scrim{position:fixed;inset:0;background:#11111366;opacity:0;pointer-events:none;transition:.2s;z-index:10}
+  .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:440px;background:var(--card);border-radius:22px 22px 0 0;padding:10px 16px 26px;transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11}
+  .open .scrim{opacity:1;pointer-events:auto}
+  .open .sheet{transform:translate(-50%,0);visibility:visible}
+  .grab{width:40px;height:4px;background:var(--line);border-radius:4px;margin:0 auto 16px}
+  .sh-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 4px 14px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .sh-head b{font-family:var(--cond);font-size:24px;font-weight:700;display:block}
+  .sh-head small{color:var(--muted);font-size:12px}
+  .calc{font-family:var(--cond);font-size:15px;color:var(--muted);text-align:right;flex:none}
+  .calc strong{display:block;font-size:26px;color:var(--ink)}
+  .act{display:flex;align-items:center;gap:12px;width:100%;padding:13px 6px;border:0;background:none;font:500 15px Inter;color:var(--ink);cursor:pointer;border-radius:10px;text-align:left}
+  .act:active{background:#F6F5F1}
+  .act .ic{width:34px;height:34px;border-radius:10px;background:#F1EFEA;display:grid;place-items:center;font-size:15px;flex:none}
+  .act small{margin-left:auto;font-size:12px;color:var(--muted)}
+  .act.danger{color:var(--loss)} .act.danger .ic{background:var(--loss-soft)}
+  .act[disabled]{opacity:.4;pointer-events:none}
+  .act.here{display:none}
+
+  /* search sheet */
+  .sheet.tall{height:88vh;display:flex;flex-direction:column;padding-bottom:0}
+  .s-head{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px 12px}
+  .s-head h3{font-family:var(--cond);font-size:26px;font-weight:700}
+  .s-head span{font-size:12px;color:var(--muted);font-weight:600}
+  .searchbox{display:flex;align-items:center;gap:10px;height:50px;border:1.5px solid var(--line);border-radius:14px;padding:0 14px;background:#FAFAF8}
+  .searchbox:focus-within{border-color:var(--orange);background:#fff}
+  .searchbox svg{flex:none;color:var(--muted)}
+  .searchbox input{flex:1;min-width:0;border:0;background:none;font:500 16px Inter;color:var(--ink);height:100%}
+  .searchbox input:focus{outline:none}
+  .results{flex:1;overflow-y:auto;margin:10px -16px 0;padding:0 16px 30px;-webkit-overflow-scrolling:touch}
+  .r{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+  .r:active{background:#FAF9F6}
+  .r .crest{width:16px;height:16px;object-fit:contain;vertical-align:-3px}
+  .r .add{width:34px;height:34px;border-radius:10px;border:0;background:var(--orange-soft);color:var(--orange);font-size:20px;font-weight:600;flex:none;cursor:pointer}
+  .r.taken{cursor:default}
+  .r.taken .add{background:#F1EFEA;color:var(--muted);font-size:14px}
+  .r-hint{padding:30px 10px;text-align:center;color:var(--muted);font-size:13px}
+
+  .toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,20px);background:var(--ink);color:#fff;font-size:13px;padding:10px 14px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;z-index:20}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .skel{height:62px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#fff,#F6F5F1,#fff);background-size:200% 100%;animation:sk 1.2s infinite}
+  @keyframes sk{to{background-position:-200% 0}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="top">
+    <a class="icon-btn" href="1-league.html" aria-label="Back">‹</a>
+    <div class="title">
+      <h1 id="coachName"></h1>
+      <div class="meta" id="meta">Loading…</div>
+    </div>
+  </div>
+
+  <div class="banner" id="banner"><span>Couldn't reach the Euroleague API.</span><button id="retry">Retry</button></div>
+
+  <div class="zone" data-zone="active">
+    <div class="sec"><h2>ACTIVE</h2></div>
+    <div class="list" id="list-active"><div class="skel"></div><div class="skel"></div></div>
+    <div id="add-active"></div>
+  </div>
+
+  <div class="zone" data-zone="bench">
+    <div class="sec gap"><h2>BENCH</h2></div>
+    <div class="list" id="list-bench" hidden></div>
+    <div id="add-bench"></div>
+  </div>
+
+  <div class="inactive zone" data-zone="inactive">
+    <div class="sec gap"><h2>INACTIVE</h2></div>
+    <div class="list" id="list-inactive" hidden></div>
+    <div id="add-inactive"></div>
+  </div>
+</div>
+
+
+<!-- player actions -->
+<div id="actWrap">
+  <div class="scrim" data-close></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sh-head">
+      <div style="min-width:0"><b id="shName"></b><small id="shMeta"></small></div>
+      <div class="calc" id="shCalc"></div>
+    </div>
+    <div id="moves"></div>
+    <button class="act danger" id="removeBtn"><span class="ic">✕</span>Remove from roster</button>
+    <p class="note">Tip: press and hold a player, then drag onto another player to swap them.</p>
+  </div>
+</div>
+
+<!-- search -->
+<div id="searchWrap">
+  <div class="scrim" data-close></div>
+  <div class="sheet tall">
+    <div class="grab"></div>
+    <div class="s-head"><h3 id="sheetTitle">Add player</h3><span id="slots"></span></div>
+    <label class="searchbox">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search player or team" autocomplete="off" autocorrect="off" spellcheck="false">
+    </label>
+    <div class="results" id="results"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ───────── config ───────── */
+const qs = new URLSearchParams(location.search);
+const COACH = qs.get("coach") || "Darius";
+const DEMO = qs.has("demo");                  // ?demo → replays the last finished round as if live
+const today = new Date();
+const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1);
+const V2 = `https://api-live.euroleague.net/v2/competitions/E/seasons/${SEASON}`;
+const LIVE_API = "https://live.euroleague.net/api";
+const SLOTS = {active:5, bench:5, inactive:3};          // active + bench count toward the total
+const ORDER = ["active", "bench", "inactive"];
+const LABEL = {active:"Active", bench:"Bench", inactive:"Inactive"};
+const MAX = 13;
+const LIVE_POLL = 30_000, IDLE_POLL = 5 * 60_000;
+
+/* ───────── storage (per-device for now; backend later) ───────── */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+const RKEY = `elf.${DEMO ? "demo." : ""}roster.${COACH}`;
+let roster = store.get(RKEY, []);
+const saveRoster = () => store.set(RKEY, roster);
+const slotCount = s => roster.filter(p => p.slot === s).length;
+const freeSlot = () => ORDER.find(s => slotCount(s) < SLOTS[s]);
+// migrate rosters saved by the previous version (active: true/false)
+roster.forEach(p => { if (!p.slot){ p.slot = p.active === false ? "inactive" : "active"; delete p.active; } });
+ORDER.forEach(s => { roster.filter(p => p.slot === s).slice(SLOTS[s]).forEach(p => p.slot = null); });
+roster.filter(p => !p.slot).forEach(p => p.slot = freeSlot() || "inactive");
+saveRoster();
+
+/* ───────── state ───────── */
+let people = [], games = [], round = null, box = {}, timer = null, busy = false, sel = null, target = null;
+const $ = s => document.querySelector(s);
+const r1 = v => Math.round(v * 10) / 10;
+const fmt = v => r1(v).toFixed(1);
+const norm = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function niceName(raw){            // "WALKER IV, LONNIE" → "Lonnie Walker IV"
+  const [last, first = ""] = raw.split(/,\s*/);
+  const tc = s => s.toLowerCase().split(/([\s.'-])/).map(w => /^(ii|iii|iv)$/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)).join("");
+  return (tc(first) + " " + tc(last)).trim();
+}
+async function getJSON(url){
+  const r = await fetch(url, {cache:"no-store"});
+  if (!r.ok) throw new Error(r.status);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;      // live endpoints return "" before tip-off
+}
+async function cached(key, ttl, loader){
+  const c = store.get(key);
+  if (c && Date.now() - c.t < ttl) return c.v;
+  try{ const v = await loader(); store.set(key, {t:Date.now(), v}); return v; }
+  catch(e){ if (c) return c.v; throw e; }
+}
+
+/* ───────── API ───────── */
+const loadPeople = () => cached(`elf.people.${SEASON}`, 12 * 3600e3, async () => {
+  const d = (await getJSON(`${V2}/people?personType=J`)).data;
+  const m = new Map();
+  d.filter(x => x.active).forEach(x => m.set(x.person.code, {
+    code: x.person.code, name: niceName(x.person.name),
+    club: x.club.code, tv: x.club.tvCode || x.club.code, clubName: x.club.editorialName || x.club.name,
+    crest: x.club.images?.crest || "", img: x.images?.headshot || "",
+    pos: (x.positionName || "–").charAt(0)
+  }));
+  return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const loadGames = () => cached(`elf.games.${SEASON}`, 30 * 60e3, async () => {
+  const d = (await getJSON(`${V2}/games`)).data;
+  const side = s => ({c:s.club.code, tv:s.club.tvCode || s.club.code});
+  return d.map(x => ({c:x.gameCode, r:x.round, u:x.utcDate, p:x.played, h:side(x.local), a:side(x.road)}));
+});
+
+async function loadBox(g){
+  const key = `elf.box.${SEASON}.${g.c}`;
+  const c = store.get(key);
+  if (c && c.final && !DEMO) return c;                       // finished games never change
+  const d = await getJSON(`${LIVE_API}/Boxscore?gamecode=${g.c}&seasoncode=${SEASON}`);
+  if (!d || !d.Stats || d.Stats.length < 2) return {pending:true};
+  const teams = d.Stats.map(s => {                           // Stats[0] = home, Stats[1] = away
+    const pl = {};
+    s.PlayersStats.forEach(p => pl[p.Player_ID.replace(/^P/, "").trim()] = {pir:p.Valuation, min:p.Minutes});
+    return {pts: +(s.totr?.Points || 0), pl};
+  });
+  const tot = teams[0].pts + teams[1].pts;
+  const b = {live: !!d.Live, final: !d.Live && tot > 0, pending: !d.Live && tot === 0, teams};
+  if (DEMO){ Object.assign(b, {live:true, final:false, pending:false, q:"4", t:"03:21"}); }
+  else if (b.live){
+    try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${g.c}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = h?.RemainingPartialTime; }catch{}
+  }
+  if (b.final) store.set(key, b);
+  return b;
+}
+
+/* ───────── fantasy logic ─────────
+   PIR shown = raw PIR while the game is live; once it's final, ±10% for the team's win/loss. */
+function stateOf(p){
+  const g = games.find(g => g.r === round && (g.h.c === p.club || g.a.c === p.club));
+  if (!g) return {kind:"none"};
+  const home = g.h.c === p.club, opp = home ? g.a : g.h;
+  const started = DEMO || new Date(g.u) <= new Date();
+  const b = box[g.c];
+  if (!started) return {kind:"up", g, opp, home};
+  if (!b || b.pending) return {kind:"soon", g, opp, home};
+  const ti = b.teams[0].pl[p.code] ? 0 : b.teams[1].pl[p.code] ? 1 : (home ? 0 : 1);
+  const me = b.teams[ti], them = b.teams[1 - ti], st = me.pl[p.code];
+  const dnp = !st || /dnp/i.test(st.min || "");
+  const raw = st && !dnp ? st.pir : 0;
+  const win = me.pts > them.pts;
+  const mult = win ? 1.1 : 0.9;
+  const live = b.live;
+  return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, mult,
+          val: live ? raw : r1(raw * mult), score: `${me.pts}–${them.pts}`, q: b.q, t: b.t};
+}
+const counted = p => p.slot === "active" || p.slot === "bench";
+
+/* ───────── rendering ───────── */
+const when = u => new Date(u).toLocaleString([], {weekday:"short", hour:"2-digit", minute:"2-digit"});
+const photo = p => `<div class="ph">${esc(p.name.split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>`;
+function liveClock(s){
+  const q = String(s.q || "").replace(/\D/g, "");
+  const qtxt = q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE";
+  return `<span class="lchip"><i></i>${qtxt}${s.t && s.t !== "00:00" ? " " + esc(s.t.replace(/^0/, "")) : ""}</span>`;
+}
+function subline(p, s){
+  const tv = `<span class="tv">${esc(p.tv)}</span>`;
+  switch (s.kind){
+    case "live":  return `${tv} ${liveClock(s)} <span class="score">${s.score}</span>`;
+    case "final": return s.dnp ? `${tv} <span class="res D">DNP</span>` :
+                  `${tv} <span class="res ${s.win ? "W" : "L"}">${s.win ? "W +10%" : "L −10%"}</span> ${s.score}`;
+    case "soon":  return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · starting`;
+    case "up":    return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · ${when(s.g.u)}`;
+    default:      return `${tv} · no game this round`;
+  }
+}
+function rowHTML({p, i, s}){
+  const has = s.kind === "live" || s.kind === "final";
+  return `<div class="p ${s.kind}" data-i="${i}">
+    ${photo(p)}
+    <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
+    <div class="val">${has ? (s.kind === "live" ? s.val : fmt(s.val)) : "–"}</div>
+  </div>`;
+}
+const sortKey = r => r.s.kind === "live" ? [0, -r.s.val] : r.s.kind === "final" ? [1, -r.s.val]
+                   : r.s.kind === "soon" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
+const byKey = (a, b) => { const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1]; };
+
+function render(){
+  if (drag && drag.on){ drag.pendingRender = true; return; }   // don't redraw under a finger mid-drag
+  $("#coachName").textContent = COACH;
+  const rows = roster.map((p, i) => ({p, i, s: games.length ? stateOf(p) : {kind:"none"}}));
+
+  ORDER.forEach(slot => {
+    const list = rows.filter(r => r.p.slot === slot).sort(byKey);
+    const open = SLOTS[slot] - list.length;
+    const el = $(`#list-${slot}`);
+    el.innerHTML = list.map(rowHTML).join("");
+    el.hidden = !list.length;
+    $(`#add-${slot}`).innerHTML = open > 0 ? `<button class="add-slot" data-add="${slot}"><span class="plus">+</span>ADD PLAYER</button>` : "";
+  });
+
+  const scored = rows.filter(r => counted(r.p) && (r.s.kind === "live" || r.s.kind === "final"));
+  const total = scored.reduce((t, r) => t + r.s.val, 0);
+  const anyLive = rows.some(r => counted(r.p) && r.s.kind === "live");
+  $("#meta").innerHTML = round
+    ? `${anyLive ? '<i class="dot"></i>' : ""}ROUND ${round} · <b>${fmt(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
+    : "Loading…";
+}
+
+/* ───────── refresh loop ───────── */
+function relevantGames(){
+  return games.filter(g => g.r === round && roster.some(p => p.club === g.h.c || p.club === g.a.c));
+}
+async function refresh(){
+  if (busy || !games.length) return;
+  busy = true;
+  try{
+    const need = relevantGames().filter(g => DEMO || new Date(g.u) <= new Date());
+    const res = await Promise.all(need.map(g => loadBox(g).then(b => [g.c, b]).catch(() => [g.c, box[g.c]])));
+    res.forEach(([c, b]) => { if (b) box[c] = b; });
+    $("#banner").classList.remove("show");
+  }catch{ $("#banner").classList.add("show"); }
+  busy = false;
+  render();
+  schedule();
+}
+function schedule(){
+  clearTimeout(timer);
+  if (document.hidden) return;
+  const rel = relevantGames();
+  const now = Date.now();
+  const inPlay = rel.some(g => (DEMO || new Date(g.u) <= now) && !(box[g.c] && box[g.c].final));
+  let wait = IDLE_POLL;
+  if (inPlay) wait = LIVE_POLL;
+  else {
+    const next = rel.map(g => +new Date(g.u)).filter(t => t > now).sort((a, b) => a - b)[0];
+    if (next) wait = Math.min(IDLE_POLL, Math.max(10_000, next - now + 5_000));
+  }
+  timer = setTimeout(refresh, wait);
+}
+document.addEventListener("visibilitychange", () => document.hidden ? clearTimeout(timer) : refresh());
+
+function currentRound(){         // latest round that has tipped off
+  const now = new Date();
+  if (DEMO){ const done = games.filter(g => g.p); if (done.length) return Math.max(...done.map(g => g.r)); }
+  const started = games.filter(g => new Date(g.u) <= now);
+  return started.length ? Math.max(...started.map(g => g.r)) : Math.min(...games.map(g => g.r));
+}
+
+async function boot(){
+  render();
+  try{
+    [people, games] = await Promise.all([loadPeople(), loadGames()]);
+    round = currentRound();
+    if (DEMO && !roster.length) seedDemo();
+    $("#banner").classList.remove("show");
+  }catch{
+    $("#banner").classList.add("show"); render(); return;
+  }
+  refresh();
+}
+function seedDemo(){         // one player per club playing this round
+  const clubs = games.filter(g => g.r === round).flatMap(g => [g.h.c, g.a.c]);
+  const picks = [];
+  clubs.forEach(c => { const p = people.find(x => x.club === c && x.img && !picks.includes(x)); if (p && picks.length < MAX) picks.push(p); });
+  roster = [];
+  picks.forEach(p => roster.push({...p, slot: freeSlot()}));
+  saveRoster();
+}
+
+/* ───────── interactions ───────── */
+$("#retry").onclick = boot;
+const actWrap = $("#actWrap"), searchWrap = $("#searchWrap");
+document.querySelectorAll("[data-close]").forEach(s => s.onclick = () => { actWrap.classList.remove("open"); searchWrap.classList.remove("open"); });
+
+document.addEventListener("click", e => {
+  const r = e.target.closest(".p"); if (!r) return;
+  sel = +r.dataset.i; const p = roster[sel], s = stateOf(p);
+  $("#shName").textContent = p.name;
+  $("#shMeta").textContent = `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}`;
+  $("#shCalc").innerHTML = s.kind === "final" ? `${s.raw} × ${s.mult}<strong>${fmt(s.val)} PIR</strong>`
+                         : s.kind === "live"  ? `live<strong>${s.val} PIR</strong>` : `<strong>–</strong>`;
+  $("#moves").innerHTML = ORDER.map(slot => {
+    const isFull = slotCount(slot) >= SLOTS[slot];
+    return `<button class="act ${slot === p.slot ? "here" : ""}" data-slot="${slot}" ${isFull ? "disabled" : ""}>
+      <span class="ic">⇅</span>Move to ${LABEL[slot]}<small>${isFull ? "full" : `${slotCount(slot)}/${SLOTS[slot]}`}</small></button>`;
+  }).join("");
+  actWrap.classList.add("open");
+});
+$("#moves").addEventListener("click", e => {
+  const b = e.target.closest("[data-slot]"); if (!b) return;
+  const p = roster[sel]; p.slot = b.dataset.slot; saveRoster();
+  actWrap.classList.remove("open"); render(); toast(`${p.name} → ${LABEL[p.slot]}`);
+});
+$("#removeBtn").onclick = () => { const [p] = roster.splice(sel, 1); saveRoster(); actWrap.classList.remove("open"); render(); toast(`${p.name} removed`); };
+
+/* search */
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-add]"); if (!b) return;
+  target = b.dataset.add;
+  $("#sheetTitle").textContent = `Add to ${LABEL[target]}`;
+  searchWrap.classList.add("open"); renderResults(); setTimeout(() => $("#q").focus(), 260);
+});
+$("#q").addEventListener("input", renderResults);
+function renderResults(){
+  $("#slots").textContent = target ? `${slotCount(target)}/${SLOTS[target]} · ${SLOTS[target] - slotCount(target)} open` : "";
+  const q = norm($("#q").value.trim());
+  const out = $("#results");
+  if (!people.length){ out.innerHTML = `<div class="r-hint">Loading Euroleague players…</div>`; return; }
+  if (q.length < 2){ out.innerHTML = `<div class="r-hint">Type a player name or team.<br>${people.length} players in the ${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} season.</div>`; return; }
+  const hits = people.filter(p => norm(p.name).includes(q) || norm(p.clubName).includes(q) || norm(p.tv) === q || norm(p.club) === q).slice(0, 50);
+  const mine = new Set(roster.map(p => p.code));
+  out.innerHTML = hits.map(p => `
+    <div class="r ${mine.has(p.code) ? "taken" : ""}" data-code="${p.code}">
+      ${photo(p)}
+      <div class="who"><b>${esc(p.name)}</b><small>${p.crest ? `<img class="crest" src="${esc(p.crest)}" alt="">` : ""}<span class="tv">${esc(p.tv)}</span> ${esc(p.clubName)} · ${esc(p.pos)}</small></div>
+      <button class="add" aria-label="Add">${mine.has(p.code) ? "✓" : "+"}</button>
+    </div>`).join("") || `<div class="r-hint">No players match “${esc($("#q").value)}”.</div>`;
+}
+$("#results").addEventListener("click", e => {
+  const r = e.target.closest(".r"); if (!r || r.classList.contains("taken")) return;
+  const slot = target;
+  if (!slot || slotCount(slot) >= SLOTS[slot]){ toast(`${LABEL[slot] || "Section"} is full`); return; }
+  const p = people.find(x => x.code === r.dataset.code);
+  roster.push({...p, slot}); saveRoster();
+  toast(`${p.name} → ${LABEL[slot]}`);
+  renderResults(); render(); refresh();
+  if (slotCount(slot) >= SLOTS[slot]) setTimeout(() => searchWrap.classList.remove("open"), 600);
+});
+
+function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); }
+
+/* ───────── drag & swap ─────────
+   Touch: press and hold ~0.3s, then drag. Mouse: just drag.
+   Drop on a player in another section → they swap sections.
+   Drop on another section's empty space / Add button → move there if it has room. */
+let drag = null, suppressClick = false;
+
+document.addEventListener("pointerdown", e => {
+  const card = e.target.closest(".app .p");
+  if (!card || e.button > 0) return;
+  drag = {card, i:+card.dataset.i, x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, id:e.pointerId, type:e.pointerType, on:false};
+  if (e.pointerType !== "mouse") drag.timer = setTimeout(() => drag && startDrag(), 300);
+});
+document.addEventListener("pointermove", e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  drag.lx = e.clientX; drag.ly = e.clientY;
+  if (!drag.on){
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8){
+      if (drag.type === "mouse") startDrag();
+      else { clearTimeout(drag.timer); drag = null; }        // finger moved first → it's a scroll
+    }
+    return;
+  }
+  moveDrag();
+});
+document.addEventListener("pointerup", e => { if (drag && e.pointerId === drag.id) endDrag(true); });
+document.addEventListener("pointercancel", () => { if (drag) endDrag(false); });
+document.addEventListener("touchmove", e => { if (drag && drag.on) e.preventDefault(); }, {passive:false});
+document.addEventListener("contextmenu", e => { if (drag) e.preventDefault(); });
+document.addEventListener("click", e => { if (suppressClick){ e.stopPropagation(); e.preventDefault(); suppressClick = false; } }, true);
+
+function startDrag(){
+  const d = drag; d.on = true;
+  const r = d.card.getBoundingClientRect();
+  d.dx = d.x - r.left; d.dy = d.y - r.top;
+  d.ghost = d.card.cloneNode(true);
+  d.ghost.classList.add("ghost");
+  Object.assign(d.ghost.style, {width: r.width + "px", left: r.left + "px", top: r.top + "px"});
+  document.body.appendChild(d.ghost);
+  d.card.classList.add("lifted");
+  document.body.classList.add("dragging");
+  navigator.vibrate?.(12);
+  moveDrag();
+  (function scroll(){                                       // auto-scroll near screen edges
+    if (!drag || !drag.on) return;
+    const edge = 80, y = drag.ly;
+    const v = y < edge ? -(edge - y) / 6 : y > innerHeight - edge ? (y - (innerHeight - edge)) / 6 : 0;
+    if (v){ scrollBy(0, v); highlight(); }
+    requestAnimationFrame(scroll);
+  })();
+}
+function dropTarget(){
+  const el = document.elementFromPoint(drag.lx, drag.ly);
+  if (!el) return null;
+  return el.closest(".app .p") || el.closest("[data-zone]");
+}
+function highlight(){
+  document.querySelectorAll(".drop").forEach(n => n.classList.remove("drop"));
+  const t = dropTarget();
+  if (!t || t === drag.card) return (drag.target = null);
+  t.classList.add("drop"); drag.target = t;
+}
+function moveDrag(){
+  drag.ghost.style.left = drag.lx - drag.dx + "px";
+  drag.ghost.style.top = drag.ly - drag.dy + "px";
+  highlight();
+}
+function endDrag(commit){
+  const d = drag; drag = null;
+  clearTimeout(d.timer);
+  if (!d.on) return;
+  suppressClick = true; setTimeout(() => suppressClick = false, 400);
+  d.ghost.remove();
+  document.body.classList.remove("dragging");
+  document.querySelectorAll(".drop,.lifted").forEach(n => n.classList.remove("drop", "lifted"));
+  if (commit && d.target) applyDrop(d.i, d.target);
+  render();
+}
+function applyDrop(i, t){
+  const src = roster[i];
+  if (t.matches(".p")){
+    const o = roster[+t.dataset.i];
+    if (!o || o === src) return;
+    if (o.slot === src.slot){ toast("They're already in the same section"); return; }
+    [src.slot, o.slot] = [o.slot, src.slot];
+    toast(`${src.name} ⇄ ${o.name}`);
+  } else {
+    const slot = t.dataset.zone;
+    if (slot === src.slot) return;
+    if (slotCount(slot) >= SLOTS[slot]){ toast(`${LABEL[slot]} is full — drop onto a player to swap`); return; }
+    src.slot = slot;
+    toast(`${src.name} → ${LABEL[slot]}`);
+  }
+  saveRoster();
+}
+
+boot();
+</script>
+</body>
+</html>
