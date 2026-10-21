@@ -23,29 +23,30 @@
   .logo{width:40px;height:40px;flex:none;display:block}
   .titles{flex:1;min-width:0}
   .icon-btn{width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:#fff;font-size:18px;display:grid;place-items:center;cursor:pointer;flex:none;font-family:inherit}
-  .icon-btn.on{background:var(--orange);border-color:var(--orange);font-size:13px;font-weight:800;width:auto;padding:0 14px}
+  .icon-btn.on{background:var(--orange);border-color:var(--orange);font-size:20px;font-weight:800}
   header h1{font-weight:800;font-size:19px;letter-spacing:.02em;line-height:1}
   header small{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;letter-spacing:.04em}
 
-  /* leader card: background art + court */
-  .leader{position:relative;border-radius:22px;overflow:hidden;min-height:150px;padding:16px 18px;margin-bottom:18px;
-          background:url("assets/bg.jpg") center/cover;border:1px solid #FFFFFF14;display:flex;flex-direction:column;justify-content:flex-end}
-  .leader::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0A0A0B00 25%,#0A0A0BD9 100%)}
-  .leader > *{position:relative;z-index:1}
-  .leader .lbl{font-size:11px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700}
-  .leader .row1{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:6px}
-  .leader .name{font-size:26px;font-weight:800;line-height:1.1}
-  .leader .pts{font-size:40px;font-weight:800;line-height:1;text-align:right;flex:none}
-  .leader .pts span{display:block;font-size:11px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-top:4px}
-
   /* standings */
   .list{background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
-  .gh{display:flex;justify-content:center;padding:11px 14px;background:var(--card-2);font-weight:800;font-size:15px}
   .row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
-  .gh + .row{border-top:0}
+  .row:first-child{border-top:0}
   .row:active{background:#1F1F23}
   .rank{width:24px;font-weight:800;font-size:18px;color:var(--dim);text-align:center;flex:none}
-  .gh + .row .rank{color:var(--orange)}
+
+  /* 1st place: hero row with the background art */
+  .row.lead{position:relative;align-items:flex-end;min-height:132px;padding:16px 16px 18px;
+            background:url("assets/bg.jpg") center 35%/cover}
+  .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0A0A0B1A 0%,#0A0A0B80 55%,#0A0A0BE6 100%)}
+  .row.lead > *{position:relative;z-index:1}
+  .row.lead .rank{color:var(--orange);font-size:30px;line-height:1;width:28px}
+  .row.lead .lbl{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-bottom:4px}
+  .row.lead .who b{font-size:23px;font-weight:800;line-height:1.15;white-space:normal}
+  .row.lead .score{font-size:36px;line-height:1;align-items:flex-end}
+  .row.lead .score small{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;text-align:right;margin-top:4px}
+  .row.lead .chev{color:#FFFFFF99;font-size:24px}
+  .row.lead .live-dot{vertical-align:middle;margin-right:4px;position:relative;top:-6px}
+  .row.lead.editing{min-height:0;align-items:center}
   .who{flex:1;min-width:0}
   .who b{display:block;font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .who small{color:var(--muted);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
@@ -67,18 +68,7 @@
     <button class="icon-btn" id="editBtn" aria-label="Edit team names">✎</button>
   </header>
 
-  <div class="leader">
-    <div class="lbl" id="leadLbl">LEADING THE ROUND</div>
-    <div class="row1">
-      <div style="min-width:0"><div class="name" id="leadName">—</div></div>
-      <div class="pts"><b id="leadPts">0.0</b><span>PIR</span></div>
-    </div>
-  </div>
-
-  <div class="list">
-    <div class="gh">Standings</div>
-    <div id="list"></div>
-  </div>
+  <div class="list" id="list"></div>
 </div>
 
 <script>
@@ -189,21 +179,16 @@ function render(){
   const rows = COACHES.map(c => ({...c, team: teamOf(c), ...coachTotal(c)})).sort((a, b) => b.total - a.total);
   if (!editing || !$("#list .team-input")){
     $("#list").innerHTML = rows.map((c, i) => editing ? `
-      <div class="row editing">
+      <div class="row editing${i === 0 ? " lead" : ""}">
         <div class="rank">${i + 1}</div>
         <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name"></div>
       </div>` : `
-      <a class="row" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
+      <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
-        <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="score">${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}<span class="chev">›</span></div>
+        <div class="who">${i === 0 ? `<span class="lbl">LEADING ROUND ${round ?? "–"}</span>` : ""}<b>${esc(c.team)}</b></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.total.toFixed(1)}<small>PIR</small></div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
-  const l = rows[0];
-  $("#leadLbl").textContent = `LEADING ROUND ${round ?? "–"}`;
-  $("#leadName").textContent = l.team;
-  $("#leadName").dataset.coach = l.name;
-  $("#leadPts").textContent = l.total.toFixed(1);
 }
 
 /* ───────── refresh loop ───────── */
@@ -231,7 +216,7 @@ $("#editBtn").onclick = () => {
   editing = !editing;
   const b = $("#editBtn");
   b.classList.toggle("on", editing);
-  b.textContent = editing ? "Done" : "✎";
+  b.textContent = editing ? "✓" : "✎";
   b.setAttribute("aria-label", editing ? "Save team names" : "Edit team names");
   $("#list").innerHTML = "";
   render();
@@ -244,7 +229,6 @@ $("#list").addEventListener("input", e => {
   const def = DEFAULT_COACHES.find(c => c.name === inp.dataset.coach)?.team;
   if (v && v !== def) names[inp.dataset.coach] = v; else delete names[inp.dataset.coach];
   store.set("elf.teams", names);
-  if ($("#leadName").dataset.coach === inp.dataset.coach) $("#leadName").textContent = v || def;
 });
 $("#list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".team-input")) e.target.blur(); });
 
