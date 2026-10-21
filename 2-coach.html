@@ -503,16 +503,8 @@ function renderSlide(n){
   el.querySelector(".wcs").innerHTML = Object.keys(WC_NAMES).filter(k => wc[k]).map(k => `<span class="wc">★ ${WC_NAMES[k]}</span>`).join("");
   el.querySelector(".wcs").hidden = !wc.tc && !wc.bb;
 }
-function fitTitle(){                 // shrink a long team name until it fits (24px → 14px)
-  const h = $("#coachName");
-  h.style.fontSize = "";
-  let size = parseFloat(getComputedStyle(h).fontSize);
-  while (h.scrollWidth > h.clientWidth + 0.5 && size > 14){ size -= 1; h.style.fontSize = size + "px"; }
-}
-addEventListener("resize", fitTitle);
 function renderHeader(){
   $("#coachName").textContent = teamOf(cur);
-  fitTitle();
   document.title = `${teamOf(cur)} · EL Fantasy`;
   const {total, live} = coachTotal(cur);
   $("#meta").innerHTML = round
