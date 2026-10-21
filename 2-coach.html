@@ -317,6 +317,9 @@ function applyShared(first){
   render(); refresh();      // show it now; refresh also loads box scores for newly added clubs
 }
 Shared.on(applyShared);
+// team name shown everywhere (same as the League page): shared rename → this phone's rename → default
+const teamOf = n => ((Shared.enabled && Shared.ready) ? Shared.coaches[n]?.team : store.get("elf.teams", {})[n])
+                    || COACHES.find(c => c.name === n)?.team || n;
 const sharedReady = new Promise(res => { if (Shared.ready) res(); else { Shared.on(() => res()); setTimeout(res, 4000); } });
 
 /* ───────── state ───────── */
@@ -477,7 +480,7 @@ function buildSlides(){
       <div class="wcs"></div>
       <div class="list"></div>
     </div></section>`).join("");
-  $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" aria-label="${esc(n)}"></button>`).join("");
+  $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" aria-label="${esc(teamOf(n))}"></button>`).join("");
   built = true;
   render();
   goTo(cur, false);
@@ -501,7 +504,8 @@ function renderSlide(n){
   el.querySelector(".wcs").hidden = !wc.tc && !wc.bb;
 }
 function renderHeader(){
-  $("#coachName").textContent = cur;
+  $("#coachName").textContent = teamOf(cur);
+  document.title = `${teamOf(cur)} · EL Fantasy`;
   const {total, live} = coachTotal(cur);
   $("#meta").innerHTML = round
     ? `${live ? '<i class="dot"></i>' : ""}Round ${round} · <b>${fmt(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
@@ -530,7 +534,6 @@ function setCurrent(n, instant){
   const changed = n !== cur;
   cur = n;
   updateDots();
-  document.title = `${n} · EL Fantasy`;
   const u = new URL(location.href); u.searchParams.set("coach", n);
   history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
   if (!changed || instant){ renderHeader(); return; }
@@ -686,7 +689,7 @@ $("#removeBtn").onclick = () => { const i = rosters[sel.n].findIndex(x => x.code
 /* wild cards */
 function renderWc(){
   const wc = chipsOf(cur);
-  $("#wcSub").textContent = `${cur} · Round ${round ?? "–"}`;
+  $("#wcSub").textContent = `${teamOf(cur)} · Round ${round ?? "–"}`;
   wcWrap.querySelectorAll("[data-wc]").forEach(b => b.classList.toggle("on", !!wc[b.dataset.wc]));
 }
 $("#wcBtn").onclick = () => { if (round == null) return; renderWc(); wcWrap.classList.add("open"); };
@@ -717,7 +720,7 @@ function renderResults(){
   if (!target) return;
   const {n, slot} = target;
   const open = SLOTS[slot] - slotCount(n, slot);
-  $("#slots").innerHTML = `${esc(n)} · adding to <b>${LABEL[slot]}</b> · ${open} open slot${open === 1 ? "" : "s"} · ${rosters[n].length}/13`;
+  $("#slots").innerHTML = `${esc(teamOf(n))} · adding to <b>${LABEL[slot]}</b> · ${open} open slot${open === 1 ? "" : "s"} · ${rosters[n].length}/13`;
   const q = norm($("#q").value.trim());
   const out = $("#results");
   if (!people.length){ out.innerHTML = `<div class="r-hint">Loading Euroleague players…</div>`; return; }
@@ -730,7 +733,7 @@ function renderResults(){
     return `<div class="r ${o ? "taken" : ""}" data-code="${p.code}">
       ${photo(p)}
       <div class="who"><b>${esc(p.name)}</b><small>${p.crest ? `<img class="crest" src="${esc(p.crest)}" alt="">` : ""}<span class="tv">${esc(p.tv)}</span> ${esc(p.clubName)} · ${esc(p.pos)}</small></div>
-      ${o && !mine ? `<span class="owner">${esc(o)}</span>` : `<button class="add" aria-label="Add">${mine ? "✓" : "+"}</button>`}
+      ${o && !mine ? `<span class="owner">${esc(teamOf(o))}</span>` : `<button class="add" aria-label="Add">${mine ? "✓" : "+"}</button>`}
     </div>`;
   }).join("") || `<div class="r-hint">No players match “${esc($("#q").value)}”.</div>`;
 }
