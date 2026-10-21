@@ -19,11 +19,17 @@
   body{color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
   button{font:inherit;color:inherit}
 
-  /* fixed header: background art stays put, only its text dissolves between coaches */
+  /* background art: fixed behind everything, fades into the page; never moves when swiping.
+     The header paints the identical top slice (same px-based sizes) so lists can scroll under it. */
+  .art, .top{background-color:var(--bg);
+       background-image:linear-gradient(180deg,#0A0A0B26 0px,#0A0A0B8C 140px,#0A0A0BE6 230px,#0A0A0B 300px), url("assets/bg.jpg");
+       background-size:100% 300px, max(100vw, 520px) auto;
+       background-position:center top, center -30px;
+       background-repeat:no-repeat}
+  .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}
   .top{position:fixed;left:0;right:0;top:0;z-index:4;pointer-events:none;
-       padding:calc(14px + env(safe-area-inset-top)) 16px 40px;
-       background:linear-gradient(180deg,#0A0A0B26 0%,#0A0A0B99 50%,#0A0A0BF2 80%,#0A0A0B00 100%), url("assets/bg.jpg") center 30%/cover;
-       -webkit-mask-image:linear-gradient(180deg,#000 72%,transparent 100%);mask-image:linear-gradient(180deg,#000 72%,transparent 100%)}
+       padding:calc(14px + env(safe-area-inset-top)) 16px 14px;
+       -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent)}
   .bar{max-width:480px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;pointer-events:auto}
   .icon-btn{width:44px;height:44px;padding:0;line-height:1;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
             display:grid;place-items:center;text-decoration:none;color:#fff;font-size:24px;font-weight:500;cursor:pointer;flex:none}
@@ -39,7 +45,7 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 
   /* carousel: one full-screen list per coach, swipe sideways */
-  .track{display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+  .track{position:relative;z-index:1;display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
   .track::-webkit-scrollbar{display:none}
   .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
   .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(64px + env(safe-area-inset-bottom))}
@@ -170,6 +176,7 @@
 </style>
 </head>
 <body>
+<div class="art" aria-hidden="true"></div>
 <header class="top" id="top">
   <div class="bar">
     <a class="icon-btn" href="1-league.html" aria-label="Back">‹</a>
@@ -485,7 +492,7 @@ function render(){
 }
 
 /* ───────── carousel ───────── */
-function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height - 4) + "px"); }
+function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height + 8) + "px"); }
 sizeHeader(); addEventListener("resize", sizeHeader);
 function goTo(n, smooth = true){
   const i = order.indexOf(n); if (i < 0) return;
