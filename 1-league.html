@@ -71,6 +71,7 @@
   <div class="list" id="list"></div>
 </div>
 
+<script src="assets/sync.js"></script>
 <script>
 /* ───────── league (hardcoded) ───────── */
 const DEFAULT_COACHES = [
@@ -81,8 +82,9 @@ const DEFAULT_COACHES = [
   {name:"Titas",    team:"Geri Sprendimai 0.7"},
   {name:"Saimonas", team:"KĖDAINIETIS"},
 ];
-// roster storage stays keyed by coach name; team names can be renamed (saved on this device for now)
-const teamOf = c => (store.get("elf.teams", {})[c.name] || c.team);
+// roster storage stays keyed by coach name; team names can be renamed (shared with everyone via assets/sync.js)
+const live = name => (Shared.enabled && Shared.ready) ? (Shared.coaches[name] || {}) : null;
+const teamOf = c => { const d = live(c.name); return (d ? d.team : store.get("elf.teams", {})[c.name]) || c.team; };
 const COACHES = DEFAULT_COACHES;
 let editing = false;
 
@@ -104,10 +106,10 @@ const store = {
 const $ = s => document.querySelector(s);
 const r1 = v => Math.round(v * 10) / 10;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const rosterOf = name => store.get(`elf.roster.${name}`, []);
+const rosterOf = name => live(name)?.roster || store.get(`elf.roster.${name}`, []);
 // share of a player's PIR — same rules as the coach page:
 // group (100/50/0; Bench Boost lifts 50% → 100%) × captain (2×, Triple Captain 3×)
-const chipsOf = name => (round != null && store.get(`elf.chips.${name}`, {})[round]) || {};
+const chipsOf = name => (round != null && (live(name)?.chips || store.get(`elf.chips.${name}`, {}))[round]) || {};
 function shareOf(p, wc){
   const slot = p.slot || (p.active === false ? "zero" : "full");
   const group = (slot === "half" || slot === "bench") ? (wc.bb ? 1 : 0.5) : (MULT[slot] ?? 0);
@@ -229,11 +231,23 @@ $("#list").addEventListener("input", e => {
   const def = DEFAULT_COACHES.find(c => c.name === inp.dataset.coach)?.team;
   if (v && v !== def) names[inp.dataset.coach] = v; else delete names[inp.dataset.coach];
   store.set("elf.teams", names);
+  clearTimeout(inp._t);                 // save for everyone shortly after typing stops
+  inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {team: v && v !== def ? v : ""}), 400);
+});
+
+/* edits from anyone arrive here */
+Shared.on(first => {
+  if (first && Shared.enabled){        // upload names renamed on this phone before sharing existed
+    const names = store.get("elf.teams", {});
+    COACHES.forEach(c => { if (names[c.name] && !Shared.coaches[c.name]?.team) Shared.push(c.name, {team: names[c.name]}); });
+  }
+  render(); refresh();
 });
 $("#list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".team-input")) e.target.blur(); });
 
 async function boot(){
   render();
+  Shared.start();
   try{
     games = await loadGames();
     const started = games.filter(g => new Date(g.u) <= new Date());

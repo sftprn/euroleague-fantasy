@@ -242,6 +242,7 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="assets/sync.js"></script>
 <script>
 /* ───────── league (hardcoded, same as the league page) ───────── */
 const COACHES = [
@@ -269,7 +270,7 @@ const LABEL = {full:"100%", half:"50%", zero:"0%"};
 const MAX = 13;
 const LIVE_POLL = 30_000, IDLE_POLL = 5 * 60_000;
 
-/* ───────── storage (per-device for now; backend later) ───────── */
+/* ───────── storage: shared server (assets/sync.js) + local cache for instant start/offline ───────── */
 const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
@@ -277,8 +278,10 @@ const store = {
 const PFX = `elf.${DEMO ? "demo." : ""}`;
 const rkey = n => `${PFX}roster.${n}`;
 const wkey = n => `${PFX}chips.${n}`;          // wild cards, per coach per round: {"7": {tc:true, bb:false}}
-const rosters = {};
-const save = n => store.set(rkey(n), rosters[n]);
+const rosters = {}, chipsAll = {};            // chipsAll: coach → {round: {tc, bb}}
+const clone = v => JSON.parse(JSON.stringify(v));
+const persist = n => store.set(rkey(n), rosters[n]);                       // this device only
+const save = n => { persist(n); Shared.push(n, {roster: clone(rosters[n])}); };   // device + everyone
 const slotCount = (n, s) => rosters[n].filter(p => p.slot === s).length;
 const freeSlot = n => ORDER.find(s => slotCount(n, s) < SLOTS[s]);
 const LEGACY = {active:"full", bench:"half", inactive:"zero"};
@@ -286,14 +289,35 @@ function fixCaptain(n){            // captain: at most one, and only from the 10
   let seen = false;
   rosters[n].forEach(p => { if (p.captain && (p.slot !== "full" || seen)) delete p.captain; else if (p.captain) seen = true; });
 }
-COACHES.forEach(({name}) => {          // load + migrate rosters saved by earlier versions
-  const list = rosters[name] = store.get(rkey(name), []);
+function useRoster(name, list){       // load + migrate rosters saved by earlier versions
+  rosters[name] = list;
   list.forEach(p => { if (LEGACY[p.slot]) p.slot = LEGACY[p.slot]; if (!p.slot) p.slot = p.active === false ? "zero" : "full"; delete p.active; });
   ORDER.forEach(s => list.filter(p => p.slot === s).slice(SLOTS[s]).forEach(p => p.slot = null));
   list.filter(p => !p.slot).forEach(p => p.slot = freeSlot(name) || "zero");
   fixCaptain(name);
-  save(name);
-});
+  persist(name);
+}
+COACHES.forEach(({name}) => { useRoster(name, store.get(rkey(name), [])); chipsAll[name] = store.get(wkey(name), {}); });
+
+/* changes made by anyone arrive here (first = first answer from the server) */
+let pendingRemote = false;
+function applyShared(first){
+  if (drag && drag.on){ pendingRemote = true; return; }        // never reshuffle under a finger
+  COACHES.forEach(({name}) => {
+    const doc = Shared.coaches[name] || {};
+    if (doc.roster) useRoster(name, clone(doc.roster));
+    else if (first && rosters[name].length) Shared.push(name, {roster: clone(rosters[name])});   // upload what this phone had
+    if (doc.chips){ chipsAll[name] = clone(doc.chips); store.set(wkey(name), chipsAll[name]); }
+    else if (first && Object.keys(chipsAll[name]).length) Shared.push(name, {chips: clone(chipsAll[name])});
+  });
+  if (!built) return;
+  if ($("#actWrap").classList.contains("open") && !selected()) $("#actWrap").classList.remove("open");
+  if ($("#wcWrap").classList.contains("open")) renderWc();
+  if ($("#finder").classList.contains("open")) renderResults();
+  render(); refresh();      // show it now; refresh also loads box scores for newly added clubs
+}
+Shared.on(applyShared);
+const sharedReady = new Promise(res => { if (Shared.ready) res(); else { Shared.on(() => res()); setTimeout(res, 4000); } });
 
 /* ───────── state ───────── */
 let people = [], games = [], round = null, box = {}, timer = null, busy = false;
@@ -308,12 +332,14 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 const track = $("#track");
 
 /* wild cards */
-const chipsOf = n => (round != null && store.get(wkey(n), {})[round]) || {};
+const chipsOf = n => (round != null && chipsAll[n]?.[round]) || {};
 function setChip(n, k, on){
-  const all = store.get(wkey(n), {});
+  const all = chipsAll[n] = chipsAll[n] || {};
   const c = all[round] = all[round] || {};
   if (on) c[k] = true; else delete c[k];
+  if (!Object.keys(c).length) delete all[round];
   store.set(wkey(n), all);
+  Shared.push(n, {chips: clone(all)});
 }
 /* share of a player's PIR: group (100/50/0 — Bench Boost lifts 50% to 100%) × captain (2×, Triple Captain 3×) */
 function shareOf(n, p){
@@ -584,7 +610,8 @@ function currentRound(){         // latest round that has tipped off
 async function boot(){
   renderHeader();
   try{
-    [people, games] = await Promise.all([loadPeople(), loadGames()]);
+    Shared.start();
+    [people, games] = await Promise.all([loadPeople(), loadGames(), sharedReady]);
     round = currentRound();
     if (DEMO) seedDemo();
     $("#banner").classList.remove("show");
@@ -622,7 +649,8 @@ document.addEventListener("click", e => {
   if (add){ openFinder(coachOf(add), add.dataset.add); return; }
   const r = e.target.closest(".slide .p[data-i]"); if (!r) return;
   const n = coachOf(r);
-  sel = {n, i: +r.dataset.i}; const p = rosters[n][sel.i], s = stateOf(p, n);
+  const p = rosters[n][+r.dataset.i]; if (!p) return;
+  sel = {n, code: p.code}; const s = stateOf(p, n);
   $("#shName").textContent = p.name;
   $("#shMeta").textContent = `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`;
   const parts = [s.kind === "final" ? `${s.raw} × ${s.mult}` : "live", `× ${s.share}`];
@@ -637,8 +665,10 @@ document.addEventListener("click", e => {
   }).join("");
   actWrap.classList.add("open");
 });
+function selected(){ return sel && rosters[sel.n]?.find(x => x.code === sel.code); }
 $("#captBtn").onclick = () => {
-  const list = rosters[sel.n], p = list[sel.i];
+  const list = rosters[sel.n], p = selected();
+  if (!p){ actWrap.classList.remove("open"); return; }
   const make = !p.captain;
   list.forEach(x => delete x.captain);
   if (make) p.captain = true;
@@ -647,10 +677,11 @@ $("#captBtn").onclick = () => {
 };
 $("#moves").addEventListener("click", e => {
   const b = e.target.closest("[data-slot]"); if (!b) return;
-  const p = rosters[sel.n][sel.i]; p.slot = b.dataset.slot; fixCaptain(sel.n); save(sel.n);
+  const p = selected(); if (!p){ actWrap.classList.remove("open"); return; }
+  p.slot = b.dataset.slot; fixCaptain(sel.n); save(sel.n);
   actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} → ${LABEL[p.slot]}`);
 });
-$("#removeBtn").onclick = () => { const [p] = rosters[sel.n].splice(sel.i, 1); save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} removed`); };
+$("#removeBtn").onclick = () => { const i = rosters[sel.n].findIndex(x => x.code === sel.code); if (i < 0){ actWrap.classList.remove("open"); return; } const [p] = rosters[sel.n].splice(i, 1); save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} removed`); };
 
 /* wild cards */
 function renderWc(){
@@ -791,6 +822,7 @@ function endDrag(commit){
   document.body.classList.remove("dragging");
   document.querySelectorAll(".drop,.lifted").forEach(n => n.classList.remove("drop", "lifted"));
   if (commit && d.target) applyDrop(d.n, d.i, d.target);
+  if (pendingRemote){ pendingRemote = false; applyShared(false); }
   render();
 }
 function applyDrop(n, i, t){
