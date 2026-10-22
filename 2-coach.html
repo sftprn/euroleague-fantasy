@@ -62,7 +62,8 @@
   .banner button{border:0;background:#ffffff26;color:#fff;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
 
   /* wild card badges above the list */
-  .wcs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 0 12px}
+  .wcz .gh{border-top:0}
+  .wcs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:14px 16px}
   .wc{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:.02em;padding:6px 11px;border-radius:999px;
       background:linear-gradient(90deg,#FF6B1A,#FF3D7F);color:#fff;box-shadow:0 4px 14px #FF6B1A40}
 
@@ -477,7 +478,6 @@ const WC_NAMES = {tc:"Triple Captain", bb:"Bench Boost"};
 function buildSlides(){
   track.innerHTML = order.map(n => `
     <section class="slide" data-coach="${esc(n)}"><div class="page">
-      <div class="wcs"></div>
       <div class="list"></div>
     </div></section>`).join("");
   $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" aria-label="${esc(teamOf(n))}"></button>`).join("");
@@ -492,7 +492,11 @@ function renderSlide(n){
   // Bench Boost merges 100% and 50% into one 100% block
   const groups = wc.bb ? [{key:"full", label:"100%", slots:["full", "half"]}, {key:"zero", label:"0%", slots:["zero"]}]
                        : ORDER.map(s => ({key:s, label:LABEL[s], slots:[s]}));
-  el.querySelector(".list").innerHTML = groups.map(gr => {
+  // active Wild Cards get their own section at the top of the list
+  const active = Object.keys(WC_NAMES).filter(k => wc[k]);
+  const wcHTML = active.length ? `<div class="wcz"><div class="gh">Wild Cards</div>
+      <div class="wcs">${active.map(k => `<span class="wc">★ ${WC_NAMES[k]}</span>`).join("")}</div></div>` : "";
+  el.querySelector(".list").innerHTML = wcHTML + groups.map(gr => {
     const list = rows.filter(r => gr.slots.includes(r.p.slot)).sort(byKey);
     const empties = gr.slots.map(s => emptyHTML(s).repeat(Math.max(0, SLOTS[s] - slotCount(n, s)))).join("");
     return `<div class="zone z-${gr.key}" data-zone="${gr.key}">
@@ -500,8 +504,6 @@ function renderSlide(n){
       ${list.map(r => rowHTML(r, n)).join("")}${empties}
     </div>`;
   }).join("");
-  el.querySelector(".wcs").innerHTML = Object.keys(WC_NAMES).filter(k => wc[k]).map(k => `<span class="wc">★ ${WC_NAMES[k]}</span>`).join("");
-  el.querySelector(".wcs").hidden = !wc.tc && !wc.bb;
 }
 function renderHeader(){
   $("#coachName").textContent = teamOf(cur);
