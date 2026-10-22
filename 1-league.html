@@ -35,17 +35,14 @@
   .rank{width:24px;font-weight:800;font-size:18px;color:var(--dim);text-align:center;flex:none}
 
   /* 1st place: hero row with the background art */
-  .row.lead{position:relative;align-items:flex-end;min-height:132px;padding:16px 16px 18px;
+  .row.lead{position:relative;align-items:flex-end;min-height:96px;padding:14px 16px 15px;
             background:url("assets/bg.jpg") center 35%/cover}
   .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0A0A0B1A 0%,#0A0A0B80 55%,#0A0A0BE6 100%)}
   .row.lead > *{position:relative;z-index:1}
-  .row.lead .rank{color:var(--orange);font-size:30px;line-height:1;width:28px}
+  .row.lead .rank{color:var(--orange)}
   .row.lead .lbl{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-bottom:4px}
-  .row.lead .who b{font-size:23px;font-weight:800;line-height:1.15;white-space:normal;overflow:visible;overflow-wrap:anywhere}
-  .row.lead .score{font-size:32px;line-height:1;align-items:flex-end}
-  .row.lead .score small{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;text-align:right;margin-top:4px}
-  .row.lead .chev{color:#FFFFFF99;font-size:24px}
-  .row.lead .live-dot{vertical-align:middle;margin-right:4px;position:relative;top:-6px}
+  .row.lead .chev{color:#FFFFFF99}
+  .row.lead .live-dot{vertical-align:middle;margin-right:4px}
   .row.lead.editing{min-height:0;align-items:center}
   .row.editing .who b{font-size:16px}
   .who{flex:1;min-width:0}
@@ -61,6 +58,10 @@
   .base-input{width:104px;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;
               font:800 18px Inter,system-ui,sans-serif;padding:0 12px;text-align:right;flex:none}
   .base-input:focus{outline:none;border-color:var(--orange)}
+  .pl .ph{width:38px;height:38px;border-radius:50%;background:var(--card-2);flex:none;overflow:hidden;position:relative;display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--muted)}
+  .pl .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+  .pl .who small{color:var(--muted)}
+  .pl .tv{font-weight:700;color:#C9C9CF}
   .row .plus-rd{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
   .row.editing{cursor:default}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
@@ -78,6 +79,11 @@
 
   <div class="sec-t">TOTAL</div>
   <div class="list" id="totalList"></div>
+
+  <div id="topWrap" hidden>
+    <div class="sec-t" id="topTitle">TOP 10 PLAYERS</div>
+    <div class="list" id="topList"></div>
+  </div>
 </div>
 
 <script src="assets/sync.js"></script>
@@ -173,9 +179,10 @@ function playerPir(p){
   const home = g.h.c === p.club;
   const ti = b.teams[0].pl[p.code] ? 0 : b.teams[1].pl[p.code] ? 1 : (home ? 0 : 1);
   const me = b.teams[ti], them = b.teams[1 - ti], st = me.pl[p.code];
-  const pir = st && !/dnp/i.test(st.min || "") ? st.pir : 0;
+  const played = !!st && !/dnp/i.test(st.min || "");
+  const pir = played ? st.pir : 0;
   // live: raw PIR · final: ±10% for the team's win/loss (same rule as the coach page)
-  return {f: b.live ? pir : r1(pir * (me.pts > them.pts ? 1.1 : 0.9)), live: b.live};
+  return {f: b.live ? pir : r1(pir * (me.pts > them.pts ? 1.1 : 0.9)), live: b.live, played};
 }
 function coachTotal(c){
   let t = 0, live = false;
@@ -203,6 +210,8 @@ function render(){
       </a>`).join("");
   }
 
+  renderTop();
+
   // season total = custom PIR + this round's PIR
   const tot = rows.map(c => ({...c, base: baseOf(c), sum: r1(baseOf(c) + c.total)})).sort((a, b) => b.sum - a.sum);
   if (!editing || !$("#totalList .base-input")){
@@ -218,6 +227,27 @@ function render(){
         <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.sum.toFixed(1)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.sum.toFixed(1)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
+}
+
+/* top 10 players of the round among everyone's rosters (hidden until someone has played) */
+function renderTop(){
+  const seen = new Map();
+  COACHES.forEach(c => rosterOf(c.name).forEach(p => {
+    const s = games.length ? playerPir(p) : null;
+    if (!s || !s.played) return;
+    const e = seen.get(p.code);
+    if (e) e.teams.push(teamOf(c)); else seen.set(p.code, {p, s, teams:[teamOf(c)]});
+  }));
+  const top = [...seen.values()].sort((a, b) => b.s.f - a.s.f).slice(0, 10);
+  $("#topWrap").hidden = !top.length;
+  $("#topTitle").textContent = `TOP 10 PLAYERS · ROUND ${round ?? "–"}`;
+  $("#topList").innerHTML = top.map(({p, s, teams}, i) => `
+    <div class="row pl">
+      <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
+      <div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
+      <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span> · ${esc(teams.join(", "))}</small></div>
+      <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${s.f.toFixed(1)}</div>
+    </div>`).join("");
 }
 
 /* ───────── refresh loop ───────── */
