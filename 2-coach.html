@@ -329,8 +329,8 @@ let order = COACHES.map(c => c.name);            // carousel order (most → lea
 let cur = COACHES.some(c => c.name === qs.get("coach")) ? qs.get("coach") : COACHES[0].name;
 let built = false, sel = null, target = null, drag = null, suppressClick = false;
 const $ = s => document.querySelector(s);
-const r1 = v => Math.round(v * 10) / 10;
-const fmt = v => r1(v).toFixed(1);
+const r1 = v => Math.round(v * 100) / 100;          // keep up to 2 decimals (e.g. 14.3 × 50% = 7.15)
+const fmt = v => { const x = r1(v); return Math.abs(x * 10 - Math.round(x * 10)) < 1e-9 ? x.toFixed(1) : x.toFixed(2); };   // 33.0 · 14.3 · 7.15
 const norm = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const track = $("#track");

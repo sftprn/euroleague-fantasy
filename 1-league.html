@@ -127,7 +127,8 @@ const store = {
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 };
 const $ = s => document.querySelector(s);
-const r1 = v => Math.round(v * 10) / 10;
+const r1 = v => Math.round(v * 100) / 100;          // keep up to 2 decimals (e.g. 14.3 × 50% = 7.15)
+const fmt = v => { const x = r1(v); return Math.abs(x * 10 - Math.round(x * 10)) < 1e-9 ? x.toFixed(1) : x.toFixed(2); };   // 33.0 · 14.3 · 7.15
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const rosterOf = name => live(name)?.roster || store.get(`elf.roster.${name}`, []);
 // share of a player's PIR — same rules as the coach page:
@@ -212,7 +213,7 @@ function render(){
       <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
         <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.total.toFixed(1)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}`}<span class="chev">›</span></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmt(c.total)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmt(c.total)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
 
@@ -224,13 +225,13 @@ function render(){
     $("#totalList").innerHTML = tot.map((c, i) => editing ? `
       <div class="row editing${i === 0 ? " lead" : ""}">
         <div class="rank">${i + 1}</div>
-        <div class="who"><b>${esc(c.team)}</b><span class="plus-rd">+ ${c.total.toFixed(1)} this round</span></div>
+        <div class="who"><b>${esc(c.team)}</b><span class="plus-rd">+ ${fmt(c.total)} this round</span></div>
         <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Custom PIR for ${esc(c.team)}">
       </div>` : `
       <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
         <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.sum.toFixed(1)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.sum.toFixed(1)}`}<span class="chev">›</span></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmt(c.sum)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmt(c.sum)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
 }
@@ -252,7 +253,7 @@ function renderTop(){
       <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
       <div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
       <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span> · ${esc(teams.join(", "))}</small></div>
-      <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${s.f.toFixed(1)}</div>
+      <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${fmt(s.f)}</div>
     </div>`).join("");
 }
 
