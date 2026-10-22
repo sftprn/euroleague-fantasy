@@ -61,11 +61,10 @@
   .banner.show{display:flex}
   .banner button{border:0;background:#ffffff26;color:#fff;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
 
-  /* wild card badges above the list */
-  .wcz .gh{border-top:0}
-  .wcs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:14px 16px}
-  .wc{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:.02em;padding:6px 11px;border-radius:999px;
-      background:linear-gradient(90deg,#FF6B1A,#FF3D7F);color:#fff;box-shadow:0 4px 14px #FF6B1A40}
+  /* players boosted by an active Wild Card get the page's background art */
+  .p.wc-card,.p.wc-card.live{background:linear-gradient(90deg,#0A0A0BD9 0%,#0A0A0B99 55%,#0A0A0B66 100%), url("assets/bg.jpg") center 35%/cover}
+  .p.wc-card .ph{background:#0A0A0B99}
+  .p.wc-card .tv{color:#fff}
 
   /* the single list */
   .list{background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
@@ -84,6 +83,7 @@
   .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;-webkit-user-drag:none;pointer-events:none}
   .capt{position:absolute;right:-4px;bottom:-3px;min-width:20px;height:20px;padding:0 4px;border-radius:10px;background:var(--orange);color:#fff;
         font-size:10.5px;font-weight:800;display:grid;place-items:center;border:2px solid var(--card)}
+  .capt.tc{background:linear-gradient(135deg,#A855F7,#EC4899)}      /* Triple Captain */
   .who{flex:1;min-width:0}
   .who b{display:block;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .who small{margin-top:3px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
@@ -461,17 +461,20 @@ function subline(p, s){
 }
 function rowHTML({p, i, s}, n){
   const has = s.kind === "live" || s.kind === "final";
-  const capt = p.captain && p.slot === "full" ? `<span class="capt">${chipsOf(n).tc ? "3×" : "C"}</span>` : "";
-  return `<div class="p ${s.kind}" data-i="${i}">
+  const wc = chipsOf(n);
+  const isCapt = p.captain && p.slot === "full";
+  const capt = isCapt ? `<span class="capt${wc.tc ? " tc" : ""}">C</span>` : "";
+  const boosted = (wc.tc && isCapt) || (wc.bb && p.slot === "half");   // Triple Captain / Bench Boost players
+  return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}" data-i="${i}">
     <div class="phw">${photo(p)}${capt}</div>
     <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
     <div class="val">${has ? fmt(s.val) : "–"}</div>
   </div>`;
 }
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
-const sortKey = r => r.s.kind === "live" ? [0, -r.s.base] : r.s.kind === "final" ? [1, -r.s.base]
+const sortKey = r => r.s.kind === "live" ? [0, -r.s.val] : r.s.kind === "final" ? [1, -r.s.val]      // by the PIR shown
                    : r.s.kind === "soon" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
-const byKey = (a, b) => (b.p.captain ? 1 : 0) - (a.p.captain ? 1 : 0) || (() => { const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1]; })();
+const byKey = (a, b) => { const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1] || (b.p.captain ? 1 : 0) - (a.p.captain ? 1 : 0); };  // captain first only on a tie
 const slideOf = n => track.querySelector(`.slide[data-coach="${CSS.escape(n)}"]`);
 const WC_NAMES = {tc:"Triple Captain", bb:"Bench Boost"};
 
@@ -492,11 +495,7 @@ function renderSlide(n){
   // Bench Boost merges 100% and 50% into one 100% block
   const groups = wc.bb ? [{key:"full", label:"100%", slots:["full", "half"]}, {key:"zero", label:"0%", slots:["zero"]}]
                        : ORDER.map(s => ({key:s, label:LABEL[s], slots:[s]}));
-  // active Wild Cards get their own section at the top of the list
-  const active = Object.keys(WC_NAMES).filter(k => wc[k]);
-  const wcHTML = active.length ? `<div class="wcz"><div class="gh">Wild Cards</div>
-      <div class="wcs">${active.map(k => `<span class="wc">★ ${WC_NAMES[k]}</span>`).join("")}</div></div>` : "";
-  el.querySelector(".list").innerHTML = wcHTML + groups.map(gr => {
+  el.querySelector(".list").innerHTML = groups.map(gr => {
     const list = rows.filter(r => gr.slots.includes(r.p.slot)).sort(byKey);
     const empties = gr.slots.map(s => emptyHTML(s).repeat(Math.max(0, SLOTS[s] - slotCount(n, s)))).join("");
     return `<div class="zone z-${gr.key}" data-zone="${gr.key}">

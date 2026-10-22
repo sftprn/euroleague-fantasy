@@ -41,12 +41,13 @@
   .row.lead > *{position:relative;z-index:1}
   .row.lead .rank{color:var(--orange);font-size:30px;line-height:1;width:28px}
   .row.lead .lbl{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-bottom:4px}
-  .row.lead .who b{font-size:23px;font-weight:800;line-height:1.15;white-space:normal}
-  .row.lead .score{font-size:36px;line-height:1;align-items:flex-end}
+  .row.lead .who b{font-size:23px;font-weight:800;line-height:1.15;white-space:normal;overflow:visible;overflow-wrap:anywhere}
+  .row.lead .score{font-size:32px;line-height:1;align-items:flex-end}
   .row.lead .score small{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;text-align:right;margin-top:4px}
   .row.lead .chev{color:#FFFFFF99;font-size:24px}
   .row.lead .live-dot{vertical-align:middle;margin-right:4px;position:relative;top:-6px}
   .row.lead.editing{min-height:0;align-items:center}
+  .row.editing .who b{font-size:16px}
   .who{flex:1;min-width:0}
   .who b{display:block;font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .who small{color:var(--muted);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
@@ -56,6 +57,11 @@
   .team-input{width:100%;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;
               font:700 16px Inter,system-ui,sans-serif;padding:0 12px}
   .team-input:focus{outline:none;border-color:var(--orange)}
+  .sec-t{font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--muted);margin:26px 4px 10px}
+  .base-input{width:104px;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;
+              font:800 18px Inter,system-ui,sans-serif;padding:0 12px;text-align:right;flex:none}
+  .base-input:focus{outline:none;border-color:var(--orange)}
+  .row .plus-rd{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
   .row.editing{cursor:default}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 </style>
@@ -65,10 +71,13 @@
   <header>
     <img class="logo" src="assets/euroleague.svg" alt="">
     <div class="titles"><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
-    <button class="icon-btn" id="editBtn" aria-label="Edit team names">✎</button>
+    <button class="icon-btn" id="editBtn" aria-label="Edit team names and custom PIR">✎</button>
   </header>
 
   <div class="list" id="list"></div>
+
+  <div class="sec-t">TOTAL</div>
+  <div class="list" id="totalList"></div>
 </div>
 
 <script src="assets/sync.js"></script>
@@ -85,6 +94,8 @@ const DEFAULT_COACHES = [
 // roster storage stays keyed by coach name; team names can be renamed (shared with everyone via assets/sync.js)
 const live = name => (Shared.enabled && Shared.ready) ? (Shared.coaches[name] || {}) : null;
 const teamOf = c => { const d = live(c.name); return (d ? d.team : store.get("elf.teams", {})[c.name]) || c.team; };
+// custom PIR (set by hand in edit mode) — the total list shows custom PIR + this round's PIR
+const baseOf = c => { const d = live(c.name); return +(d ? d.base : store.get("elf.base", {})[c.name]) || 0; };
 const COACHES = DEFAULT_COACHES;
 let editing = false;
 
@@ -191,6 +202,22 @@ function render(){
         <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.total.toFixed(1)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
+
+  // season total = custom PIR + this round's PIR
+  const tot = rows.map(c => ({...c, base: baseOf(c), sum: r1(baseOf(c) + c.total)})).sort((a, b) => b.sum - a.sum);
+  if (!editing || !$("#totalList .base-input")){
+    $("#totalList").innerHTML = tot.map((c, i) => editing ? `
+      <div class="row editing${i === 0 ? " lead" : ""}">
+        <div class="rank">${i + 1}</div>
+        <div class="who"><b>${esc(c.team)}</b><span class="plus-rd">+ ${c.total.toFixed(1)} this round</span></div>
+        <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Custom PIR for ${esc(c.team)}">
+      </div>` : `
+      <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
+        <div class="rank">${i + 1}</div>
+        <div class="who">${i === 0 ? `<span class="lbl">LEADING OVERALL</span>` : ""}<b>${esc(c.team)}</b></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.sum.toFixed(1)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.sum.toFixed(1)}`}<span class="chev">›</span></div>
+      </a>`).join("");
+  }
 }
 
 /* ───────── refresh loop ───────── */
@@ -219,8 +246,8 @@ $("#editBtn").onclick = () => {
   const b = $("#editBtn");
   b.classList.toggle("on", editing);
   b.textContent = editing ? "✓" : "✎";
-  b.setAttribute("aria-label", editing ? "Save team names" : "Edit team names");
-  $("#list").innerHTML = "";
+  b.setAttribute("aria-label", editing ? "Save changes" : "Edit team names and custom PIR");
+  $("#list").innerHTML = ""; $("#totalList").innerHTML = "";
   render();
   if (editing) $("#list .team-input")?.focus();
 };
@@ -234,6 +261,17 @@ $("#list").addEventListener("input", e => {
   clearTimeout(inp._t);                 // save for everyone shortly after typing stops
   inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {team: v && v !== def ? v : ""}), 400);
 });
+
+$("#totalList").addEventListener("input", e => {
+  const inp = e.target.closest(".base-input"); if (!inp) return;
+  const raw = inp.value.replace(",", ".").trim();
+  const v = raw === "" ? 0 : Number(raw);
+  if (!Number.isFinite(v)) return;
+  const all = store.get("elf.base", {}); all[inp.dataset.coach] = v; store.set("elf.base", all);
+  clearTimeout(inp._t);
+  inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {base: v}), 400);
+});
+$("#totalList").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".base-input")) e.target.blur(); });
 
 /* edits from anyone arrive here */
 Shared.on(first => {
