@@ -93,6 +93,7 @@
   .val{min-width:56px;text-align:right;font-size:20px;font-weight:800}
   .p.up .val,.p.soon .val,.p.none .val{color:var(--dim);font-weight:700}
   .z-zero .p .val{color:var(--dim)}
+  .val.struck{text-decoration:line-through;text-decoration-thickness:2px;color:var(--dim)!important}   /* 0% group: full PIR shown, not counted */
   .z-zero .p .phw,.z-zero .p .who{opacity:.7}
 
   .p.live{background:linear-gradient(90deg,#FF6B1A1F,transparent 75%)}
@@ -432,7 +433,9 @@ function stateOf(p, n){
   const base = live ? raw : r1(raw * mult);
   const share = shareOf(n, p);
   return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, mult, base, share,
-          val: r1(base * share), score: `${me.pts}–${them.pts}`, q: b.q, t: b.t};
+          val: r1(base * share),
+          shown: p.slot === "zero" ? r1(base) : r1(base * share),   // 0% group shows full PIR (display only, never counted)
+          score: `${me.pts}–${them.pts}`, q: b.q, t: b.t};
 }
 function coachTotal(n){
   let total = 0, live = false;
@@ -468,11 +471,11 @@ function rowHTML({p, i, s}, n){
   return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}" data-i="${i}">
     <div class="phw">${photo(p)}${capt}</div>
     <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
-    <div class="val">${has ? fmt(s.val) : "–"}</div>
+    <div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmt(s.shown) : "–"}</div>
   </div>`;
 }
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
-const sortKey = r => r.s.kind === "live" ? [0, -r.s.val] : r.s.kind === "final" ? [1, -r.s.val]      // by the PIR shown
+const sortKey = r => r.s.kind === "live" ? [0, -r.s.shown] : r.s.kind === "final" ? [1, -r.s.shown]      // by the PIR shown
                    : r.s.kind === "soon" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
 const byKey = (a, b) => { const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1] || (b.p.captain ? 1 : 0) - (a.p.captain ? 1 : 0); };  // captain first only on a tie
 const slideOf = n => track.querySelector(`.slide[data-coach="${CSS.escape(n)}"]`);
