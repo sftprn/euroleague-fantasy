@@ -1,7 +1,7 @@
-// Shared league state for everyone who opens the site (Cloudflare Pages Function + D1).
+// Shared league state for everyone who opens the site (Cloudflare Worker + D1).
 // GET  /api/state[?since=<v>]  → {v, coaches:{name:{roster, chips, team, base}}}  (204 if nothing changed since <v>)
 // POST /api/state {coach, data:{roster?, chips?, team?, base?}}  → merges into that coach, bumps the version
-// Needs a D1 database bound to this Pages project as `DB`. The table is created on first use, and the
+// Needs a D1 database bound as `DB` (see wrangler.jsonc). The table is created on first use, and the
 // data is copied once from the old Netlify site if the database is still empty.
 
 const COACHES = ["Justelis", "Darius", "Deivis", "Novikas", "Titas", "Saimonas"];
@@ -61,7 +61,7 @@ async function setup(DB) {
   ready = true;
 }
 
-export async function onRequestGet({ request, env }) {
+export async function getState(request, env) {
   if (!env.DB) return json({ error: "D1 database not bound as DB" }, { status: 500 });
   await setup(env.DB);
   const meta = JSON.parse((await env.DB.prepare("SELECT v FROM kv WHERE k = 'meta'").first())?.v || '{"v":"0"}');
@@ -73,7 +73,7 @@ export async function onRequestGet({ request, env }) {
   return json({ v: meta.v, coaches });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function postState(request, env) {
   if (!env.DB) return json({ error: "D1 database not bound as DB" }, { status: 500 });
   await setup(env.DB);
   let body;

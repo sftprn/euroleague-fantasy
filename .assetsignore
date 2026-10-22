@@ -1,0 +1,6 @@
+# not part of the public site
+worker
+wrangler.jsonc
+.git
+.gitignore
+.assetsignore
