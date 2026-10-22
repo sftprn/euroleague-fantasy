@@ -54,6 +54,9 @@
   .team-input{width:100%;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;
               font:700 16px Inter,system-ui,sans-serif;padding:0 12px}
   .team-input:focus{outline:none;border-color:var(--orange)}
+  .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+  .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .seg button.on{background:var(--orange);color:#fff}
   .sec-t{font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--muted);margin:26px 4px 10px}
   .base-input{width:104px;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;
               font:800 18px Inter,system-ui,sans-serif;padding:0 12px;text-align:right;flex:none}
@@ -75,10 +78,13 @@
     <button class="icon-btn" id="editBtn" aria-label="Edit team names and custom PIR">✎</button>
   </header>
 
+  <div class="seg" role="tablist" id="seg">
+    <button role="tab" data-view="round">Round</button>
+    <button role="tab" data-view="total">Total</button>
+  </div>
   <div class="list" id="list"></div>
 
-  <div class="sec-t">TOTAL</div>
-  <div class="list" id="totalList"></div>
+  <div class="list" id="totalList" hidden></div>
 
   <div id="topWrap" hidden>
     <div class="sec-t" id="topTitle">TOP 10 PLAYERS</div>
@@ -279,7 +285,7 @@ $("#editBtn").onclick = () => {
   b.setAttribute("aria-label", editing ? "Save changes" : "Edit team names and custom PIR");
   $("#list").innerHTML = ""; $("#totalList").innerHTML = "";
   render();
-  if (editing) $("#list .team-input")?.focus();
+  if (editing) (view === "total" ? $("#totalList .base-input") : $("#list .team-input"))?.focus();
 };
 $("#list").addEventListener("input", e => {
   const inp = e.target.closest(".team-input"); if (!inp) return;
@@ -302,6 +308,22 @@ $("#totalList").addEventListener("input", e => {
   inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {base: v}), 400);
 });
 $("#totalList").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".base-input")) e.target.blur(); });
+
+/* Round / Total switch (remembered on this phone) */
+let view = "round";
+try{ view = localStorage.getItem("elf.leagueView") === "total" ? "total" : "round"; }catch{}
+function showView(){
+  $("#list").hidden = view !== "round";
+  $("#totalList").hidden = view !== "total";
+  document.querySelectorAll("#seg [data-view]").forEach(b => { b.classList.toggle("on", b.dataset.view === view); b.setAttribute("aria-selected", b.dataset.view === view); });
+}
+$("#seg").addEventListener("click", e => {
+  const b = e.target.closest("[data-view]"); if (!b) return;
+  view = b.dataset.view;
+  try{ localStorage.setItem("elf.leagueView", view); }catch{}
+  showView();
+});
+showView();
 
 /* edits from anyone arrive here */
 Shared.on(first => {
