@@ -35,7 +35,7 @@
   .rank{width:24px;font-weight:800;font-size:18px;color:var(--dim);text-align:center;flex:none}
 
   /* 1st place: hero row with the background art */
-  .row.lead{position:relative;align-items:flex-end;min-height:96px;padding:14px 16px 15px;
+  .row.lead{position:relative;align-items:center;min-height:72px;padding:14px 16px;
             background:url("assets/bg.jpg") center 35%/cover}
   .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0A0A0B1A 0%,#0A0A0B80 55%,#0A0A0BE6 100%)}
   .row.lead > *{position:relative;z-index:1}
@@ -211,7 +211,7 @@ function render(){
       </div>` : `
       <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
-        <div class="who">${i === 0 ? `<span class="lbl">LEADING ROUND ${round ?? "–"}</span>` : ""}<b>${esc(c.team)}</b></div>
+        <div class="who"><b>${esc(c.team)}</b></div>
         <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.total.toFixed(1)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.total.toFixed(1)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
@@ -229,7 +229,7 @@ function render(){
       </div>` : `
       <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
-        <div class="who">${i === 0 ? `<span class="lbl">LEADING OVERALL</span>` : ""}<b>${esc(c.team)}</b></div>
+        <div class="who"><b>${esc(c.team)}</b></div>
         <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${c.sum.toFixed(1)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${c.sum.toFixed(1)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
