@@ -1,6 +1,6 @@
 {
   // Cloudflare Worker settings. Cloudflare rebuilds and publishes on every push to GitHub.
-  "name": "euroleague-fantasy",
+  "name": "fantasy",
   "main": "worker/index.js",
   "compatibility_date": "2025-10-01",
   "assets": {
