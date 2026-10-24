@@ -25,8 +25,10 @@
       }
     }
   };
-  async function getJSON(url){
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  async function getJSON(url, tries = 4){
     const r = await fetch(url, {cache: "no-store"});
+    if ((r.status === 429 || r.status >= 500) && tries > 1){ await wait((5 - tries) * 1500 + 800); return getJSON(url, tries - 1); }   // busy: back off and retry
     if (!r.ok) throw new Error(r.status);
     const t = await r.text();
     return t ? JSON.parse(t) : null;                  // live endpoints answer "" before tip-off
@@ -152,7 +154,7 @@
         onRow?.(rows);
       }
     }
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    await Promise.all([worker(), worker()]);
     return rows;
   }
 
