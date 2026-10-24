@@ -69,7 +69,6 @@
              transition:transform .1s,background .15s,box-shadow .15s}
   .start-btn:active{transform:scale(.98)}
   .start-btn.voted{background:var(--card);border:2px solid var(--orange);color:var(--orange);box-shadow:none}
-  .start-btn.voted small{font:600 12px Inter,system-ui,sans-serif;color:var(--muted)}
   .start-btn:disabled{opacity:.6}
   .start-note{text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin-top:8px}
   .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
@@ -378,8 +377,8 @@ function renderStart(){
   const votes = L.votes || [], mine = votes.includes(DEVICE), b = $("#startBtn");
   b.classList.toggle("voted", mine);
   b.disabled = voting;
-  b.innerHTML = mine ? `✓ Ready <small>· tap to undo</small>` : `Start Round ${round + 1}`;
-  $("#startNote").textContent = (votes.length ? `${votes.length} ready, ` : "") + `${Math.max(0, 2 - votes.length)} more to start`;
+  b.textContent = mine ? "✓ Ready" : `Start Round ${round + 1}`;
+  $("#startNote").textContent = (votes.length ? `${votes.length} ready, ` : "") + `${Math.max(0, 2 - votes.length)} more to start` + (mine ? ". Tap to undo" : "");
 }
 $("#startBtn").onclick = async () => {
   const L = Shared.league; if (!L || voting) return;
