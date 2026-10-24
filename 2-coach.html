@@ -23,7 +23,8 @@
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
-  html,body{height:100%;overflow:hidden;background:var(--bg)}
+  html{background:var(--bg)}
+  body{margin:0;overflow:hidden;background:var(--bg);overscroll-behavior:none}   /* the slides scroll, not the page */
   body{color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
   button{font:inherit;color:inherit}
 
@@ -53,7 +54,7 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 
   /* carousel: one full-screen list per coach, swipe sideways */
-  .track{position:fixed;top:0;left:0;right:0;bottom:calc(0px - var(--ios-gap, 0px));z-index:1;display:flex;   /* full screen; --ios-gap: see fixIosGap() */overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+  .track{position:absolute;top:0;left:0;right:0;height:100vh;height:var(--app-h, 100dvh);z-index:1;display:flex;   /* normal page content as tall as the real screen; see fixIosGap() */overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
   .track::-webkit-scrollbar{display:none}
   .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
   .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(64px + env(safe-area-inset-bottom))}
@@ -282,6 +283,7 @@ function fixIosGap(){
     gap = Math.max(0, Math.min(80, full - innerHeight));
   }
   document.documentElement.style.setProperty("--ios-gap", gap + "px");
+  document.documentElement.style.setProperty("--app-h", (innerHeight + gap) + "px");   // real screen height
 }
 fixIosGap();
 addEventListener("resize", fixIosGap);
