@@ -130,15 +130,28 @@
 
   /* sheets */
   .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
-  .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:24px 24px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom));transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11}
+  /* sheet = grab area + header (fixed) + body (scrolls when there's too much); never taller than the screen */
+  .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--card);border:1px solid var(--line);border-bottom:0;
+         border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - env(safe-area-inset-top) - 16px);max-height:calc(100dvh - env(safe-area-inset-top) - 16px);
+         transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
   .open .scrim{opacity:1;pointer-events:auto}
   .open .sheet{transform:translate(-50%,0);visibility:visible}
-  .grab{width:40px;height:4px;background:#3A3A40;border-radius:4px;margin:0 auto 16px}
-  .sh-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 4px 14px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .sheet.dragging{transition:none}
+  .grab{flex:none;height:30px;display:grid;place-items:center;cursor:grab;touch-action:none}
+  .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
+  .sh-head{flex:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 20px 14px;border-bottom:1px solid var(--line);touch-action:none}
   .sh-head b{font-size:20px;font-weight:800;display:block}
   .sh-head small{color:var(--muted);font-size:12.5px}
-  .calc{font-size:13px;color:var(--muted);text-align:right;flex:none}
-  .calc strong{display:block;font-size:24px;font-weight:800;color:#fff}
+  .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:8px 16px calc(22px + env(safe-area-inset-bottom))}
+
+  /* player sheet header: text on the left, cut-out photo on the right standing on the divider */
+  .ph-head{align-items:flex-end;padding:0 0 0 20px;min-height:130px}
+  .ph-txt{flex:1;min-width:0;padding:6px 0 18px}
+  .ph-txt .big{display:block;font-size:26px;font-weight:800;line-height:1.15;letter-spacing:-.01em;color:#fff;overflow-wrap:anywhere}
+  .ph-txt .sub{display:block;font-size:14.5px;font-weight:500;color:var(--muted);line-height:1.35;margin-top:3px}
+  .ph-txt .big.pir{margin-top:14px}
+  .ph-txt .big.pir.none{color:var(--dim)}
+  .ph-img{flex:none;width:150px;height:185px;margin-top:-14px;align-self:flex-end;object-fit:contain;object-position:center bottom;margin-right:8px;pointer-events:none;user-select:none}
   .act{display:flex;align-items:center;gap:12px;width:100%;padding:13px 6px;border:0;background:none;font-weight:600;font-size:15px;cursor:pointer;border-radius:12px;text-align:left}
   .act:active{background:var(--card-2)}
   .act .ic{width:36px;height:36px;border-radius:11px;background:var(--card-2);display:grid;place-items:center;font-size:15px;font-weight:800;flex:none}
@@ -146,8 +159,6 @@
   .act.capt-act .ic{background:var(--orange);color:#fff}
   .act.danger{color:var(--loss)} .act.danger .ic{background:var(--loss-soft)}
   .act[disabled]{opacity:.35;pointer-events:none}
-  .act.here{display:none}
-  .note{font-size:12px;color:var(--dim);padding:8px 6px 0}
 
   /* wild card toggles */
   .tg{display:flex;align-items:center;gap:14px;width:100%;padding:14px 6px;border:0;background:none;text-align:left;cursor:pointer;border-radius:12px}
@@ -212,15 +223,20 @@
 <div id="actWrap">
   <div class="scrim" data-close></div>
   <div class="sheet">
-    <div class="grab"></div>
-    <div class="sh-head">
-      <div style="min-width:0"><b id="shName"></b><small id="shMeta"></small></div>
-      <div class="calc" id="shCalc"></div>
+    <div class="grab" aria-hidden="true"></div>
+    <div class="sh-head ph-head">
+      <div class="ph-txt">
+        <span class="big" id="shName"></span>
+        <span class="sub" id="shMeta"></span>
+        <span class="big pir" id="shPir"></span>
+        <span class="sub" id="shCalc"></span>
+      </div>
+      <img class="ph-img" id="shImg" alt="">
     </div>
-    <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
-    <div id="moves"></div>
-    <button class="act danger" id="removeBtn"><span class="ic">✕</span>Remove from roster</button>
-    <p class="note">Tip: press and hold a player, then drag. Drop between players to place him there; drop onto a player in a full group to swap them. Players with PIR are sorted by PIR.</p>
+    <div class="sh-body">
+      <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
+      <button class="act danger" id="removeBtn"><span class="ic">✕</span>Remove from roster</button>
+    </div>
   </div>
 </div>
 
@@ -228,14 +244,16 @@
 <div id="wcWrap">
   <div class="scrim" data-close></div>
   <div class="sheet">
-    <div class="grab"></div>
+    <div class="grab" aria-hidden="true"></div>
     <div class="sh-head"><div><b>Wild Cards</b><small id="wcSub"></small></div></div>
-    <button class="tg" data-wc="tc">
-      <div class="txt"><b>Triple Captain</b></div><i class="sw"></i>
-    </button>
-    <button class="tg" data-wc="bb">
-      <div class="txt"><b>Bench Boost</b></div><i class="sw"></i>
-    </button>
+    <div class="sh-body">
+      <button class="tg" data-wc="tc">
+        <div class="txt"><b>Triple Captain</b></div><i class="sw"></i>
+      </button>
+      <button class="tg" data-wc="bb">
+        <div class="txt"><b>Bench Boost</b></div><i class="sw"></i>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -677,6 +695,27 @@ function seedDemo(){         // demo: give every empty coach a different set of 
 $("#retry").onclick = boot;
 const actWrap = $("#actWrap"), wcWrap = $("#wcWrap"), finder = $("#finder");
 document.querySelectorAll("[data-close]").forEach(s => s.onclick = () => { actWrap.classList.remove("open"); wcWrap.classList.remove("open"); });
+/* every sheet: press the grab area (or header) and drag down to close; a short drag springs back */
+document.querySelectorAll(".sheet").forEach(sh => {
+  let y0 = 0, dy = 0, t0 = 0, id = null;
+  const move = y => { dy = Math.max(0, y - y0); sh.style.transform = `translate(-50%, ${dy}px)`; };
+  const end = () => {
+    if (id == null) return;
+    id = null; sh.classList.remove("dragging");
+    const fast = dy > 30 && dy / Math.max(1, Date.now() - t0) > 0.5;          // a quick flick also closes
+    sh.style.transform = "";
+    if (dy > Math.min(120, sh.offsetHeight * 0.3) || fast) sh.parentElement.classList.remove("open");
+  };
+  sh.querySelectorAll(".grab, .sh-head").forEach(h => {
+    h.addEventListener("pointerdown", e => {
+      id = e.pointerId; y0 = e.clientY; dy = 0; t0 = Date.now();
+      sh.classList.add("dragging"); h.setPointerCapture(id);
+    });
+    h.addEventListener("pointermove", e => { if (e.pointerId === id) move(e.clientY); });
+    h.addEventListener("pointerup", end);
+    h.addEventListener("pointercancel", end);
+  });
+});
 const coachOf = el => el.closest(".slide")?.dataset.coach;
 
 document.addEventListener("click", e => {
@@ -691,15 +730,18 @@ document.addEventListener("click", e => {
   // e.g. "20.00 −10% = 18.00 × 2" (final) or "live 14.00 × 1"
   const calc = s.kind === "final" ? `${fmtFull(s.raw)} ${s.win ? "+10%" : "−10%"} = ${fmtFull(s.base)} × ${s.share}`
              : s.kind === "live" ? `live ${fmtFull(s.raw)} × ${s.share}` : "";
-  $("#shCalc").innerHTML = (s.kind === "final" || s.kind === "live") ? `${calc}<strong>${fmtFull(s.val)} PIR</strong>` : `<strong>–</strong>`;
+  const has = s.kind === "final" || s.kind === "live";
+  $("#shPir").textContent = has ? `${fmtFull(s.val)} PIR` : "– PIR";
+  $("#shPir").classList.toggle("none", !has);
+  $("#shCalc").textContent = calc;
+  $("#shCalc").hidden = !calc;
+  const img = $("#shImg");
+  img.hidden = !p.img; img.onerror = () => { img.hidden = true; };
+  if (p.img) img.src = p.img; else img.removeAttribute("src");
+  actWrap.querySelector(".sh-body").scrollTop = 0;
   const canCapt = p.slot === "full";
   $("#captBtn").hidden = !canCapt;
   $("#captLbl").textContent = p.captain ? "Remove captain" : `Make captain (${chipsOf(n).tc ? "3" : "2"}× PIR)`;
-  $("#moves").innerHTML = ORDER.map(slot => {
-    const isFull = slotCount(n, slot) >= SLOTS[slot];
-    return `<button class="act ${slot === p.slot ? "here" : ""}" data-slot="${slot}" ${isFull ? "disabled" : ""}>
-      <span class="ic">⇅</span>Move to ${LABEL[slot]}<small>${isFull ? "full" : `${slotCount(n, slot)}/${SLOTS[slot]}`}</small></button>`;
-  }).join("");
   actWrap.classList.add("open");
 });
 function selected(){ return sel && rosters[sel.n]?.find(x => x.code === sel.code); }
@@ -712,12 +754,6 @@ $("#captBtn").onclick = () => {
   save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader();
   toast(make ? `${p.name} is captain` : "Captain removed");
 };
-$("#moves").addEventListener("click", e => {
-  const b = e.target.closest("[data-slot]"); if (!b) return;
-  const p = selected(); if (!p){ actWrap.classList.remove("open"); return; }
-  p.slot = b.dataset.slot; p.order = endOrder(sel.n, [p.slot]); fixCaptain(sel.n); save(sel.n);
-  actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} → ${LABEL[p.slot]}`);
-});
 $("#removeBtn").onclick = () => { const i = rosters[sel.n].findIndex(x => x.code === sel.code); if (i < 0){ actWrap.classList.remove("open"); return; } const [p] = rosters[sel.n].splice(i, 1); save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} removed`); };
 
 /* wild cards */
