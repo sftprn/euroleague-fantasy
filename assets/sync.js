@@ -1,10 +1,11 @@
 /* Shared league state — keeps every open phone in sync through /api/state (Cloudflare Worker + D1).
    - poll(): asks the server every 2.5 s while the page is visible (cheap 204 when nothing changed)
    - push(coach, data): saves this coach's roster / chips / team right away; retried if offline
-   Disabled for local files (no server) and ?demo (demo data stays on this device). */
+   Disabled for local files (no server) and the old ?demo replay. ?demo=live / ?demo=round talk to the
+   pretend server in assets/demo.js instead, so nothing reaches the real league. */
 (function(){
   const qs = new URLSearchParams(location.search);
-  const enabled = location.protocol !== "file:" && !qs.has("demo");
+  const enabled = location.protocol !== "file:" && (!qs.has("demo") || !!window.ELF_DEMO);
   const POLL = 2500;
   const S = {enabled, ready:!enabled, v:null, coaches:{}, league:null, online:true};
   const listeners = [];

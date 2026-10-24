@@ -112,8 +112,18 @@
     <div class="sec-t" id="topTitle">TOP 10 PLAYERS</div>
     <div class="list" id="topList"></div>
   </div>
+
+  <!-- demos for testing (shown in edit mode); they run in a pretend league, nothing reaches the real one -->
+  <div id="demoLinks" hidden>
+    <div class="sec-t">DEMOS</div>
+    <div class="list">
+      <a class="row" href="/1-league?demo=live&new"><div class="who"><b>Live games</b><small>Games tipping off, live PIR climbing</small></div><div class="score"><span class="chev">›</span></div></a>
+      <a class="row" href="/1-league?demo=round&new"><div class="who"><b>Start new round</b><small>Round finished, try the Start Round button</small></div><div class="score"><span class="chev">›</span></div></a>
+    </div>
+  </div>
 </div>
 
+<script src="assets/demo.js"></script>
 <script src="assets/sync.js"></script>
 <script>
 /* ───────── league (hardcoded) ───────── */
@@ -141,7 +151,7 @@ const DIRECT = location.protocol === "file:";
 const COACH_PAGE = DIRECT ? "2-coach.html" : "/2-coach";   // same-origin, no redirect hop (keeps the home-screen app full-screen)
 const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
 const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
-const LIVE_POLL = 30_000, IDLE_POLL = 5 * 60_000;
+const LIVE_POLL = window.ELF_DEMO ? 5_000 : 30_000, IDLE_POLL = 5 * 60_000;
 // group share of a player's PIR (older saved rosters used active/bench/inactive)
 const MULT = {full:1, half:0.5, zero:0, active:1, bench:0.5, inactive:0};
 
@@ -313,6 +323,7 @@ $("#editBtn").onclick = () => {
   b.textContent = editing ? "✓" : "✎";
   b.setAttribute("aria-label", editing ? "Save changes" : "Edit team names and custom PIR");
   $("#list").innerHTML = ""; $("#totalList").innerHTML = "";
+  $("#demoLinks").hidden = !editing;
   render();
   if (editing) (view === "total" ? $("#totalList .base-input") : $("#list .team-input"))?.focus();
 };

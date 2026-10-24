@@ -255,6 +255,7 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="assets/demo.js"></script>
 <script src="assets/sync.js"></script>
 <script>
 /* ───────── league (hardcoded, same as the league page) ───────── */
@@ -269,7 +270,7 @@ const COACHES = [
 
 /* ───────── config ───────── */
 const qs = new URLSearchParams(location.search);
-const DEMO = qs.has("demo");                  // ?demo → replays the last finished round as if live
+const DEMO = qs.has("demo") && !window.ELF_DEMO;   // plain ?demo → replays the last finished round as if live (?demo=live / ?demo=round: assets/demo.js)
 const today = new Date();
 const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1);
 // On the website, API calls go through Netlify's proxy (see _redirects) — Euroleague's
@@ -282,7 +283,7 @@ const ORDER = ["full", "half", "zero"];
 const SLOTS = {full:6, half:4, zero:3};
 const LABEL = {full:"100%", half:"50%", zero:"0%"};
 const MAX = 13;
-const LIVE_POLL = 30_000, IDLE_POLL = 5 * 60_000;
+const LIVE_POLL = window.ELF_DEMO ? 5_000 : 30_000, IDLE_POLL = 5 * 60_000;
 
 /* ───────── storage: shared server (assets/sync.js) + local cache for instant start/offline ───────── */
 const store = {
