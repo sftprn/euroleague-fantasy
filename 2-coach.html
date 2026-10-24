@@ -163,6 +163,57 @@
   .act.danger{color:var(--loss)} .act.danger .ic{background:var(--loss-soft)}
   .act[disabled]{opacity:.35;pointer-events:none}
 
+
+  /* player sheet tabs */
+  .tabs{position:sticky;top:-8px;z-index:2;display:flex;gap:4px;padding:4px;margin:-8px -16px 12px;background:var(--card);border-bottom:1px solid var(--line);padding:8px 16px}
+  .tabs button{flex:1;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .tabs button.on{background:var(--card-2);color:#fff}
+  .pane{min-height:120px}
+  .pane .empty{color:var(--muted);font-size:13.5px;text-align:center;padding:26px 10px}
+  .pane .loading{color:var(--dim);font-size:13px;text-align:center;padding:26px 10px}
+  .gm{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card-2);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+  .gm .tm{font-weight:800;font-size:15px;min-width:44px} .gm .tm.r{text-align:right}
+  .gm .sc{font-weight:800;font-size:22px;letter-spacing:-.01em;text-align:center;flex:1}
+  .gm .sc small{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-top:2px}
+  .gm .sc small.lv{color:var(--orange)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .grid div{background:var(--card-2);border-radius:12px;padding:9px 6px 8px;text-align:center;min-width:0}
+  .grid b{display:block;font-size:17px;font-weight:800}
+  .grid small{display:block;font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-top:2px}
+  .grid em{display:block;font-style:normal;font-size:10.5px;color:var(--dim);margin-top:1px}
+  .grid .wide{grid-column:span 2}
+  .fouls{display:flex;gap:5px;justify-content:center;margin-top:5px}
+  .fouls i{width:8px;height:8px;border-radius:50%;background:#3A3A40}
+  .fouls i.on{background:#fff} .fouls.warn i.on{background:var(--loss)}
+  .tl{position:relative;height:30px;border-radius:8px;background:var(--card-2);overflow:hidden;margin:6px 0 4px}
+  .tl .seg{position:absolute;top:0;bottom:0;background:var(--orange);border-radius:3px}
+  .tl .q{position:absolute;top:0;bottom:0;width:1px;background:var(--bg)}
+  .tl .fut{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(135deg,#0000 0 5px,#FFFFFF0D 5px 10px)}
+  .tl .now{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff}
+  .tl-lab{position:relative;height:14px;font-size:10.5px;font-weight:700;color:var(--dim);margin-bottom:12px}
+  .tl-lab span{position:absolute;transform:translateX(-50%)}
+  .mins-sum{display:flex;justify-content:space-between;align-items:baseline;margin:4px 2px 2px}
+  .mins-sum b{font-size:20px;font-weight:800} .mins-sum small{color:var(--muted);font-size:12.5px}
+  .stint{display:flex;justify-content:space-between;padding:10px 2px;border-top:1px solid var(--line);font-size:14px}
+  .stint span{color:var(--muted)}
+  .avg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+  .avg div{background:var(--card-2);border-radius:12px;padding:9px 6px 8px;text-align:center}
+  .avg b{display:block;font-size:17px;font-weight:800} .avg small{display:block;font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-top:2px}
+  .chart{display:flex;align-items:stretch;justify-content:center;gap:3px;height:84px;margin:4px 0 14px;position:relative}
+  .chart .col{flex:1;position:relative;min-width:0;max-width:22px}
+  .chart .bar{position:absolute;left:0;right:0;border-radius:3px;background:var(--orange)}
+  .chart .bar.neg{background:var(--loss)} .chart .bar.dnp{background:#3A3A40}
+  .chart .zero{position:absolute;left:0;right:0;height:1px;background:var(--line)}
+  .hist{width:100%;border-collapse:collapse;font-size:13.5px}
+  .hist th{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.06em;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+  .hist td{text-align:right;padding:9px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .hist th:nth-child(-n+2),.hist td:nth-child(-n+2){text-align:left}
+  .hist td.rd{color:var(--muted);width:30px}
+  .hist td b{font-weight:800}
+  .hist tr.cur td{background:var(--orange-soft)}
+  .hist .w{color:var(--win)} .hist .l{color:var(--loss)}
+  .hist-note{font-size:11.5px;color:var(--dim);padding:10px 2px 0}
+
   /* wild card toggles */
   .tg{display:flex;align-items:center;gap:14px;width:100%;padding:14px 6px;border:0;background:none;text-align:left;cursor:pointer;border-radius:12px}
   .tg:active{background:var(--card-2)}
@@ -237,8 +288,17 @@
       <div class="ph-pic" id="shPic"><img class="ph-img" id="shImg" alt=""></div>
     </div>
     <div class="sh-body">
-      <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
-      <button class="act danger" id="removeBtn"><span class="ic">✕</span>Remove from roster</button>
+      <div class="tabs" id="shTabs" role="tablist">
+        <button data-tab="game" role="tab">Game</button>
+        <button data-tab="mins" role="tab">Minutes</button>
+        <button data-tab="season" role="tab">Season</button>
+        <button data-tab="edit" role="tab">Edit</button>
+      </div>
+      <div class="pane" id="shPane"></div>
+      <div id="shEdit" hidden>
+        <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
+        <button class="act danger" id="removeBtn"><span class="ic">✕</span>Remove from roster</button>
+      </div>
     </div>
   </div>
 </div>
@@ -278,6 +338,7 @@
 
 <script src="assets/demo.js"></script>
 <script src="assets/sync.js"></script>
+<script src="assets/data.js"></script>
 <script>
 /* ───────── league (hardcoded, same as the league page) ───────── */
 const COACHES = [
@@ -634,6 +695,7 @@ async function refresh(){
     order = COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n);
     buildSlides();
   } else render();
+  if (actWrap.classList.contains("open") && selected()){ fillSheet(false); if (shTab === "game" || shTab === "mins") renderTab(); }
   schedule();
 }
 function schedule(){
@@ -727,7 +789,19 @@ document.addEventListener("click", e => {
   const r = e.target.closest(".slide .p[data-i]"); if (!r) return;
   const n = coachOf(r);
   const p = rosters[n][+r.dataset.i]; if (!p) return;
-  sel = {n, code: p.code}; const s = stateOf(p, n);
+  sel = {n, code: p.code};
+  fillSheet(true);
+  actWrap.querySelector(".sh-body").scrollTop = 0;
+  shTab = stateOf(p, n).kind === "live" || stateOf(p, n).kind === "final" ? "game" : (shTab === "edit" ? "edit" : "season");
+  renderTab();
+  actWrap.classList.add("open");
+});
+
+/* ───────── player sheet ───────── */
+let shTab = "game", tabSeq = 0;
+function fillSheet(first){
+  const p = selected(); if (!p) return;
+  const n = sel.n, s = stateOf(p, n);
   $("#shName").textContent = p.name;
   $("#shMeta").textContent = `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`;
   // e.g. "20.00 −10% = 18.00 × 2" (final) or "live 14.00 × 1"
@@ -738,6 +812,9 @@ document.addEventListener("click", e => {
   $("#shPir").classList.toggle("none", !has);
   $("#shCalc").textContent = calc;
   $("#shCalc").hidden = !calc;
+  $("#captBtn").hidden = p.slot !== "full";
+  $("#captLbl").textContent = p.captain ? "Remove captain" : `Make captain (${chipsOf(n).tc ? "3" : "2"}× PIR)`;
+  if (!first) return;
   const img = $("#shImg"), pic = $("#shPic");
   pic.hidden = !p.img; img.onerror = () => { pic.hidden = true; };
   img.style.removeProperty("--gap");
@@ -750,12 +827,122 @@ document.addEventListener("click", e => {
     img.complete ? fit() : img.addEventListener("load", fit, {once: true});
   }); }
   else img.removeAttribute("src");
-  actWrap.querySelector(".sh-body").scrollTop = 0;
-  const canCapt = p.slot === "full";
-  $("#captBtn").hidden = !canCapt;
-  $("#captLbl").textContent = p.captain ? "Remove captain" : `Make captain (${chipsOf(n).tc ? "3" : "2"}× PIR)`;
-  actWrap.classList.add("open");
+}
+$("#shTabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  shTab = b.dataset.tab; renderTab();
 });
+const pct = (m, a) => a ? Math.round(m / a * 100) + "%" : "–";
+const sign = v => v > 0 ? "+" + v : String(v);
+const clockOf = (m, len) => {                           // game minute → "Q2 07:00" / "OT1 03:00"
+  const ot = m >= 40 && len > 40 ? Math.min(Math.floor((m - 40) / 5), (len - 40) / 5 - 1) : -1;
+  const q = ot >= 0 ? "OT" + (ot + 1) : "Q" + Math.min(4, Math.floor(m / 10) + 1);
+  const end = ot >= 0 ? 45 + ot * 5 : Math.min(4, Math.floor(m / 10) + 1) * 10;
+  const left = Math.max(0, end - m), sec = Math.round(left * 60);
+  return `${q} ${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+};
+const mmss = m => { const sec = Math.round(m * 60); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`; };
+function gameOf(p){ return games.find(g => g.r === round && (g.h.c === p.club || g.a.c === p.club)); }
+
+async function renderTab(){
+  const p = selected(); if (!p) return;
+  const seq = ++tabSeq, pane = $("#shPane");
+  document.querySelectorAll("#shTabs [data-tab]").forEach(b => { b.classList.toggle("on", b.dataset.tab === shTab); b.setAttribute("aria-selected", b.dataset.tab === shTab); });
+  $("#shEdit").hidden = shTab !== "edit";
+  pane.hidden = shTab === "edit";
+  if (shTab === "edit") return;
+  const stale = () => seq !== tabSeq || !actWrap.classList.contains("open");
+  if (!pane.dataset.tab || pane.dataset.tab !== shTab + p.code) pane.innerHTML = `<div class="loading">Loading…</div>`;
+  pane.dataset.tab = shTab + p.code;
+  try{
+    const html = shTab === "game" ? await gamePane(p) : shTab === "mins" ? await minsPane(p) : await seasonPane(p, h => { if (!stale()) pane.innerHTML = h; });
+    if (!stale()) pane.innerHTML = html;
+  }catch{ if (!stale()) pane.innerHTML = `<div class="empty">Couldn't load this right now. Try again in a moment.</div>`; }
+}
+
+function gameHead(g, b, p){
+  const h = g.h, a = g.a;
+  if (!b || b.pending) return `<div class="gm"><span class="tm">${esc(h.tv)}</span><span class="sc">vs<small>${new Date(g.u) > new Date() ? esc(when(g.u)) : "STARTING"}</small></span><span class="tm r">${esc(a.tv)}</span></div>`;
+  const s = stateOf(p, sel.n);
+  const status = b.live ? `<small class="lv">${liveClock(s).replace(/<[^>]+>/g, "") || "LIVE"}</small>` : `<small>FINAL</small>`;
+  return `<div class="gm"><span class="tm">${esc(h.tv)}</span><span class="sc">${b.teams[0].pts} – ${b.teams[1].pts}${status}</span><span class="tm r">${esc(a.tv)}</span></div>`;
+}
+async function gamePane(p){
+  const g = gameOf(p);
+  if (!g) return `<div class="empty">No game this round.</div>`;
+  if (new Date(g.u) > new Date()) return gameHead(g, null, p) + `<div class="empty">Stats show up once the game starts.</div>`;
+  const b = await ElData.box(g.c);
+  const l = await ElData.line(g.c, p.code);
+  if (b.pending) return gameHead(g, b, p) + `<div class="empty">Waiting for the first stats…</div>`;
+  if (!l || l.min === "DNP" || !l.mins) return gameHead(g, b, p) + `<div class="empty">Did not play${b.live ? " yet" : ""}.</div>`;
+  const pf = Math.min(5, l.pf || 0);
+  const cell = (v, lab, extra = "", cls = "") => `<div class="${cls}"><b>${v}</b><small>${lab}</small>${extra}</div>`;
+  return gameHead(g, b, p) + `<div class="grid">
+    ${cell(esc(l.min), "MIN", l.on && b.live ? `<em style="color:var(--win)">on court</em>` : l.starter ? `<em>starter</em>` : "")}
+    ${cell(l.pts, "PTS")}${cell(l.tr, "REB", `<em>${l.or} off · ${l.dr} def</em>`)}${cell(l.ast, "AST")}
+    ${cell(`${l.fg2m}/${l.fg2a}`, "2PT", `<em>${pct(l.fg2m, l.fg2a)}</em>`)}${cell(`${l.fg3m}/${l.fg3a}`, "3PT", `<em>${pct(l.fg3m, l.fg3a)}</em>`)}
+    ${cell(`${l.ftm}/${l.fta}`, "FT", `<em>${pct(l.ftm, l.fta)}</em>`)}${cell(sign(l.pm), "+/−")}
+    ${cell(l.stl, "STL")}${cell(l.to, "TO")}${cell(l.blk, "BLK", `<em>${l.blka} against</em>`)}${cell(l.fd, "DRAWN", `<em>fouls on him</em>`)}
+    <div class="wide"><b>${l.pf}</b><small>FOULS</small><div class="fouls${pf >= 4 ? " warn" : ""}">${[1,2,3,4,5].map(i => `<i class="${i <= pf ? "on" : ""}"></i>`).join("")}</div></div>
+    ${cell(fmtFull(l.pir), "PIR", "", "wide")}
+  </div>`;
+}
+async function minsPane(p){
+  const g = gameOf(p);
+  if (!g) return `<div class="empty">No game this round.</div>`;
+  if (new Date(g.u) > new Date()) return `<div class="empty">Minutes show up once the game starts.</div>`;
+  const [st, l] = await Promise.all([ElData.stretches(g.c), ElData.line(g.c, p.code)]);
+  if (st.pending) return `<div class="empty">Waiting for the first plays…</div>`;
+  const mine = st.pl[p.code] || [], len = st.len, x = m => (m / len * 100).toFixed(2) + "%";
+  const total = mine.reduce((a, [f, t]) => a + t - f, 0);
+  const marks = []; for (let m = 10; m < len; m += m < 40 ? 10 : 5) marks.push(m);
+  const labels = []; for (let q = 0; q < 4; q++) labels.push([q * 10 + 5, "Q" + (q + 1)]);
+  for (let o = 0; 40 + o * 5 < len; o++) labels.push([42.5 + o * 5, "OT" + (o + 1)]);
+  const bar = `<div class="tl">
+      ${mine.map(([f, t]) => `<div class="seg" style="left:${x(f)};width:calc(${x(t - f)} - 1px)"></div>`).join("")}
+      ${marks.map(m => `<div class="q" style="left:${x(m)}"></div>`).join("")}
+      ${st.live ? `<div class="fut" style="left:${x(st.now)}"></div><div class="now" style="left:${x(st.now)}"></div>` : ""}
+    </div><div class="tl-lab">${labels.map(([m, t]) => `<span style="left:${x(m)}">${t}</span>`).join("")}</div>`;
+  if (!mine.length) return bar + `<div class="empty">Hasn't been on court${st.live ? " yet" : ""}.</div>`;
+  const onNow = st.live && mine.length && Math.abs(mine[mine.length - 1][1] - st.now) < 0.01;
+  return `<div class="mins-sum"><b>${l?.min && l.min !== "DNP" ? esc(l.min) : mmss(total)}</b><small>${mine.length} stint${mine.length > 1 ? "s" : ""}${l?.starter ? " · starter" : ""}${onNow ? ` · <span style="color:var(--win)">on court now</span>` : ""}</small></div>`
+    + bar + mine.map(([f, t], i) => `<div class="stint">${clockOf(f, len)} → ${onNow && i === mine.length - 1 ? "now" : clockOf(t, len)}<span>${mmss(t - f)}</span></div>`).join("");
+}
+async function seasonPane(p, partial){
+  const draw = rows => {
+    const done = rows.filter(r => !r.loading && r.pir != null);
+    const played = done.filter(r => r.played);
+    const avg = k => played.length ? (played.reduce((a, r) => a + r[k], 0) / played.length) : 0;
+    const best = played.length ? Math.max(...played.map(r => r.pir)) : null;
+    const max = Math.max(5, ...done.map(r => Math.abs(r.pir || 0)));
+    const neg = done.some(r => r.pir < 0), zero = neg ? 60 : 100;                   // baseline position (% from top)
+    const chart = rows.length ? `<div class="chart">${rows.map(r => {
+      if (r.loading || r.pir == null) return `<div class="col"><div class="bar dnp" style="bottom:${100 - zero}%;height:2px"></div></div>`;
+      const h = Math.abs(r.pir) / max * (neg ? 58 : 98);
+      return `<div class="col" title="R${r.r}: ${r.pir}">${r.pir >= 0 ? `<div class="bar" style="bottom:${100 - zero}%;height:${h}%"></div>` : `<div class="bar neg" style="top:${zero}%;height:${h}%"></div>`}</div>`;
+    }).join("")}<div class="zero" style="top:${zero}%"></div></div>` : "";
+    const res = r => r.pending || r.pts == null ? "–" : `<span class="${r.live ? "" : r.win ? "w" : "l"}">${r.live ? "LIVE" : r.win ? "W" : "L"}</span> ${r.pts}–${r.oppPts}`;
+    return `<div class="avg">
+        <div><b>${played.length}</b><small>GAMES</small></div>
+        <div><b>${played.length ? avg("pir").toFixed(1) : "–"}</b><small>AVG PIR</small></div>
+        <div><b>${played.length ? mmss(avg("mins")) : "–"}</b><small>AVG MIN</small></div>
+        <div><b>${best ?? "–"}</b><small>BEST</small></div>
+      </div>${chart}
+      <table class="hist"><thead><tr><th>RD</th><th>OPP</th><th>RESULT</th><th>MIN</th><th>PIR</th><th>±10%</th></tr></thead><tbody>
+      ${rows.slice().reverse().map(r => `<tr class="${r.r === round ? "cur" : ""}"><td class="rd">${r.r}</td><td>${r.home ? "vs" : "@"} ${esc(r.opp.tv)}</td>
+        <td>${r.loading ? "…" : res(r)}</td><td>${r.loading ? "" : r.played ? esc(r.min) : r.pending ? "–" : "DNP"}</td>
+        <td><b>${r.loading || r.pir == null ? "" : r.pir}</b></td><td>${r.loading || r.adj == null ? "" : fmtFull(r.adj)}</td></tr>`).join("")}
+      </tbody></table>
+      <div class="hist-note">Games for ${esc(p.clubName || p.tv)} this season. PIR is raw; ±10% adds the team result like the fantasy score.</div>`;
+  };
+  let pending = null;
+  const rows = await ElData.history(p.code, p.club, games, rs => {        // fill in rows as games arrive (at most ~5 redraws a second)
+    if (pending) return; pending = setTimeout(() => { pending = null; partial(draw(rs)); }, 200);
+  });
+  clearTimeout(pending);
+  return rows.length ? draw(rows) : `<div class="empty">No games played yet this season.</div>`;
+}
+
 /* share of a photo's height that is empty (transparent) below the player — measured once, remembered on this phone */
 const gaps = store.get("elf.photoGap", {});
 function photoGap(url){

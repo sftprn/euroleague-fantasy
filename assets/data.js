@@ -112,6 +112,12 @@
       if (e.PLAYTYPE === "IN"){ if (on[c] == null) on[c] = t; }
       else if (e.PLAYTYPE === "OUT"){ if (on[c] != null){ add(c, on[c], t); delete on[c]; } }
     }
+    if (pbp?.Live && b?.q){                           // live: the game clock is more exact than the last logged play
+      const q = +String(b.q).replace(/\D/g, "") || 0, left = toMin(b.t);
+      const clock = q > 4 ? 40 + (q - 5) * 5 + 5 - left : (q - 1) * 10 + 10 - left;
+      if (q && clock > last) last = clock;
+      if (q > 4) len = Math.max(len, 40 + (q - 4) * 5);
+    }
     const end = pbp?.Live ? last : len;
     for (const [c, a] of Object.entries(on)) add(c, a, end);
     for (const l of Object.values(pl)) l.forEach(s => { s[0] = Math.round(s[0] * 100) / 100; s[1] = Math.round(s[1] * 100) / 100; });

@@ -82,28 +82,84 @@
   });
 
   /* box score made up from the rosters: each player heads for his own final PIR as the game goes on */
+  /* each roster player gets a made-up game: on-court stretches (4 per quarter pattern) and a final stat line;
+     everything shown is the part of that line played so far, so box score, minutes and play-by-play agree */
+  function plan(x){
+    const k = x.code + W.R0, H = t => hash(t + k);
+    if (H("dnp") < 0.06) return {dnp: true};
+    const M = 16 + 18 * H("m"), starter = H("s") < 0.5, q = M / 4, st = [];
+    for (let i = 0; i < 4; i++){
+      const a = i * 10, b = a + 10;
+      if (starter){ st.push([a, a + q * 0.6]); st.push([b - q * 0.4, b]); }
+      else { const s0 = a + 2 + 3 * H("o" + i); st.push([s0, Math.min(b, s0 + q)]); }
+    }
+    const r = t => Math.round(t);
+    const fg2a = r(2 + 9 * H("a2")), fg3a = r(6 * H("a3")), fta = r(6 * H("af"));
+    const line = {fg2a, fg2m: r(fg2a * (0.35 + 0.35 * H("p2"))), fg3a, fg3m: r(fg3a * (0.2 + 0.3 * H("p3"))), fta, ftm: r(fta * (0.6 + 0.35 * H("pf"))),
+                  or: r(3 * H("or")), dr: r(7 * H("dr")), ast: r(7 * H("as")), stl: r(3 * H("st")), to: r(4 * H("to")),
+                  blk: r(2.4 * H("bk")), blka: r(1.4 * H("ba")), pf: r(5.4 * H("fo")), fd: r(6 * H("fd"))};
+    return {M, starter, st, line, no: String(1 + Math.floor(H("no") * 44))};
+  }
+  const playedBy = (st, now) => st.reduce((a, [f, t]) => a + Math.max(0, Math.min(t, now) - f), 0);
   function boxFor(code){
     const g = W.games.find(x => x.gameCode === code);
     const p = progress(code);
     if (!g || p == null) return null;
     if (p <= 0) return "";                                    // not started → empty answer, like the real API
+    const now = p * 40;
     const side = club => {
       const seen = new Set(), pl = [];
       Object.values(W.state.coaches).forEach(d => (d.roster || []).forEach(x => {
         if (x.club !== club || seen.has(x.code)) return;
         seen.add(x.code);
-        const h = hash(x.code + W.R0), dnp = h < 0.06;
-        const target = Math.round(-4 + 34 * Math.pow(hash("t" + x.code + W.R0), 1.4));
-        const wob = p < 1 ? Math.round(2 * Math.sin(h * 50 + p * 18)) : 0;
-        pl.push({Player_ID: "P" + x.code + "   ", Valuation: dnp ? 0 : Math.round(target * p) + wob,
-                 Minutes: dnp ? "DNP" : mmss((16 + 18 * hash("m" + x.code)) * 60 * p)});
+        const P = plan(x), base = {Player_ID: "P" + x.code + "   ", Team: club, Player: (x.name || "").split(" ").reverse().join(", ").toUpperCase()};
+        if (P.dnp){ pl.push({...base, Minutes: "DNP", Valuation: 0, IsStarter: 0, IsPlaying: 0}); return; }
+        const m = playedBy(P.st, now), f = m / P.M, L = {};
+        for (const [k2, v] of Object.entries(P.line)) L[k2] = Math.floor(v * f + 1e-9);
+        L.fg2m = Math.min(L.fg2m, L.fg2a); L.fg3m = Math.min(L.fg3m, L.fg3a); L.ftm = Math.min(L.ftm, L.fta);
+        const pts = 2 * L.fg2m + 3 * L.fg3m + L.ftm, tr = L.or + L.dr;
+        const pir = pts + tr + L.ast + L.stl + L.blk + L.fd - ((L.fg2a - L.fg2m) + (L.fg3a - L.fg3m) + (L.fta - L.ftm) + L.to + L.blka + L.pf);
+        const on = p < 1 && P.st.some(([a, b2]) => now >= a && now < b2);
+        pl.push({...base, Dorsal: P.no, IsStarter: P.starter ? 1 : 0, IsPlaying: on ? 1 : 0, Minutes: m ? mmss(m * 60) : "DNP",
+                 Points: pts, FieldGoalsMade2: L.fg2m, FieldGoalsAttempted2: L.fg2a, FieldGoalsMade3: L.fg3m, FieldGoalsAttempted3: L.fg3a,
+                 FreeThrowsMade: L.ftm, FreeThrowsAttempted: L.fta, OffensiveRebounds: L.or, DefensiveRebounds: L.dr, TotalRebounds: tr,
+                 Assistances: L.ast, Steals: L.stl, Turnovers: L.to, BlocksFavour: L.blk, BlocksAgainst: L.blka, FoulsCommited: L.pf, FoulsReceived: L.fd,
+                 Plusminus: Math.round((hash("pm" + x.code + W.R0) - 0.45) * 30 * f), Valuation: pir});
       }));
       const pts = Math.round((68 + 26 * hash("s" + club + W.R0)) * p);
-      return {totr: {Points: pts}, PlayersStats: pl};
+      return {Team: club, totr: {Points: pts}, PlayersStats: pl};
     };
     const home = side(g.local.club.code), away = side(g.road.club.code);
     if (p >= 1 && home.totr.Points === away.totr.Points) home.totr.Points++;   // no ties at the end
     return {Live: p < 1, Stats: [home, away]};
+  }
+  function pbpFor(code){
+    const g = W.games.find(x => x.gameCode === code);
+    const p = progress(code);
+    if (!g || p == null) return null;
+    if (p <= 0) return "";
+    const now = p * 40, Q = [[], [], [], []];
+    let n = 0;
+    const at = (t, type, x, club) => {
+      if (t > now + 1e-9) return;
+      const qq = t > 0 && t % 10 === 0 && type === "OUT" ? t / 10 - 1 : Math.min(3, Math.floor(t / 10));
+      Q[qq].push({NUMBEROFPLAY: 0, PLAYTYPE: type, PLAYER_ID: x ? "P" + x.code + "   " : "", CODETEAM: club || "", MARKERTIME: mmss(Math.max(0, (qq + 1) * 10 - t) * 60), t});
+    };
+    for (let q = 0; q < 4; q++) if (q * 10 <= now) Q[q].push({NUMBEROFPLAY: 0, PLAYTYPE: "BP", PLAYER_ID: "", MARKERTIME: "", t: q * 10 - 1e-6});
+    for (const club of [g.local.club.code, g.road.club.code]){
+      const seen = new Set();
+      Object.values(W.state.coaches).forEach(d => (d.roster || []).forEach(x => {
+        if (x.club !== club || seen.has(x.code)) return;
+        seen.add(x.code);
+        const P = plan(x); if (P.dnp) return;
+        P.st.forEach(([a, b2]) => { if (!(P.starter && a === 0)) at(a, "IN", x, club); if (b2 < 40) at(b2, "OUT", x, club); });
+      }));
+    }
+    const out = {Live: p < 1, ExtraTime: []};
+    ["FirstQuarter", "SecondQuarter", "ThirdQuarter", "ForthQuarter"].forEach((k2, i) => {
+      out[k2] = Q[i].sort((a, b) => a.t - b.t).map(e => { e.NUMBEROFPLAY = ++n; delete e.t; return e; });
+    });
+    return out;
   }
   function headerFor(code){
     const p = progress(code) || 0, played = p * 40;           // minutes of game time
@@ -161,7 +217,7 @@
     const url = new URL(typeof input === "string" ? input : input.url, location.href);
     const path = url.pathname, method = (init.method || "GET").toUpperCase();
     const ours = url.origin === location.origin &&
-      (path === "/api/state" || path === "/api/round" || /^\/el-api\/.*\/games$/.test(path) || /^\/el-live\/(Boxscore|Header)$/.test(path));
+      (path === "/api/state" || path === "/api/round" || /^\/el-api\/.*\/games$/.test(path) || /^\/el-live\/(Boxscore|Header|PlayByPlay)$/.test(path));
     if (!ours) return realFetch(input, init);
     await ready;
     if (path === "/api/state"){
@@ -181,6 +237,11 @@
       const b = boxFor(code);
       if (b === null) return realFetch(input, init);          // a game outside the demo round → real data
       return new Response(b === "" ? "" : JSON.stringify(b), {headers: {"content-type": "application/json"}});
+    }
+    if (path.endsWith("/PlayByPlay")){
+      const d = pbpFor(code);
+      if (d === null) return realFetch(input, init);
+      return new Response(d === "" ? "" : JSON.stringify(d), {headers: {"content-type": "application/json"}});
     }
     if (path.endsWith("/Header")){
       if (progress(code) == null) return realFetch(input, init);
