@@ -148,10 +148,13 @@
   .ph-head{align-items:flex-end;padding:0 0 0 20px;min-height:130px}
   .ph-txt{flex:1;min-width:0;padding:6px 0 18px}
   .ph-txt .big{display:block;font-size:26px;font-weight:800;line-height:1.15;letter-spacing:-.01em;color:#fff;overflow-wrap:anywhere}
-  .ph-txt .sub{display:block;font-size:12.5px;font-weight:500;color:var(--muted);line-height:1.35;margin-top:3px}
+  .ph-txt .sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted);line-height:1.35;margin-top:3px}
   .ph-txt .big.pir{margin-top:14px}
   .ph-txt .big.pir.none{color:var(--dim)}
-  .ph-img{flex:none;width:150px;height:185px;margin-top:-14px;align-self:flex-end;object-fit:contain;object-position:center bottom;margin-right:8px;pointer-events:none;user-select:none}
+  .ph-pic{flex:none;width:150px;height:185px;margin:-14px 8px 0 0;align-self:flex-end;position:relative;overflow:hidden;pointer-events:none;user-select:none}
+  .ph-pic[hidden]{display:none}
+  /* some photos have empty space under the body: --gap (measured once per photo) pushes it down onto the divider */
+  .ph-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;transform:translateY(var(--gap,0px))}
   .act{display:flex;align-items:center;gap:12px;width:100%;padding:13px 6px;border:0;background:none;font-weight:600;font-size:15px;cursor:pointer;border-radius:12px;text-align:left}
   .act:active{background:var(--card-2)}
   .act .ic{width:36px;height:36px;border-radius:11px;background:var(--card-2);display:grid;place-items:center;font-size:15px;font-weight:800;flex:none}
@@ -231,7 +234,7 @@
         <span class="big pir" id="shPir"></span>
         <span class="sub" id="shCalc"></span>
       </div>
-      <img class="ph-img" id="shImg" alt="">
+      <div class="ph-pic" id="shPic"><img class="ph-img" id="shImg" alt=""></div>
     </div>
     <div class="sh-body">
       <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
@@ -735,15 +738,47 @@ document.addEventListener("click", e => {
   $("#shPir").classList.toggle("none", !has);
   $("#shCalc").textContent = calc;
   $("#shCalc").hidden = !calc;
-  const img = $("#shImg");
-  img.hidden = !p.img; img.onerror = () => { img.hidden = true; };
-  if (p.img) img.src = p.img; else img.removeAttribute("src");
+  const img = $("#shImg"), pic = $("#shPic");
+  pic.hidden = !p.img; img.onerror = () => { pic.hidden = true; };
+  img.style.removeProperty("--gap");
+  if (p.img){ img.src = p.img; photoGap(p.img).then(g => {
+    if (img.src !== p.img || !g) return;
+    const fit = () => {                                 // height the photo is actually drawn at (contain)
+      const h = img.naturalWidth ? Math.min(pic.offsetHeight, pic.offsetWidth * img.naturalHeight / img.naturalWidth) : pic.offsetHeight;
+      img.style.setProperty("--gap", (g * h).toFixed(1) + "px");
+    };
+    img.complete ? fit() : img.addEventListener("load", fit, {once: true});
+  }); }
+  else img.removeAttribute("src");
   actWrap.querySelector(".sh-body").scrollTop = 0;
   const canCapt = p.slot === "full";
   $("#captBtn").hidden = !canCapt;
   $("#captLbl").textContent = p.captain ? "Remove captain" : `Make captain (${chipsOf(n).tc ? "3" : "2"}× PIR)`;
   actWrap.classList.add("open");
 });
+/* share of a photo's height that is empty (transparent) below the player — measured once, remembered on this phone */
+const gaps = store.get("elf.photoGap", {});
+function photoGap(url){
+  if (url in gaps) return Promise.resolve(gaps[url]);
+  return new Promise(res => {
+    const im = new Image();
+    im.crossOrigin = "anonymous";                      // separate request (?g=1) so the normal cached photo is never affected
+    im.onload = () => {
+      try{
+        const w = 60, h = Math.round(60 * im.naturalHeight / im.naturalWidth) || 80;   // a small copy is plenty
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        const x = c.getContext("2d"); x.drawImage(im, 0, 0, w, h);
+        const d = x.getImageData(0, 0, w, h).data;
+        let last = h - 1;
+        rows: for (; last > 0; last--) for (let i = 0; i < w; i++) if (d[(last * w + i) * 4 + 3] > 24) break rows;
+        gaps[url] = Math.round((h - 1 - last) / h * 1000) / 1000; store.set("elf.photoGap", gaps);
+      }catch{ gaps[url] = 0; }                         // couldn't read it: leave the photo as is
+      res(gaps[url]);
+    };
+    im.onerror = () => res(0);
+    im.src = url + (url.includes("?") ? "&" : "?") + "g=1";
+  });
+}
 function selected(){ return sel && rosters[sel.n]?.find(x => x.code === sel.code); }
 $("#captBtn").onclick = () => {
   const list = rosters[sel.n], p = selected();
