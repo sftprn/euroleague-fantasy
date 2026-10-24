@@ -64,15 +64,14 @@
   .team-input:focus{outline:none;border-color:var(--orange)}
   /* Start Round X — appears when every game of the round is over; 2 phones start the next round */
   .start{margin:-2px 0 14px}
-  .start-btn{width:100%;height:64px;border:0;border-radius:18px;background:var(--orange);color:#fff;font:800 20px Inter,system-ui,sans-serif;
-             letter-spacing:.3px;cursor:pointer;box-shadow:0 8px 28px #FF6B1A40;display:flex;align-items:center;justify-content:center;gap:10px;
+  .start-btn{width:100%;height:48px;border:0;border-radius:14px;background:var(--orange);color:#fff;font:800 16px Inter,system-ui,sans-serif;
+             letter-spacing:.3px;cursor:pointer;box-shadow:0 6px 20px #FF6B1A33;display:flex;align-items:center;justify-content:center;gap:10px;
              transition:transform .1s,background .15s,box-shadow .15s}
   .start-btn:active{transform:scale(.98)}
   .start-btn.voted{background:var(--card);border:2px solid var(--orange);color:var(--orange);box-shadow:none}
-  .start-btn.voted small{font:600 13px Inter,system-ui,sans-serif;color:var(--muted)}
+  .start-btn.voted small{font:600 12px Inter,system-ui,sans-serif;color:var(--muted)}
   .start-btn:disabled{opacity:.6}
   .start-note{text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin-top:8px}
-  .start-note b{color:var(--text)}
   .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
   .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
   .seg button.on{background:var(--orange);color:#fff}
@@ -380,7 +379,7 @@ function renderStart(){
   b.classList.toggle("voted", mine);
   b.disabled = voting;
   b.innerHTML = mine ? `✓ Ready <small>· tap to undo</small>` : `Start Round ${round + 1}`;
-  $("#startNote").innerHTML = votes.length ? `<b>${votes.length} ready</b> · ${Math.max(0, 2 - votes.length)} more to start` : "2 phones needed to start";
+  $("#startNote").textContent = (votes.length ? `${votes.length} ready, ` : "") + `${Math.max(0, 2 - votes.length)} more to start`;
 }
 $("#startBtn").onclick = async () => {
   const L = Shared.league; if (!L || voting) return;
