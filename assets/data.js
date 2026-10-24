@@ -100,10 +100,11 @@
     const add = (c, a, z) => { if (z - a < 0.005) return; const l = pl[c] = pl[c] || []; const p = l[l.length - 1];
       if (p && a - p[1] < 0.005) p[1] = z; else l.push([a, z]); };
     for (const t of b?.teams || []) for (const [c, l] of Object.entries(t.pl)) if (l.starter) on[c] = 0;
-    ev.sort((x, y) => x.e.NUMBEROFPLAY - y.e.NUMBEROFPLAY);
-    for (const {e, start, plen} of ev){
-      if (!e.MARKERTIME) continue;
-      const t = start + plen - toMin(e.MARKERTIME);
+    // order by game clock (the feed sometimes appends late corrections with a high play number), then play number
+    ev.forEach(x => x.t = x.e.MARKERTIME ? x.start + x.plen - toMin(x.e.MARKERTIME) : null);
+    ev.sort((x, y) => (x.t ?? -1) - (y.t ?? -1) || x.e.NUMBEROFPLAY - y.e.NUMBEROFPLAY);
+    for (const {e, t} of ev){
+      if (t == null) continue;
       last = Math.max(last, t);
       const c = code(e.PLAYER_ID); if (!c) continue;
       if (e.PLAYTYPE === "IN"){ if (on[c] == null) on[c] = t; }
