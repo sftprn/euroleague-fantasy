@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0B">
+<!-- home-screen app: stay full-screen when moving between pages (iOS + Android) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EL Fantasy">
+<link rel="apple-touch-icon" href="/assets/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
 <title>Roster · EL Fantasy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -181,7 +189,7 @@
 <div class="art" aria-hidden="true"></div>
 <header class="top" id="top">
   <div class="bar">
-    <a class="icon-btn" href="1-league.html" aria-label="Back">‹</a>
+    <a class="icon-btn" id="backBtn" href="/1-league" aria-label="Back">‹</a>
     <div class="title" id="title"><h1 id="coachName">&nbsp;</h1><div class="meta" id="meta">Loading…</div></div>
     <button class="icon-btn" id="wcBtn" aria-label="Wild Cards">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
@@ -264,6 +272,7 @@ const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFul
 // On the website, API calls go through Netlify's proxy (see _redirects) — Euroleague's
 // servers don't reliably allow browser calls from other sites. Opened as a local file → call directly.
 const DIRECT = location.protocol === "file:";
+if (DIRECT) document.getElementById("backBtn").href = "1-league.html";   // local file: no server-side clean addresses
 const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
 const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
 const ORDER = ["full", "half", "zero"];
@@ -330,8 +339,11 @@ let order = COACHES.map(c => c.name);            // carousel order (most → lea
 let cur = COACHES.some(c => c.name === qs.get("coach")) ? qs.get("coach") : COACHES[0].name;
 let built = false, sel = null, target = null, drag = null, suppressClick = false;
 const $ = s => document.querySelector(s);
-const r1 = v => Math.round(v * 100) / 100;          // keep up to 2 decimals (e.g. 14.3 × 50% = 7.15)
-const fmt = v => { const x = r1(v); return Math.abs(x * 10 - Math.round(x * 10)) < 1e-9 ? x.toFixed(1) : x.toFixed(2); };   // 33.0 · 14.3 · 7.15
+const r1 = v => Math.round(v * 100) / 100;          // values are kept to 2 decimals; only display rounds further
+const fmtShort = v => r1(v).toFixed(1);               // cards, lists, totals: 14.3
+const fmtFull  = v => r1(v).toFixed(2);               // detail views: 14.30
+// team-result adjustment: ±10% of the absolute PIR, so negatives move the right way (−5 → −4.5 on a win, −5.5 on a loss)
+const adjustPir = (raw, win) => r1(raw + (win ? 1 : -1) * Math.abs(raw) * 0.1);
 const norm = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const track = $("#track");
@@ -428,11 +440,10 @@ function stateOf(p, n){
   const dnp = !st || /dnp/i.test(st.min || "");
   const raw = st && !dnp ? st.pir : 0;
   const win = me.pts > them.pts;
-  const mult = win ? 1.1 : 0.9;
   const live = b.live;
-  const base = live ? raw : r1(raw * mult);
+  const base = live ? raw : adjustPir(raw, win);
   const share = shareOf(n, p);
-  return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, mult, base, share,
+  return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, base, share,
           val: r1(base * share),
           shown: p.slot === "zero" ? r1(base) : r1(base * share),   // 0% group shows full PIR (display only, never counted)
           score: `${me.pts}–${them.pts}`, q: b.q, t: b.t};
@@ -471,7 +482,7 @@ function rowHTML({p, i, s}, n){
   return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}" data-i="${i}">
     <div class="phw">${photo(p)}${capt}</div>
     <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
-    <div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmt(s.shown) : "–"}</div>
+    <div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmtShort(s.shown) : "–"}</div>
   </div>`;
 }
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
@@ -512,7 +523,7 @@ function renderHeader(){
   document.title = `${teamOf(cur)} · EL Fantasy`;
   const {total, live} = coachTotal(cur);
   $("#meta").innerHTML = round
-    ? `${live ? '<i class="dot"></i>' : ""}Round ${round} · <b>${fmt(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
+    ? `${live ? '<i class="dot"></i>' : ""}Round ${round} · <b>${fmtShort(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
     : "Loading…";
   const wc = chipsOf(cur);
   $("#wcBtn").classList.toggle("has-wc", !!(wc.tc || wc.bb));
@@ -660,8 +671,10 @@ document.addEventListener("click", e => {
   sel = {n, code: p.code}; const s = stateOf(p, n);
   $("#shName").textContent = p.name;
   $("#shMeta").textContent = `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`;
-  const parts = [s.kind === "final" ? `${s.raw} × ${s.mult}` : "live", `× ${s.share}`];
-  $("#shCalc").innerHTML = (s.kind === "final" || s.kind === "live") ? `${parts.join(" ")}<strong>${fmt(s.val)} PIR</strong>` : `<strong>–</strong>`;
+  // e.g. "20.00 −10% = 18.00 × 2" (final) or "live 14.00 × 1"
+  const calc = s.kind === "final" ? `${fmtFull(s.raw)} ${s.win ? "+10%" : "−10%"} = ${fmtFull(s.base)} × ${s.share}`
+             : s.kind === "live" ? `live ${fmtFull(s.raw)} × ${s.share}` : "";
+  $("#shCalc").innerHTML = (s.kind === "final" || s.kind === "live") ? `${calc}<strong>${fmtFull(s.val)} PIR</strong>` : `<strong>–</strong>`;
   const canCapt = p.slot === "full";
   $("#captBtn").hidden = !canCapt;
   $("#captLbl").textContent = p.captain ? "Remove captain" : `Make captain (${chipsOf(n).tc ? "3" : "2"}× PIR)`;

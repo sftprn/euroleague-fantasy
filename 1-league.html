@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0B">
+<!-- home-screen app: stay full-screen when moving between pages (iOS + Android) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EL Fantasy">
+<link rel="apple-touch-icon" href="/assets/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
 <title>League · EL Fantasy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -116,6 +124,7 @@ const today = new Date();
 const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1);
 // On the website, API calls go through Netlify's proxy (see _redirects). Local file → direct.
 const DIRECT = location.protocol === "file:";
+const COACH_PAGE = DIRECT ? "2-coach.html" : "/2-coach";   // same-origin, no redirect hop (keeps the home-screen app full-screen)
 const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
 const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
 const LIVE_POLL = 30_000, IDLE_POLL = 5 * 60_000;
@@ -127,8 +136,11 @@ const store = {
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 };
 const $ = s => document.querySelector(s);
-const r1 = v => Math.round(v * 100) / 100;          // keep up to 2 decimals (e.g. 14.3 × 50% = 7.15)
-const fmt = v => { const x = r1(v); return Math.abs(x * 10 - Math.round(x * 10)) < 1e-9 ? x.toFixed(1) : x.toFixed(2); };   // 33.0 · 14.3 · 7.15
+const r1 = v => Math.round(v * 100) / 100;          // values are kept to 2 decimals; only display rounds further
+const fmtShort = v => r1(v).toFixed(1);               // cards, lists, totals: 14.3
+const fmtFull  = v => r1(v).toFixed(2);               // detail views: 14.30
+// team-result adjustment: ±10% of the absolute PIR, so negatives move the right way (−5 → −4.5 on a win, −5.5 on a loss)
+const adjustPir = (raw, win) => r1(raw + (win ? 1 : -1) * Math.abs(raw) * 0.1);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const rosterOf = name => live(name)?.roster || store.get(`elf.roster.${name}`, []);
 // share of a player's PIR — same rules as the coach page:
@@ -189,7 +201,7 @@ function playerPir(p){
   const played = !!st && !/dnp/i.test(st.min || "");
   const pir = played ? st.pir : 0;
   // live: raw PIR · final: ±10% for the team's win/loss (same rule as the coach page)
-  return {f: b.live ? pir : r1(pir * (me.pts > them.pts ? 1.1 : 0.9)), live: b.live, played};
+  return {f: b.live ? pir : adjustPir(pir, me.pts > them.pts), live: b.live, played};
 }
 function coachTotal(c){
   let t = 0, live = false;
@@ -210,10 +222,10 @@ function render(){
         <div class="rank">${i + 1}</div>
         <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name"></div>
       </div>` : `
-      <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
+      <a class="row${i === 0 ? " lead" : ""}" href="${COACH_PAGE}?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
         <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmt(c.total)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmt(c.total)}`}<span class="chev">›</span></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmtShort(c.total)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.total)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
 
@@ -225,13 +237,13 @@ function render(){
     $("#totalList").innerHTML = tot.map((c, i) => editing ? `
       <div class="row editing${i === 0 ? " lead" : ""}">
         <div class="rank">${i + 1}</div>
-        <div class="who"><b>${esc(c.team)}</b><span class="plus-rd">+ ${fmt(c.total)} this round</span></div>
+        <div class="who"><b>${esc(c.team)}</b><span class="plus-rd">+ ${fmtShort(c.total)} this round</span></div>
         <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Custom PIR for ${esc(c.team)}">
       </div>` : `
-      <a class="row${i === 0 ? " lead" : ""}" href="2-coach.html?coach=${encodeURIComponent(c.name)}">
+      <a class="row${i === 0 ? " lead" : ""}" href="${COACH_PAGE}?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
         <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmt(c.sum)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmt(c.sum)}`}<span class="chev">›</span></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmtShort(c.sum)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.sum)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
 }
@@ -253,7 +265,7 @@ function renderTop(){
       <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
       <div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
       <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span> · ${esc(teams.join(", "))}</small></div>
-      <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${fmt(s.f)}</div>
+      <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${fmtShort(s.f)}</div>
     </div>`).join("");
 }
 
