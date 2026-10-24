@@ -92,6 +92,7 @@
   <header>
     <img class="logo" src="assets/euroleague.svg" alt="">
     <div class="titles"><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
+    <a class="icon-btn" id="gcBtn" href="/3-games" aria-label="Game Center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M12 5v14M3 12h4M17 12h4"/><circle cx="12" cy="12" r="2.2"/></svg></a>
     <button class="icon-btn" id="editBtn" aria-label="Edit team names and custom PIR">✎</button>
   </header>
 
@@ -149,6 +150,7 @@ const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFul
 // On the website, API calls go through the Worker's proxy (/el-api, /el-live). Local file → direct.
 const DIRECT = location.protocol === "file:";
 const COACH_PAGE = DIRECT ? "2-coach.html" : "/2-coach";   // same-origin, no redirect hop (keeps the home-screen app full-screen)
+if (DIRECT) document.getElementById("gcBtn").href = "3-games.html";
 const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
 const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
 const LIVE_POLL = window.ELF_DEMO ? 5_000 : 30_000, IDLE_POLL = 5 * 60_000;
