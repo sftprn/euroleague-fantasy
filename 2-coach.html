@@ -117,7 +117,10 @@
 
   /* drag */
   .p.lifted{opacity:.25}
-  .p.drop{box-shadow:inset 0 0 0 2px var(--orange);background:#FF6B1A1A!important;opacity:1!important}
+  .p.drop{box-shadow:inset 0 0 0 2px var(--orange);background:#FF6B1A1A!important;opacity:1!important}      /* swap target */
+  .p.ins-before::after,.p.ins-after::after{content:"";position:absolute;left:12px;right:12px;height:3px;border-radius:3px;
+    background:var(--orange);box-shadow:0 0 10px #FF6B1A;z-index:2;pointer-events:none}                         /* "lands here" line */
+  .p.ins-before::after{top:-2px} .p.ins-after::after{bottom:-2px}
   .ghost{position:fixed;z-index:30;pointer-events:none;margin:0;background:#232327;border:1px solid #3A3A40;border-radius:16px;box-shadow:0 18px 40px #000000AA;transform:scale(1.03) rotate(-1deg);opacity:1!important}
   body.dragging, body.dragging *{cursor:grabbing!important}
   body.dragging .track{overflow:hidden}
@@ -217,7 +220,7 @@
     <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
     <div id="moves"></div>
     <button class="act danger" id="removeBtn"><span class="ic">✕</span>Remove from roster</button>
-    <p class="note">Tip: press and hold a player, then drag onto another player to swap them.</p>
+    <p class="note">Tip: press and hold a player, then drag. Drop between players to place him there; drop onto a player in a full group to swap them. Players with PIR are sorted by PIR.</p>
   </div>
 </div>
 
@@ -305,6 +308,7 @@ function useRoster(name, list){       // load + migrate rosters saved by earlier
   list.forEach(p => { if (LEGACY[p.slot]) p.slot = LEGACY[p.slot]; if (!p.slot) p.slot = p.active === false ? "zero" : "full"; delete p.active; });
   ORDER.forEach(s => list.filter(p => p.slot === s).slice(SLOTS[s]).forEach(p => p.slot = null));
   list.filter(p => !p.slot).forEach(p => p.slot = freeSlot(name) || "zero");
+  list.forEach((p, k) => { if (!Number.isFinite(p.order)) p.order = (k + 1) * 10; });   // manual order (older rosters: keep list order)
   fixCaptain(name);
   persist(name);
 }
@@ -488,7 +492,17 @@ function rowHTML({p, i, s}, n){
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
 const sortKey = r => r.s.kind === "live" ? [0, -r.s.shown] : r.s.kind === "final" ? [1, -r.s.shown]      // by the PIR shown
                    : r.s.kind === "soon" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
-const byKey = (a, b) => { const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1] || (b.p.captain ? 1 : 0) - (a.p.captain ? 1 : 0); };  // captain first only on a tie
+const hasPir = r => r.s.kind === "live" || r.s.kind === "final";
+const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0);
+// players with PIR: sorted by PIR, on top (captain first only on a tie) · players without PIR yet: manual order
+const byKey = (a, b) => {
+  const pa = hasPir(a), pb = hasPir(b);
+  if (pa !== pb) return pa ? -1 : 1;
+  if (pa){ const x = sortKey(a), y = sortKey(b); return x[0] - y[0] || x[1] - y[1] || (b.p.captain ? 1 : 0) - (a.p.captain ? 1 : 0); }
+  return byOrder(a.p, b.p);
+};
+const endOrder = (n, slots) => Math.max(0, ...rosters[n].filter(p => slots.includes(p.slot)).map(p => p.order ?? 0)) + 10;
+const zoneSlots = (n, key) => key === "full" && chipsOf(n).bb ? ["full", "half"] : [key];   // Bench Boost shows 100% + 50% as one block
 const slideOf = n => track.querySelector(`.slide[data-coach="${CSS.escape(n)}"]`);
 const WC_NAMES = {tc:"Triple Captain", bb:"Bench Boost"};
 
@@ -698,7 +712,7 @@ $("#captBtn").onclick = () => {
 $("#moves").addEventListener("click", e => {
   const b = e.target.closest("[data-slot]"); if (!b) return;
   const p = selected(); if (!p){ actWrap.classList.remove("open"); return; }
-  p.slot = b.dataset.slot; fixCaptain(sel.n); save(sel.n);
+  p.slot = b.dataset.slot; p.order = endOrder(sel.n, [p.slot]); fixCaptain(sel.n); save(sel.n);
   actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} → ${LABEL[p.slot]}`);
 });
 $("#removeBtn").onclick = () => { const i = rosters[sel.n].findIndex(x => x.code === sel.code); if (i < 0){ actWrap.classList.remove("open"); return; } const [p] = rosters[sel.n].splice(i, 1); save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} removed`); };
@@ -760,7 +774,7 @@ $("#results").addEventListener("click", e => {
   if (slotCount(n, target.slot) >= SLOTS[target.slot]) target.slot = freeSlot(n);
   if (!target.slot){ toast("Roster is full (13/13)"); closeFinder(); return; }
   const p = people.find(x => x.code === r.dataset.code);
-  rosters[n].push({...p, slot: target.slot}); save(n);
+  rosters[n].push({...p, slot: target.slot, order: endOrder(n, [target.slot])}); save(n);
   toast(`${p.name} → ${LABEL[target.slot]}`);
   renderSlide(n); renderHeader(); refresh();
   if (slotCount(n, target.slot) >= SLOTS[target.slot]){ target.slot = freeSlot(n); if (!target.slot){ setTimeout(closeFinder, 500); return; } }
@@ -823,10 +837,20 @@ function dropTarget(){
   return el.closest(".p[data-i]") || el.closest("[data-zone]");
 }
 function highlight(){
-  document.querySelectorAll(".drop").forEach(n => n.classList.remove("drop"));
+  document.querySelectorAll(".drop,.ins-before,.ins-after").forEach(n => n.classList.remove("drop", "ins-before", "ins-after"));
   const t = dropTarget();
-  if (!t || t === drag.card) return (drag.target = null);
-  t.classList.add("drop"); drag.target = t;
+  if (!t || t === drag.card) return (drag.target = null, drag.pos = null);
+  drag.target = t; drag.pos = null;
+  if (t.matches(".p[data-i]")){
+    const src = rosters[drag.n][drag.i];
+    const slots = zoneSlots(drag.n, t.closest("[data-zone]").dataset.zone);
+    const sameGroup = slots.includes(src.slot);
+    const room = slots.some(s => slotCount(drag.n, s) < SLOTS[s]);
+    if (!sameGroup && !room){ t.classList.add("drop"); return; }          // full group → swap
+    const r = t.getBoundingClientRect();
+    drag.pos = drag.ly < r.top + r.height / 2 ? "before" : "after";        // insert above / below this card
+    t.classList.add(drag.pos === "before" ? "ins-before" : "ins-after");
+  } else t.classList.add("drop");
 }
 function moveDrag(){
   drag.ghost.style.left = drag.lx - drag.dx + "px";
@@ -840,26 +864,37 @@ function endDrag(commit){
   suppressClick = true; setTimeout(() => suppressClick = false, 400);
   d.ghost.remove();
   document.body.classList.remove("dragging");
-  document.querySelectorAll(".drop,.lifted").forEach(n => n.classList.remove("drop", "lifted"));
-  if (commit && d.target) applyDrop(d.n, d.i, d.target);
+  document.querySelectorAll(".drop,.lifted,.ins-before,.ins-after").forEach(n => n.classList.remove("drop", "lifted", "ins-before", "ins-after"));
+  if (commit && d.target) applyDrop(d.n, d.i, d.target, d.pos);
   if (pendingRemote){ pendingRemote = false; applyShared(false); }
   render();
 }
-function applyDrop(n, i, t){
+function applyDrop(n, i, t, pos){
   const list = rosters[n], src = list[i];
-  if (t.matches(".p")){
+  const zone = t.closest("[data-zone]")?.dataset.zone; if (!zone) return;
+  const slots = zoneSlots(n, zone);
+  const sameGroup = slots.includes(src.slot);
+  const freeIn = () => slots.find(s => slotCount(n, s) < SLOTS[s]);
+  if (t.matches(".p[data-i]")){
     const o = list[+t.dataset.i];
     if (!o || o === src) return;
-    if (o.slot === src.slot){ toast("They're already in the same group"); return; }
-    [src.slot, o.slot] = [o.slot, src.slot];
-    toast(`${src.name} ⇄ ${o.name}`);
-  } else {
-    let slot = t.dataset.zone;
-    if (slot === "full" && chipsOf(n).bb && slotCount(n, "full") >= SLOTS.full && src.slot !== "half") slot = "half";   // Bench Boost: one merged block
-    if (slot === src.slot) return;
-    if (slotCount(n, slot) >= SLOTS[slot]){ toast(`${LABEL[slot]} is full — drop onto a player to swap`); return; }
-    src.slot = slot;
-    toast(`${src.name} → ${t.dataset.zone === "full" ? "100%" : LABEL[slot]}`);
+    if (!sameGroup && !freeIn()){                              // full group → swap: he takes the moved player's old spot
+      [src.slot, o.slot] = [o.slot, src.slot];
+      [src.order, o.order] = [o.order, src.order];
+      toast(`${src.name} ⇄ ${o.name}`);
+    } else {                                                   // insert before / after the card it was dropped on
+      if (!sameGroup) src.slot = slots.includes(o.slot) && slotCount(n, o.slot) < SLOTS[o.slot] ? o.slot : freeIn();
+      const g = list.filter(p => slots.includes(p.slot) && p !== src).sort(byOrder);
+      g.splice(g.indexOf(o) + (pos === "after" ? 1 : 0), 0, src);
+      g.forEach((p, k) => p.order = (k + 1) * 10);
+      if (!sameGroup) toast(`${src.name} → ${zone === "full" ? "100%" : LABEL[src.slot]}`);
+    }
+  } else {                                                     // empty slot / heading → end of that group
+    if (sameGroup) return;
+    const slot = freeIn();
+    if (!slot){ toast(`${LABEL[zone]} is full — drop onto a player to swap`); return; }
+    src.slot = slot; src.order = endOrder(n, slots);
+    toast(`${src.name} → ${zone === "full" ? "100%" : LABEL[slot]}`);
   }
   fixCaptain(n);
   save(n);

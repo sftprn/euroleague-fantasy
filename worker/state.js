@@ -18,6 +18,7 @@ function cleanRoster(list) {
     code: str(p.code, 20), name: str(p.name), club: str(p.club, 10), tv: str(p.tv, 10), clubName: str(p.clubName),
     crest: str(p.crest, 300), img: str(p.img, 300), pos: str(p.pos, 3),
     slot: SLOTS.has(p.slot) ? p.slot : "zero", ...(p.captain ? { captain: true } : {}),
+    ...(Number.isFinite(p.order) ? { order: Math.round(p.order) } : {}),   // manual position within the group
   }));
 }
 function cleanChips(c) {
