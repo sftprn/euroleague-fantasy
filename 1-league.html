@@ -161,7 +161,6 @@ const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFul
 // On the website, API calls go through the Worker's proxy (/el-api, /el-live). Local file → direct.
 const DIRECT = location.protocol === "file:";
 const COACH_PAGE = DIRECT ? "2-coach.html" : "/2-coach";   // same-origin, no redirect hop (keeps the home-screen app full-screen)
-if (DIRECT) document.getElementById("watchRow").href = "4-watch.html";
 const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
 const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
 const LIVE_POLL = window.ELF_DEMO ? 5_000 : 30_000, IDLE_POLL = 5 * 60_000;
@@ -289,6 +288,7 @@ function render(){
 
 /* private watch team summary (players are only on this phone; not part of the standings) */
 function renderWatch(){
+  if (DIRECT) $("#watchRow").href = "4-watch.html";            // local file: no clean addresses
   const w = store.get("elf.watch", []);
   let t = 0, n = 0, live = false;
   if (games.length) w.forEach(p => { const s = playerPir(p); if (s && s.played){ t += s.f; n++; live ||= s.live; } });
