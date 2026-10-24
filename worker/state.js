@@ -1,14 +1,16 @@
 // Shared league state for everyone who opens the site (Cloudflare Worker + D1).
-// GET  /api/state[?since=<v>]  → {v, coaches:{name:{roster, chips, team, base}}}  (204 if nothing changed since <v>)
-// POST /api/state {coach, data:{roster?, chips?, team?, base?}}  → merges into that coach, bumps the version
+// GET  /api/state[?since=<v>]  → {v, coaches:{name:{roster, chips, team, base}}, league:{round, votes, …}}  (204 if nothing changed)
+// POST /api/state {coach, data:{roster?, chips?, team?, base?}}  → updates just those fields of that coach, bumps the version
+// Round voting / banking lives in rounds.js.
 // Needs a D1 database bound as `DB` (see wrangler.jsonc). The table is created on first use, and the
 // data is copied once from the old Netlify site if the database is still empty.
 
-const COACHES = ["Justelis", "Darius", "Deivis", "Novikas", "Titas", "Saimonas"];
+export const COACHES = ["Justelis", "Darius", "Deivis", "Novikas", "Titas", "Saimonas"];
 const SLOTS = new Set(["full", "half", "zero"]);
+import { maybeAutoStart } from "./rounds.js";
 const OLD_SITE = "https://euroleague-fantasy.netlify.app/api/state";
 const NO_CACHE = { "cache-control": "no-store" };
-const json = (body, init = {}) => new Response(JSON.stringify(body), { ...init, headers: { "content-type": "application/json", ...NO_CACHE } });
+export const json = (body, init = {}) => new Response(JSON.stringify(body), { ...init, headers: { "content-type": "application/json", ...NO_CACHE } });
 const str = (v, max = 80) => (typeof v === "string" ? v.slice(0, max) : "");
 
 function cleanRoster(list) {
@@ -41,10 +43,10 @@ function merge(cur, d) {
   if ("team" in d) { const t = str(d.team, 40).trim(); if (t) next.team = t; else delete next.team; }
   return next;
 }
-const newVersion = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+export const newVersion = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 let ready = false;
-async function setup(DB) {
+export async function setup(DB) {
   if (ready) return;
   await DB.prepare("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)").run();
   const meta = await DB.prepare("SELECT v FROM kv WHERE k = 'meta'").first();
@@ -65,15 +67,22 @@ async function setup(DB) {
 export async function getState(request, env) {
   if (!env.DB) return json({ error: "D1 database not bound as DB" }, { status: 500 });
   await setup(env.DB);
+  await maybeAutoStart(env).catch(e => console.log("auto-start check failed", e));
   const meta = JSON.parse((await env.DB.prepare("SELECT v FROM kv WHERE k = 'meta'").first())?.v || '{"v":"0"}');
   const since = new URL(request.url).searchParams.get("since");
   if (since && since === meta.v) return new Response(null, { status: 204, headers: NO_CACHE });
-  const { results } = await env.DB.prepare("SELECT k, v FROM kv WHERE k LIKE 'coach/%'").all();
+  const { results } = await env.DB.prepare("SELECT k, v FROM kv WHERE k LIKE 'coach/%' OR k = 'league'").all();
   const coaches = Object.fromEntries(COACHES.map(n => [n, null]));
-  for (const row of results) { const n = row.k.slice(6); if (n in coaches) coaches[n] = JSON.parse(row.v); }
-  return json({ v: meta.v, coaches });
+  let league = null;
+  for (const row of results) {
+    if (row.k === "league") { league = JSON.parse(row.v); continue; }
+    const n = row.k.slice(6); if (n in coaches) coaches[n] = JSON.parse(row.v);
+  }
+  return json({ v: meta.v, coaches, league });
 }
 
+// Each field is written on its own inside the database (json_set), so two saves at the same moment —
+// e.g. a roster edit while a round is being banked into `base` — can't overwrite each other.
 export async function postState(request, env) {
   if (!env.DB) return json({ error: "D1 database not bound as DB" }, { status: 500 });
   await setup(env.DB);
@@ -81,11 +90,19 @@ export async function postState(request, env) {
   try { body = await request.json(); } catch { return new Response("Bad JSON", { status: 400 }); }
   const coach = body?.coach;
   if (!COACHES.includes(coach)) return new Response("Unknown coach", { status: 400 });
-  const row = await env.DB.prepare("SELECT v FROM kv WHERE k = ?").bind(`coach/${coach}`).first();
-  const next = merge(row ? JSON.parse(row.v) : {}, body.data || {});
+  const d = body.data || {};
+  const sets = [], args = [], removes = [];
+  const roster = cleanRoster(d.roster); if (roster) { sets.push("'$.roster', json(?)"); args.push(JSON.stringify(roster)); }
+  const chips = cleanChips(d.chips);    if (chips)  { sets.push("'$.chips', json(?)");  args.push(JSON.stringify(chips)); }
+  if ("base" in d) { const b = Number(d.base); if (Number.isFinite(b) && Math.abs(b) < 1e6) { sets.push("'$.base', ?"); args.push(Math.round(b * 100) / 100); } else removes.push("'$.base'"); }
+  if ("team" in d) { const t = str(d.team, 40).trim(); if (t) { sets.push("'$.team', ?"); args.push(t); } else removes.push("'$.team'"); }
+  let expr = "v";
+  if (sets.length) expr = `json_set(${expr}, ${sets.join(", ")})`;
+  if (removes.length) expr = `json_remove(${expr}, ${removes.join(", ")})`;
   const v = newVersion();
   await env.DB.batch([
-    env.DB.prepare("INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)").bind(`coach/${coach}`, JSON.stringify(next)),
+    env.DB.prepare("INSERT OR IGNORE INTO kv (k, v) VALUES (?, '{}')").bind(`coach/${coach}`),
+    env.DB.prepare(`UPDATE kv SET v = ${expr} WHERE k = ?`).bind(...args, `coach/${coach}`),
     env.DB.prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('meta', ?)").bind(JSON.stringify({ v })),
   ]);
   return json({ v });

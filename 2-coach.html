@@ -326,6 +326,7 @@ function applyShared(first){
     else if (first && Object.keys(chipsAll[name]).length) Shared.push(name, {chips: clone(chipsAll[name])});
   });
   if (!built) return;
+  if (!DEMO && Shared.league?.round && round !== Shared.league.round) round = Shared.league.round;   // next round started
   if ($("#actWrap").classList.contains("open") && !selected()) $("#actWrap").classList.remove("open");
   if ($("#wcWrap").classList.contains("open")) renderWc();
   if ($("#finder").classList.contains("open")) renderResults();
@@ -401,7 +402,7 @@ const loadPeople = () => cached(`elf.people.${SEASON}`, 12 * 3600e3, async () =>
   return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
 });
 
-const loadGames = () => cached(`elf.games.${SEASON}`, 30 * 60e3, async () => {
+const loadGames = () => cached(`elf.games.${SEASON}`, 10 * 60e3, async () => {
   const d = (await getJSON(`${V2}/games`)).data;
   const side = s => ({c:s.club.code, tv:s.club.tvCode || s.club.code});
   return d.map(x => ({c:x.gameCode, r:x.round, u:x.utcDate, p:x.played, h:side(x.local), a:side(x.road)}));
@@ -629,7 +630,8 @@ function schedule(){
 }
 document.addEventListener("visibilitychange", () => document.hidden ? clearTimeout(timer) : refresh());
 
-function currentRound(){         // latest round that has tipped off
+function currentRound(){         // the league's round (shared, moves on when "Start Round X" is pressed); else latest that has tipped off
+  if (!DEMO && Shared.league?.round) return Shared.league.round;
   const now = new Date();
   if (DEMO){                     // demo replays the latest round where every game is finished
     const full = [...new Set(games.map(g => g.r))].filter(r => games.filter(g => g.r === r).every(g => g.p));

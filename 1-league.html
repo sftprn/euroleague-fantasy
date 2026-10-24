@@ -62,6 +62,17 @@
   .team-input{width:100%;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;
               font:700 16px Inter,system-ui,sans-serif;padding:0 12px}
   .team-input:focus{outline:none;border-color:var(--orange)}
+  /* Start Round X — appears when every game of the round is over; 2 phones start the next round */
+  .start{margin:-2px 0 14px}
+  .start-btn{width:100%;height:64px;border:0;border-radius:18px;background:var(--orange);color:#fff;font:800 20px Inter,system-ui,sans-serif;
+             letter-spacing:.3px;cursor:pointer;box-shadow:0 8px 28px #FF6B1A40;display:flex;align-items:center;justify-content:center;gap:10px;
+             transition:transform .1s,background .15s,box-shadow .15s}
+  .start-btn:active{transform:scale(.98)}
+  .start-btn.voted{background:var(--card);border:2px solid var(--orange);color:var(--orange);box-shadow:none}
+  .start-btn.voted small{font:600 13px Inter,system-ui,sans-serif;color:var(--muted)}
+  .start-btn:disabled{opacity:.6}
+  .start-note{text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin-top:8px}
+  .start-note b{color:var(--text)}
   .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
   .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
   .seg button.on{background:var(--orange);color:#fff}
@@ -85,6 +96,11 @@
     <div class="titles"><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
     <button class="icon-btn" id="editBtn" aria-label="Edit team names and custom PIR">✎</button>
   </header>
+
+  <div class="start" id="startWrap" hidden>
+    <button class="start-btn" id="startBtn"></button>
+    <div class="start-note" id="startNote"></div>
+  </div>
 
   <div class="seg" role="tablist" id="seg">
     <button role="tab" data-view="round">Round</button>
@@ -122,7 +138,7 @@ let editing = false;
 /* ───────── config (same as coach page) ───────── */
 const today = new Date();
 const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1);
-// On the website, API calls go through Netlify's proxy (see _redirects). Local file → direct.
+// On the website, API calls go through the Worker's proxy (/el-api, /el-live). Local file → direct.
 const DIRECT = location.protocol === "file:";
 const COACH_PAGE = DIRECT ? "2-coach.html" : "/2-coach";   // same-origin, no redirect hop (keeps the home-screen app full-screen)
 const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
@@ -167,7 +183,7 @@ async function cached(key, ttl, loader){
   try{ const v = await loader(); store.set(key, {t:Date.now(), v}); return v; }
   catch(e){ if (c) return c.v; throw e; }
 }
-const loadGames = () => cached(`elf.games.${SEASON}`, 30 * 60e3, async () => {
+const loadGames = () => cached(`elf.games.${SEASON}`, 10 * 60e3, async () => {
   const d = (await getJSON(`${V2}/games`)).data;
   const side = s => ({c:s.club.code, tv:s.club.tvCode || s.club.code});
   return d.map(x => ({c:x.gameCode, r:x.round, u:x.utcDate, p:x.played, h:side(x.local), a:side(x.road)}));
@@ -230,6 +246,7 @@ function render(){
   }
 
   renderTop();
+  renderStart();
 
   // season total = custom PIR + this round's PIR
   const tot = rows.map(c => ({...c, base: baseOf(c), sum: r1(baseOf(c) + c.total)})).sort((a, b) => b.sum - a.sum);
@@ -276,14 +293,15 @@ function relevantGames(){
 }
 async function refresh(){
   if (!games.length) return;
-  const need = relevantGames().filter(g => new Date(g.u) <= new Date());
+  // every started game of the round (not just ours): the Start button waits for all of them
+  const need = games.filter(g => g.r === round && new Date(g.u) <= new Date() && !(box[g.c] && box[g.c].final));
   const res = await Promise.all(need.map(g => loadBox(g).then(b => [g.c, b]).catch(() => [g.c, box[g.c]])));
   res.forEach(([c, b]) => { if (b) box[c] = b; });
   render();
   clearTimeout(timer);
   if (document.hidden) return;
   const now = Date.now(), rel = relevantGames();
-  const inPlay = rel.some(g => new Date(g.u) <= now && !(box[g.c] && box[g.c].final));
+  const inPlay = games.some(g => g.r === round && new Date(g.u) <= now && !(box[g.c] && box[g.c].final));
   const next = rel.map(g => +new Date(g.u)).filter(t => t > now).sort((a, b) => a - b)[0];
   timer = setTimeout(refresh, inPlay ? LIVE_POLL : next ? Math.min(IDLE_POLL, Math.max(10_000, next - now + 5_000)) : IDLE_POLL);
 }
@@ -338,12 +356,54 @@ $("#seg").addEventListener("click", e => {
 });
 showView();
 
+
+/* ───────── Start Round X ─────────
+   Shows once every game of the league's round is over. Any 2 phones tapping it start the next round:
+   the server adds each team's round PIR to its Total, rosters stay, and the round number moves on.
+   Tapping again takes the vote back. If nobody taps, the server starts it 3 h before the next round tips off. */
+const DEVICE = (() => {
+  let id = store.get("elf.device");
+  if (!/^[a-z0-9]{8,40}$/.test(id || "")){ id = Array.from(crypto.getRandomValues(new Uint8Array(10)), b => b.toString(36).padStart(2, "0")).join("").slice(0, 16); store.set("elf.device", id); }
+  return id;
+})();
+let voting = false;
+const roundOver = () => {
+  const rg = games.filter(g => g.r === round);
+  return rg.length > 0 && rg.every(g => g.p || (box[g.c] && box[g.c].final));
+};
+function renderStart(){
+  const L = Shared.enabled && Shared.ready ? Shared.league : null;
+  const show = !!L && L.round === round && roundOver();
+  $("#startWrap").hidden = !show;
+  if (!show) return;
+  const votes = L.votes || [], mine = votes.includes(DEVICE), b = $("#startBtn");
+  b.classList.toggle("voted", mine);
+  b.disabled = voting;
+  b.innerHTML = mine ? `✓ Ready <small>· tap to undo</small>` : `Start Round ${round + 1}`;
+  $("#startNote").innerHTML = votes.length ? `<b>${votes.length} ready</b> · ${Math.max(0, 2 - votes.length)} more to start` : "2 phones needed to start";
+}
+$("#startBtn").onclick = async () => {
+  const L = Shared.league; if (!L || voting) return;
+  const vote = !(L.votes || []).includes(DEVICE);
+  voting = true;
+  L.votes = vote ? [...(L.votes || []), DEVICE] : (L.votes || []).filter(d => d !== DEVICE);   // show it right away
+  renderStart();
+  try{
+    const r = await fetch("/api/round", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({device:DEVICE, round:L.round, vote})});
+    if (!r.ok) throw new Error(r.status);
+  }catch{ alertNote("Couldn't reach the server — try again"); }
+  voting = false;
+  Shared.refresh();
+};
+function alertNote(t){ $("#startNote").textContent = t; }
+
 /* edits from anyone arrive here */
 Shared.on(first => {
   if (first && Shared.enabled){        // upload names renamed on this phone before sharing existed
     const names = store.get("elf.teams", {});
     COACHES.forEach(c => { if (names[c.name] && !Shared.coaches[c.name]?.team) Shared.push(c.name, {team: names[c.name]}); });
   }
+  if (Shared.league?.round && games.length && round !== Shared.league.round) round = Shared.league.round;   // next round started
   render(); refresh();
 });
 $("#list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".team-input")) e.target.blur(); });
@@ -354,7 +414,8 @@ async function boot(){
   try{
     games = await loadGames();
     const started = games.filter(g => new Date(g.u) <= new Date());
-    round = started.length ? Math.max(...started.map(g => g.r)) : Math.min(...games.map(g => g.r));
+    round = Shared.league?.round       // the league's round (moves on with Start Round X)
+      ?? (started.length ? Math.max(...started.map(g => g.r)) : Math.min(...games.map(g => g.r)));
   }catch{ render(); return; }
   refresh();
 }
