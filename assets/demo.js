@@ -35,7 +35,9 @@
   /* ── tiny helpers ── */
   const realFetch = window.fetch.bind(window);
   const json = (d, status = 200) => new Response(status === 204 ? null : JSON.stringify(d), {status, headers:{"content-type":"application/json"}});
-  const hash = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) / 4294967296; };
+  const hash = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;   // mix, so similar names get different numbers
+    return (h >>> 0) / 4294967296; };
   const r2 = v => Math.round(v * 100) / 100;
   const GAME_MS = 400e3;                                      // a whole game plays in ~6.7 minutes (1 game minute ≈ 10 s)
   const mmss = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
