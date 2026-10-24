@@ -53,7 +53,7 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 
   /* carousel: one full-screen list per coach, swipe sideways */
-  .track{position:relative;z-index:1;display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+  .track{position:fixed;inset:0;z-index:1;display:flex;   /* pinned to all screen edges, incl. behind the iPhone home indicator */overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
   .track::-webkit-scrollbar{display:none}
   .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
   .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(64px + env(safe-area-inset-bottom))}
