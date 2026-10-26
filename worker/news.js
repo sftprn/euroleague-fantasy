@@ -48,7 +48,7 @@ function parse(xml, lang) {
 async function search(q, hl, gl, ceid, lang) {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
   const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (compatible; EL-Fantasy/1.0)", accept: "application/rss+xml, text/xml" } });
-  if (!r.ok) throw new Error("news " + r.status);
+  if (!r.ok) throw new Error(`news ${r.status} ${r.headers.get("location") || ""} ${(await r.text()).slice(0, 120)}`);
   return parse(await r.text(), lang);
 }
 
@@ -75,7 +75,7 @@ export async function getNews(request, env, ctx) {
     search(`"${name}" ${sites(SITES)}`, "en-US", "US", "US:en", "en"),
     search(`(${forms.map(f => `"${f}"`).join(" OR ")}) ${sites(SITES.filter(s => s !== "euroleaguebasketball.net"))}`, "lt", "LT", "LT:lt", "lt"),
   ]);
-  if (en.status === "rejected" && lt.status === "rejected") return json({ error: "news unavailable" }, 503);
+  if (en.status === "rejected" && lt.status === "rejected") return json({ error: "news unavailable", why: String(en.reason?.message || en.reason).slice(0, 300) }, 503);
 
   const stem = stemOf(parts[parts.length - 1]);
   const seen = new Set();
