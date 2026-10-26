@@ -559,7 +559,7 @@ function subline(p, s){
   switch (s.kind){
     case "live":  return `${tv} ${liveClock(s)} <span class="score ${s.lead > 0 ? "ahead" : s.lead < 0 ? "behind" : ""}">${s.score}</span>`;
     case "final": return s.dnp ? `${tv} <span class="res D">DNP</span>` :
-                  `${tv} <span class="res ${s.win ? "W" : "L"}">${s.win ? "W +10%" : "L −10%"}</span> <span class="score fin ${s.win ? "ahead" : "behind"}">${s.score}</span>`;
+                  `${tv} <span class="score fin ${s.win ? "ahead" : "behind"}">${s.score}</span>`;
     case "soon":  return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · starting`;
     case "up":    return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · ${when(s.g.u)}`;
     default:      return `${tv} · no game this round`;
