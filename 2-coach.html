@@ -869,14 +869,22 @@ async function renderTab(){
   pane.hidden = shTab === "edit";
   if (shTab === "edit") return;
   const stale = () => seq !== tabSeq || !actWrap.classList.contains("open");
-  if (!pane.dataset.tab || pane.dataset.tab !== shTab + p.code) pane.innerHTML = `<div class="loading">Loading…</div>`;
+  if (!pane.dataset.tab || pane.dataset.tab !== shTab + p.code) paneSet(pane, `<div class="loading">Loading…</div>`);
   pane.dataset.tab = shTab + p.code;
   try{
-    const html = shTab === "game" ? await gamePane(p) : shTab === "mins" ? await minsPane(p) : shTab === "team" ? await teamPane(p) : await seasonPane(p, h => { if (!stale()) pane.innerHTML = h; });
-    if (!stale()) pane.innerHTML = html;
-  }catch{ if (!stale()) pane.innerHTML = `<div class="empty">Couldn't load this right now. Try again in a moment.</div>`; }
+    const html = shTab === "game" ? await gamePane(p) : shTab === "mins" ? await minsPane(p) : shTab === "team" ? await teamPane(p) : await seasonPane(p, h => { if (!stale()) paneSet(pane, h); });
+    if (!stale()) paneSet(pane, html);
+  }catch{ if (!stale()) paneSet(pane, `<div class="empty">Couldn't load this right now. Try again in a moment.</div>`); }
 }
 
+/* live updates redraw the tab: skip it when nothing changed, and keep where you've scrolled (the sheet and the sideways table) */
+function paneSet(pane, html){
+  if (pane._html === html) return;
+  const body = actWrap.querySelector(".sh-body"), y = body.scrollTop, x = pane.querySelector(".tmw")?.scrollLeft || 0;
+  pane.innerHTML = pane._html = html;
+  const w = pane.querySelector(".tmw"); if (w) w.scrollLeft = x;
+  body.scrollTop = y;
+}
 function gameHead(g, b, p){
   const h = g.h, a = g.a;
   if (!b || b.pending) return `<div class="gm"><span class="tm">${esc(h.tv)}</span><span class="sc">vs<small>${new Date(g.u) > new Date() ? esc(when(g.u)) : "STARTING"}</small></span><span class="tm r">${esc(a.tv)}</span></div>`;
@@ -955,8 +963,7 @@ $("#shPane").addEventListener("click", e => {
   const th = e.target.closest(".tmt th[data-sort]"); if (!th || th.dataset.sort === "name") return;
   const k = th.dataset.sort;
   tmSort = tmSort.k === k ? {k, dir: -tmSort.dir} : {k, dir: -1};
-  const x = $(".tmw")?.scrollLeft || 0;
-  renderTab().then(() => { const w = $(".tmw"); if (w) w.scrollLeft = x; });
+  renderTab();
 });
 async function seasonPane(p, partial){
   const draw = rows => {
