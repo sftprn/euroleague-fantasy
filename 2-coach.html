@@ -61,6 +61,9 @@
   /* dots */
   .dots{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:7px;align-items:center;
         padding:8px 12px;border-radius:999px;background:#0A0A0BB3;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #FFFFFF14;z-index:5}
+  .dots button.w{background:transparent;box-shadow:inset 0 0 0 1.5px #FFFFFF80}
+  .dots button.w.on{background:var(--orange);box-shadow:none}
+  .r .add.on{background:var(--card-2);color:var(--win);font-size:16px}
   .dots button{width:7px;height:7px;border-radius:999px;border:0;background:#FFFFFF4D;cursor:pointer;transition:width .2s,background .2s;padding:0}
   .dots button.on{width:20px;background:var(--orange)}
 
@@ -318,7 +321,7 @@
       <div class="pane" id="shPane"></div>
       <div id="shEdit" hidden>
         <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
-        <button class="act danger" id="removeBtn"><span class="ic">✕</span>Remove from roster</button>
+        <button class="act danger" id="removeBtn"><span class="ic">✕</span><span id="removeLbl">Remove from roster</span></button>
       </div>
     </div>
   </div>
@@ -398,8 +401,10 @@ const rkey = n => `${PFX}roster.${n}`;
 const wkey = n => `${PFX}chips.${n}`;          // wild cards, per coach per round: {"7": {tc:true, bb:false}}
 const rosters = {}, chipsAll = {};            // chipsAll: coach → {round: {tc, bb}}
 const clone = v => JSON.parse(JSON.stringify(v));
-const persist = n => store.set(rkey(n), rosters[n]);                       // this device only
-const save = n => { persist(n); Shared.push(n, {roster: clone(rosters[n])}); };   // device + everyone
+/* Watch team: the last page, any players, followed privately — stored ONLY on this phone (elf.watch), never shared or counted */
+const WATCH = "watch", WATCH_MAX = 20;
+const persist = n => n === WATCH ? store.set("elf.watch", rosters[WATCH]) : store.set(rkey(n), rosters[n]);   // this device only
+const save = n => { persist(n); if (n !== WATCH) Shared.push(n, {roster: clone(rosters[n])}); };   // device + everyone (not the watch team)
 const slotCount = (n, s) => rosters[n].filter(p => p.slot === s).length;
 const freeSlot = n => ORDER.find(s => slotCount(n, s) < SLOTS[s]);
 const LEGACY = {active:"full", bench:"half", inactive:"zero"};
@@ -417,6 +422,7 @@ function useRoster(name, list){       // load + migrate rosters saved by earlier
   persist(name);
 }
 COACHES.forEach(({name}) => { useRoster(name, store.get(rkey(name), [])); chipsAll[name] = store.get(wkey(name), {}); });
+rosters[WATCH] = store.get("elf.watch", []).map((p, k) => ({...p, slot: "watch", order: Number.isFinite(p.order) ? p.order : (k + 1) * 10}));
 
 /* changes made by anyone arrive here (first = first answer from the server) */
 let pendingRemote = false;
@@ -438,14 +444,14 @@ function applyShared(first){
 }
 Shared.on(applyShared);
 // team name shown everywhere (same as the League page): shared rename → this phone's rename → default
-const teamOf = n => ((Shared.enabled && Shared.ready) ? Shared.coaches[n]?.team : store.get("elf.teams", {})[n])
+const teamOf = n => n === WATCH ? "Watch team" : ((Shared.enabled && Shared.ready) ? Shared.coaches[n]?.team : store.get("elf.teams", {})[n])
                     || COACHES.find(c => c.name === n)?.team || n;
 const sharedReady = new Promise(res => { if (Shared.ready) res(); else { Shared.on(() => res()); setTimeout(res, 4000); } });
 
 /* ───────── state ───────── */
 let people = [], games = [], round = null, box = {}, timer = null, busy = false;
-let order = COACHES.map(c => c.name);            // carousel order (most → least PIR, set once data loads)
-let cur = COACHES.some(c => c.name === qs.get("coach")) ? qs.get("coach") : COACHES[0].name;
+let order = [...COACHES.map(c => c.name), WATCH];   // carousel order (most → least PIR, set once data loads; watch team always last)
+let cur = COACHES.some(c => c.name === qs.get("coach")) || qs.get("coach") === WATCH ? qs.get("coach") : COACHES[0].name;
 let built = false, sel = null, target = null, drag = null, suppressClick = false;
 const $ = s => document.querySelector(s);
 const r1 = v => Math.round(v * 100) / 100;          // values are kept to 2 decimals; only display rounds further
@@ -469,6 +475,7 @@ function setChip(n, k, on){
 }
 /* share of a player's PIR: group (100/50/0 — Bench Boost lifts 50% to 100%) × captain (2×, Triple Captain 3×) */
 function shareOf(n, p){
+  if (n === WATCH) return 1;                   // watch team: just the player's PIR (±10% once final)
   const wc = chipsOf(n);
   const group = p.slot === "full" ? 1 : p.slot === "half" ? (wc.bb ? 1 : 0.5) : 0;
   const capt = p.captain && p.slot === "full" ? (wc.tc ? 3 : 2) : 1;
@@ -616,7 +623,7 @@ function buildSlides(){
     <section class="slide" data-coach="${esc(n)}"><div class="page">
       <div class="list"></div>
     </div></section>`).join("");
-  $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" aria-label="${esc(teamOf(n))}"></button>`).join("");
+  $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" class="${n === WATCH ? "w" : ""}" aria-label="${esc(teamOf(n))}"></button>`).join("");
   built = true;
   render();
   goTo(cur, false);
@@ -624,6 +631,14 @@ function buildSlides(){
 function renderSlide(n){
   const el = slideOf(n); if (!el) return;
   const rows = rosters[n].map((p, i) => ({p, i, s: games.length ? stateOf(p, n) : {kind:"none"}}));
+  if (n === WATCH){
+    el.querySelector(".list").innerHTML = `<div class="zone z-watch" data-zone="watch">
+      <div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Only on this phone</div>
+      ${rows.sort(byKey).map(r => rowHTML(r, n)).join("")}
+      ${rosters[WATCH].length < WATCH_MAX ? `<div class="p empty" data-add="watch"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Add player</b><small>${rosters[WATCH].length}/${WATCH_MAX} · not counted in the standings</small></div></div>` : ""}
+    </div>`;
+    return;
+  }
   const wc = chipsOf(n);
   // Bench Boost merges 100% and 50% into one 100% block
   const groups = wc.bb ? [{key:"full", label:"100%", slots:["full", "half"]}, {key:"zero", label:"0%", slots:["zero"]}]
@@ -646,6 +661,7 @@ function renderHeader(){
     : "Loading…";
   const wc = chipsOf(cur);
   $("#wcBtn").classList.toggle("has-wc", !!(wc.tc || wc.bb));
+  $("#wcBtn").style.visibility = cur === WATCH ? "hidden" : "";       // no wild cards on the watch team
 }
 function render(){
   if (!built) return;
@@ -699,7 +715,7 @@ document.addEventListener("keydown", e => {
 /* ───────── refresh loop ───────── */
 const allPlayers = () => COACHES.flatMap(c => rosters[c.name]);
 function relevantGames(){
-  const clubs = new Set(allPlayers().map(p => p.club));
+  const clubs = new Set([...allPlayers(), ...rosters[WATCH]].map(p => p.club));
   return games.filter(g => g.r === round && (clubs.has(g.h.c) || clubs.has(g.a.c)));
 }
 async function refresh(){
@@ -713,7 +729,7 @@ async function refresh(){
   }catch{ $("#banner").classList.add("show"); }
   busy = false;
   if (!built){       // first load: order coaches by this round's PIR, most → least
-    order = COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n);
+    order = [...COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n), WATCH];
     buildSlides();
   } else render();
   if (actWrap.classList.contains("open") && selected()){ fillSheet(false); if (shTab === "game" || shTab === "mins" || shTab === "team") renderTab(); }
@@ -824,7 +840,8 @@ function fillSheet(first){
   const p = selected(); if (!p) return;
   const n = sel.n, s = stateOf(p, n);
   $("#shName").textContent = p.name;
-  $("#shMeta").textContent = `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`;
+  $("#shMeta").textContent = n === WATCH ? `${p.clubName} · ${p.pos} · Watch team` : `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`;
+  $("#removeLbl").textContent = n === WATCH ? "Remove from watch team" : "Remove from roster";
   // e.g. "20.00 −10% = 18.00 × 2" (final) or "live 14.00 × 1"
   const calc = s.kind === "final" ? `${fmtFull(s.raw)} ${s.win ? "+10%" : "−10%"} = ${fmtFull(s.base)} × ${s.share}`
              : s.kind === "live" ? `live ${fmtFull(s.raw)} × ${s.share}` : "";
@@ -1058,6 +1075,7 @@ wcWrap.addEventListener("click", e => {
 $("#closeFinder").onclick = closeFinder;
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeFinder(); });
 function openFinder(n, slot){
+  if (n === WATCH && rosters[WATCH].length >= WATCH_MAX){ toast(`Watch team is full (${WATCH_MAX})`); return; }
   if (!slot){ toast("Roster is full (13/13)"); return; }
   target = {n, slot};
   finder.classList.add("open");
@@ -1073,7 +1091,8 @@ function renderResults(){
   if (!target) return;
   const {n, slot} = target;
   const open = SLOTS[slot] - slotCount(n, slot);
-  $("#slots").innerHTML = `${esc(teamOf(n))} · adding to <b>${LABEL[slot]}</b> · ${open} open slot${open === 1 ? "" : "s"} · ${rosters[n].length}/13`;
+  $("#slots").innerHTML = n === WATCH ? `<b>Watch team</b> · only on this phone · ${rosters[WATCH].length}/${WATCH_MAX} · tap again to remove`
+    : `${esc(teamOf(n))} · adding to <b>${LABEL[slot]}</b> · ${open} open slot${open === 1 ? "" : "s"} · ${rosters[n].length}/13`;
   const q = norm($("#q").value.trim());
   const out = $("#results");
   if (!people.length){ out.innerHTML = `<div class="r-hint">Loading Euroleague players…</div>`; return; }
@@ -1081,7 +1100,16 @@ function renderResults(){
   const hits = people.filter(p => norm(p.name).includes(q) || norm(p.clubName).includes(q) || norm(p.tv) === q || norm(p.club) === q).slice(0, 60);
   const owner = {};
   COACHES.forEach(c => rosters[c.name].forEach(p => owner[p.code] = c.name));
+  const watched = new Set(rosters[WATCH].map(p => p.code));
   out.innerHTML = hits.map(p => {
+    if (n === WATCH){                           // any player can be watched, including ones on fantasy rosters
+      const o = owner[p.code], on = watched.has(p.code);
+      return `<div class="r" data-code="${p.code}">
+        ${photo(p)}
+        <div class="who"><b>${esc(p.name)}</b><small>${p.crest ? `<img class="crest" src="${esc(p.crest)}" alt="">` : ""}<span class="tv">${esc(p.tv)}</span> ${esc(p.clubName)} · ${esc(p.pos)}${o ? ` · ${esc(teamOf(o))}` : ""}</small></div>
+        <button class="add${on ? " on" : ""}" aria-label="${on ? "Remove" : "Add"}">${on ? "✓" : "+"}</button>
+      </div>`;
+    }
     const o = owner[p.code], mine = o === n;
     return `<div class="r ${o ? "taken" : ""}" data-code="${p.code}">
       ${photo(p)}
@@ -1093,6 +1121,18 @@ function renderResults(){
 $("#results").addEventListener("click", e => {
   const r = e.target.closest(".r"); if (!r || r.classList.contains("taken")) return;
   const n = target.n;
+  if (n === WATCH){                             // watch team: tap to add, tap again to remove
+    const list = rosters[WATCH], k = list.findIndex(x => x.code === r.dataset.code);
+    if (k >= 0){ const [p] = list.splice(k, 1); toast(`${p.name} removed`); }
+    else {
+      if (list.length >= WATCH_MAX){ toast(`Watch team is full (${WATCH_MAX})`); return; }
+      const p = people.find(x => x.code === r.dataset.code);
+      list.push({...p, slot: "watch", order: Math.max(0, ...list.map(x => x.order ?? 0)) + 10});
+      toast(`${p.name} → Watch team`);
+    }
+    save(WATCH); renderSlide(WATCH); renderHeader(); refresh(); renderResults();
+    return;
+  }
   if (slotCount(n, target.slot) >= SLOTS[target.slot]) target.slot = freeSlot(n);
   if (!target.slot){ toast("Roster is full (13/13)"); closeFinder(); return; }
   const p = people.find(x => x.code === r.dataset.code);
@@ -1111,7 +1151,7 @@ function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("sh
    Drop on another group's heading / empty slot → move there if it has room. */
 document.addEventListener("pointerdown", e => {
   const card = e.target.closest(".slide .p[data-i]");
-  if (!card || e.button > 0) return;
+  if (!card || e.button > 0 || coachOf(card) === WATCH) return;
   drag = {card, n: coachOf(card), slide: card.closest(".slide"), i:+card.dataset.i, x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, id:e.pointerId, type:e.pointerType, on:false};
   if (e.pointerType !== "mouse") drag.timer = setTimeout(() => drag && startDrag(), 300);
 });

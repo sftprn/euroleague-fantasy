@@ -111,8 +111,8 @@
 
   <div class="list" id="totalList" hidden></div>
 
-  <!-- private watch team: stored only on this phone, never counted (4-watch.html) -->
-  <a class="list watch" id="watchRow" href="/4-watch">
+  <!-- private watch team: stored only on this phone, never counted; opens as the last page of the team pages -->
+  <a class="list watch" id="watchRow" href="/2-coach?coach=watch">
     <div class="row">
       <div class="rank"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
       <div class="who"><b>Watch team</b><small id="watchSub">Only on this phone · follow any players</small></div>
@@ -288,7 +288,7 @@ function render(){
 
 /* private watch team summary (players are only on this phone; not part of the standings) */
 function renderWatch(){
-  if (DIRECT) $("#watchRow").href = "4-watch.html";            // local file: no clean addresses
+  $("#watchRow").href = `${COACH_PAGE}?coach=watch`;
   const w = store.get("elf.watch", []);
   let t = 0, n = 0, live = false;
   if (games.length) w.forEach(p => { const s = playerPir(p); if (s && s.played){ t += s.f; n++; live ||= s.live; } });
