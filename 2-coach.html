@@ -1151,7 +1151,7 @@ function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("sh
    Drop on another group's heading / empty slot → move there if it has room. */
 document.addEventListener("pointerdown", e => {
   const card = e.target.closest(".slide .p[data-i]");
-  if (!card || e.button > 0 || coachOf(card) === WATCH) return;
+  if (!card || e.button > 0) return;
   drag = {card, n: coachOf(card), slide: card.closest(".slide"), i:+card.dataset.i, x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, id:e.pointerId, type:e.pointerType, on:false};
   if (e.pointerType !== "mouse") drag.timer = setTimeout(() => drag && startDrag(), 300);
 });
