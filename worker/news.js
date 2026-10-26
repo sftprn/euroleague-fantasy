@@ -83,7 +83,7 @@ export async function getNews(request, env, ctx) {
   const url = new URL(request.url);
   const name = (url.searchParams.get("name") || "").replace(/\s+/g, " ").trim().slice(0, 60);
   if (!/^[\p{L}][\p{L}' .-]{1,59}$/u.test(name)) return json({ error: "bad name" }, 400);
-  const key = "news:" + fold(name);
+  const key = "news2:" + fold(name);
   const now = Date.now();
   const m = mem.get(key);
   if (m && now - m.t < TTL) return json(m.v);
@@ -98,18 +98,21 @@ export async function getNews(request, env, ctx) {
   const parts = name.split(" "), surname = parts.slice(1).join(" ") || name;
   const sites = list => "(" + list.map(s => "site:" + s).join(" OR ") + ")";
   const forms = ltForms(parts[parts.length - 1]);
-  const [en, lt, fd] = await Promise.allSettled([
+  const ltq = `(${forms.map(f => `"${f}"`).join(" OR ")})`;
+  // Lithuanian: searched with and without the site list (Bing ranks better without it); only the chosen sites are kept below
+  const [en, lt, lt2, fd] = await Promise.allSettled([
     search(`"${name}" ${sites(SITES)}`, "en-US", "en"),
-    search(`(${forms.map(f => `"${f}"`).join(" OR ")}) ${sites(SITES.filter(s => s !== "euroleaguebasketball.net"))}`, "lt-LT", "lt"),
+    search(`${ltq} ${sites(SITES.filter(s => s !== "euroleaguebasketball.net"))}`, "lt-LT", "lt"),
+    search(`${ltq} krepšinis`, "lt-LT", "lt"),
     feeds(),
   ]);
-  if (en.status === "rejected" && lt.status === "rejected" && fd.status === "rejected") return json({ error: "news unavailable" }, 503);
+  if ([en, lt, lt2, fd].every(x => x.status === "rejected")) return json({ error: "news unavailable" }, 503);
 
   const stem = stemOf(parts[parts.length - 1]);
   const hit = new RegExp(`(^|[^a-z])${stem.replace(/[-']/g, "[-' ]?")}`);    // the name has to start a word
   const named = i => hit.test(fold(i.title)) || hit.test(fold(i.about));
   const seen = new Set();
-  const items = [...(en.value || []), ...(lt.value || []), ...(fd.value || [])]
+  const items = [...(en.value || []), ...(lt.value || []), ...(lt2.value || []), ...(fd.value || [])]
     .filter(i => i.title && named(i))                                          // the player is in the headline or the summary
     .map(i => ({ ...i, lang: /[ąčęėįšųūž]/i.test(i.title) || i.site.endsWith(".lt") || i.site === "krepsinis.net" ? "lt" : "en" }))
     .filter(i => !i.at || now - i.at < MAX_AGE)
