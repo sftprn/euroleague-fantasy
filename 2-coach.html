@@ -214,6 +214,16 @@
   .hist .w{color:var(--win)} .hist .l{color:var(--loss)}
   .hist-note{font-size:11.5px;color:var(--dim);padding:10px 2px 0}
 
+  /* wild card toggles */
+  .tg{display:flex;align-items:center;gap:14px;width:100%;padding:14px 6px;border:0;background:none;text-align:left;cursor:pointer;border-radius:12px}
+  .tg:active{background:var(--card-2)}
+  .tg .txt{flex:1;min-width:0}
+  .tg .txt b{display:block;font-size:16px;font-weight:800}
+  .tg .txt small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .sw{width:50px;height:30px;border-radius:999px;background:#3A3A40;position:relative;flex:none;transition:background .2s}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+  .tg.on .sw{background:var(--orange)} .tg.on .sw::after{left:23px}
+
   /* News tab */
   .tabs{overflow-x:auto;scrollbar-width:none} .tabs::-webkit-scrollbar{display:none}
   .tabs button{flex:1 0 auto;padding:0 10px}
@@ -225,15 +235,6 @@
   .nw .lg{font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:0 4px}
   .nw-note{font-size:11.5px;color:var(--dim);padding:10px 2px 0;line-height:1.45}
 
-  /* wild card toggles */
-  .tg{display:flex;align-items:center;gap:14px;width:100%;padding:14px 6px;border:0;background:none;text-align:left;cursor:pointer;border-radius:12px}
-  .tg:active{background:var(--card-2)}
-  .tg .txt{flex:1;min-width:0}
-  .tg .txt b{display:block;font-size:16px;font-weight:800}
-  .tg .txt small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.35}
-  .sw{width:50px;height:30px;border-radius:999px;background:#3A3A40;position:relative;flex:none;transition:background .2s}
-  .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
-  .tg.on .sw{background:var(--orange)} .tg.on .sw::after{left:23px}
 
   /* full-screen add overlay */
   .finder{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;transform:translateY(100%);visibility:hidden;transition:transform .25s ease,visibility .25s}
