@@ -111,6 +111,10 @@
   .lchip i{width:5px;height:5px;border-radius:50%;background:#fff;animation:blink 1s infinite}
   @keyframes blink{50%{opacity:.25}}
   .score{font-weight:700;color:#fff}
+  .score.ahead{color:var(--win)} .score.behind{color:var(--loss)}           /* who's winning */
+  .score.fin{font-weight:600}
+  /* on court (live): green dot on the photo */
+  .oc{position:absolute;left:-1px;top:-1px;width:12px;height:12px;border-radius:50%;background:var(--win);border:2px solid var(--card)}
 
   .p.empty .ph{background:transparent;border:1.5px dashed #46464D;color:var(--orange);font-size:22px;font-weight:500}
   .p.empty .who b{color:var(--dim);font-weight:600}
@@ -499,7 +503,7 @@ async function loadBox(g){
   if (!d || !d.Stats || d.Stats.length < 2) return {pending:true};
   const teams = d.Stats.map(s => {                           // Stats[0] = home, Stats[1] = away
     const pl = {};
-    s.PlayersStats.forEach(p => pl[p.Player_ID.replace(/^P/, "").trim()] = {pir:p.Valuation, min:p.Minutes});
+    s.PlayersStats.forEach(p => pl[p.Player_ID.replace(/^P/, "").trim()] = {pir:p.Valuation, min:p.Minutes, on:!!p.IsPlaying});
     return {pts: +(s.totr?.Points || 0), pl};
   });
   const tot = teams[0].pts + teams[1].pts;
@@ -534,7 +538,7 @@ function stateOf(p, n){
   return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, base, share,
           val: r1(base * share),
           shown: p.slot === "zero" ? r1(base) : r1(base * share),   // 0% group shows full PIR (display only, never counted)
-          score: `${me.pts}–${them.pts}`, q: b.q, t: b.t};
+          score: `${me.pts}–${them.pts}`, lead: Math.sign(me.pts - them.pts), on: live && !!st?.on, q: b.q, t: b.t};
 }
 function coachTotal(n){
   let total = 0, live = false;
@@ -553,9 +557,9 @@ function liveClock(s){
 function subline(p, s){
   const tv = `<span class="tv">${esc(p.tv)}</span>`;
   switch (s.kind){
-    case "live":  return `${tv} ${liveClock(s)} <span class="score">${s.score}</span>`;
+    case "live":  return `${tv} ${liveClock(s)} <span class="score ${s.lead > 0 ? "ahead" : s.lead < 0 ? "behind" : ""}">${s.score}</span>`;
     case "final": return s.dnp ? `${tv} <span class="res D">DNP</span>` :
-                  `${tv} <span class="res ${s.win ? "W" : "L"}">${s.win ? "W +10%" : "L −10%"}</span> ${s.score}`;
+                  `${tv} <span class="res ${s.win ? "W" : "L"}">${s.win ? "W +10%" : "L −10%"}</span> <span class="score fin ${s.win ? "ahead" : "behind"}">${s.score}</span>`;
     case "soon":  return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · starting`;
     case "up":    return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · ${when(s.g.u)}`;
     default:      return `${tv} · no game this round`;
@@ -568,7 +572,7 @@ function rowHTML({p, i, s}, n){
   const capt = isCapt ? `<span class="capt${wc.tc ? " tc" : ""}">C</span>` : "";
   const boosted = (wc.tc && isCapt) || (wc.bb && p.slot === "half");   // Triple Captain / Bench Boost players
   return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}" data-i="${i}">
-    <div class="phw">${photo(p)}${capt}</div>
+    <div class="phw">${photo(p)}${capt}${s.on ? '<i class="oc" title="On court"></i>' : ""}</div>
     <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
     <div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmtShort(s.shown) : "–"}</div>
   </div>`;

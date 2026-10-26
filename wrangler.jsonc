@@ -13,5 +13,11 @@
   "triggers": { "crons": ["*/10 * * * *"] },
   "d1_databases": [
     { "binding": "DB", "database_name": "elf", "database_id": "eafaa209-73e7-43ed-98bb-36dd48cd0f2e" }
-  ]
+  ],
+  // branch previews (not main): same database as the live league, so previews show the real data
+  "previews": {
+    "d1_databases": [
+      { "binding": "DB", "database_id": "eafaa209-73e7-43ed-98bb-36dd48cd0f2e" }
+    ]
+  }
 }
