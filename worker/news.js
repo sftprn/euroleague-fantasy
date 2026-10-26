@@ -93,3 +93,26 @@ export async function getNews(request, env, ctx) {
   return json(v);
 }
 const json = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+
+// TEMPORARY (branch only): which news feeds can the Worker read? Fixed list, no user-supplied URLs.
+const PROBE = [
+  "https://www.bing.com/news/search?q=Mirotic&format=rss",
+  "https://www.bing.com/news/search?q=Miroti%C4%8Dius&format=rss&setmkt=lt-LT",
+  "https://www.15min.lt/rss", "https://www.15min.lt/rss/sportas", "https://www.15min.lt/rss/krepsinis",
+  "https://www.delfi.lt/rss/feeds/sport.xml", "https://www.delfi.lt/rss/feeds/daily.xml", "https://www.delfi.lt/sportas/rss",
+  "https://www.lrt.lt/rss", "https://www.lrt.lt/naujienos/sportas?rss", "https://www.lrt.lt/tema/krepsinis?rss",
+  "https://www.krepsinis.net/rss", "https://www.krepsinis.net/rss.xml", "https://www.krepsinis.net/feed",
+  "https://www.sportas.lt/rss", "https://www.sportas.lt/feed", "https://www.sportas.lt/rss.xml",
+  "https://www.eurobasket.lt/rss", "https://www.eurobasket.lt/feed", "https://www.eurobasket.lt/rss.xml",
+  "https://www.euroleaguebasketball.net/rssfeed", "https://www.euroleaguebasketball.net/euroleague/news/rss", "https://www.euroleaguebasketball.net/feed",
+];
+export async function probeNews() {
+  const out = await Promise.all(PROBE.map(async u => {
+    try {
+      const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 (compatible; EL-Fantasy/1.0)", accept: "application/rss+xml, text/xml, */*" }, redirect: "follow" });
+      const t = await r.text();
+      return { u, status: r.status, type: r.headers.get("content-type"), items: (t.match(/<item[\s>]/g) || []).length, head: t.slice(0, 90).replace(/\s+/g, " ") };
+    } catch (e) { return { u, err: String(e.message || e) }; }
+  }));
+  return json(out);
+}
