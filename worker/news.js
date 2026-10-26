@@ -4,7 +4,7 @@
 //      forms, since LT portals decline foreign names: Mirotic → Mirotičius / Mirotičiaus)
 //   2. the portals' own feeds (15min, Delfi, LRT, krepsinis.net), read directly and searched for the same name forms;
 //      sportas.lt and eurobasket.lt have no feed, euroleaguebasketball.net refuses the server — those come via Bing only
-// Only headlines that contain the player's name are kept. Answers are kept 30 min (D1 + memory) for everyone.
+// Only stories that name the player in the headline or the summary are kept. Answers are kept 30 min (D1 + memory) for everyone.
 
 export const SITES = ["sportas.lt", "lrt.lt", "eurobasket.lt", "15min.lt", "delfi.lt", "euroleaguebasketball.net", "krepsinis.net"];
 const TTL = 30 * 60e3;
@@ -55,7 +55,8 @@ function parse(xml, lang, fixedSource) {
     const site = siteOf(link);
     const source = fixedSource || tag("News:Source") || site;
     if (source && title.endsWith(" - " + source)) title = title.slice(0, -(source.length + 3));
-    items.push({ title, link, at: Date.parse(tag("pubDate")) || 0, source, site, lang });
+    const about = tag("description").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 400);
+    items.push({ title, link, at: Date.parse(tag("pubDate")) || 0, source, site, lang, about });
   }
   return items;
 }
@@ -97,26 +98,26 @@ export async function getNews(request, env, ctx) {
   const parts = name.split(" "), surname = parts.slice(1).join(" ") || name;
   const sites = list => "(" + list.map(s => "site:" + s).join(" OR ") + ")";
   const forms = ltForms(parts[parts.length - 1]);
-  const dbg = url.searchParams.get("dbg");             // TEMPORARY: compare search styles
-  const withSites = dbg !== "nosite";
   const [en, lt, fd] = await Promise.allSettled([
-    search(`"${name}"${withSites ? " " + sites(SITES) : " basketball"}`, "en-US", "en"),
-    search(`(${forms.map(f => `"${f}"`).join(" OR ")})${withSites ? " " + sites(SITES.filter(s => s !== "euroleaguebasketball.net")) : ""}`, "lt-LT", "lt"),
+    search(`"${name}" ${sites(SITES)}`, "en-US", "en"),
+    search(`(${forms.map(f => `"${f}"`).join(" OR ")}) ${sites(SITES.filter(s => s !== "euroleaguebasketball.net"))}`, "lt-LT", "lt"),
     feeds(),
   ]);
-  if (dbg) return json({ en: (en.value || []).map(i => i.site + " | " + i.title), lt: (lt.value || []).map(i => i.site + " | " + i.title) });
   if (en.status === "rejected" && lt.status === "rejected" && fd.status === "rejected") return json({ error: "news unavailable" }, 503);
 
   const stem = stemOf(parts[parts.length - 1]);
+  const hit = new RegExp(`(^|[^a-z])${stem.replace(/[-']/g, "[-' ]?")}`);    // the name has to start a word
+  const named = i => hit.test(fold(i.title)) || hit.test(fold(i.about));
   const seen = new Set();
   const items = [...(en.value || []), ...(lt.value || []), ...(fd.value || [])]
-    .filter(i => i.title && fold(i.title).includes(stem))                      // the player is in the headline
+    .filter(i => i.title && named(i))                                          // the player is in the headline or the summary
     .map(i => ({ ...i, lang: /[ąčęėįšųūž]/i.test(i.title) || i.site.endsWith(".lt") || i.site === "krepsinis.net" ? "lt" : "en" }))
     .filter(i => !i.at || now - i.at < MAX_AGE)
     .filter(i => SITES.some(s => i.site === s || i.site.endsWith("." + s)))   // only the chosen portals
     .sort((a, b) => b.at - a.at)
     .filter(i => { const k = fold(i.title).slice(0, 60); if (seen.has(k)) return false; seen.add(k); return true; })
-    .slice(0, 25);
+    .slice(0, 25)
+    .map(({ about, ...i }) => ({ ...i, inTitle: hit.test(fold(i.title)) }));
   const v = { t: now, name, items };
   mem.set(key, { t: now, v });
   if (mem.size > 300) for (const [k, x] of mem) if (now - x.t > TTL) mem.delete(k);
