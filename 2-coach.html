@@ -214,6 +214,17 @@
   .hist .w{color:var(--win)} .hist .l{color:var(--loss)}
   .hist-note{font-size:11.5px;color:var(--dim);padding:10px 2px 0}
 
+  /* News tab */
+  .tabs{overflow-x:auto;scrollbar-width:none} .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:1 0 auto;padding:0 10px}
+  .nw{display:block;padding:12px 2px;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+  .nw:active{background:#141417}
+  .nw b{display:block;font-size:14.5px;font-weight:700;line-height:1.35}
+  .nw small{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:12px;color:var(--muted)}
+  .nw .src{font-weight:700;color:#C9C9CF}
+  .nw .lg{font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:0 4px}
+  .nw-note{font-size:11.5px;color:var(--dim);padding:10px 2px 0;line-height:1.45}
+
   /* wild card toggles */
   .tg{display:flex;align-items:center;gap:14px;width:100%;padding:14px 6px;border:0;background:none;text-align:left;cursor:pointer;border-radius:12px}
   .tg:active{background:var(--card-2)}
@@ -290,6 +301,7 @@
     <div class="sh-body">
       <div class="tabs" id="shTabs" role="tablist">
         <button data-tab="game" role="tab">Game</button>
+        <button data-tab="news" role="tab">News</button>
         <button data-tab="mins" role="tab">Minutes</button>
         <button data-tab="season" role="tab">Season</button>
         <button data-tab="edit" role="tab">Edit</button>
@@ -854,6 +866,7 @@ async function renderTab(){
   const stale = () => seq !== tabSeq || !actWrap.classList.contains("open");
   if (!pane.dataset.tab || pane.dataset.tab !== shTab + p.code) pane.innerHTML = `<div class="loading">Loading…</div>`;
   pane.dataset.tab = shTab + p.code;
+  if (shTab === "news") return newsTab(p, pane, stale);
   try{
     const html = shTab === "game" ? await gamePane(p) : shTab === "mins" ? await minsPane(p) : await seasonPane(p, h => { if (!stale()) pane.innerHTML = h; });
     if (!stale()) pane.innerHTML = html;
@@ -941,6 +954,27 @@ async function seasonPane(p, partial){
   });
   clearTimeout(pending);
   return rows.length ? draw(rows) : `<div class="empty">No games played yet this season.</div>`;
+}
+
+
+/* News tab: latest headlines about the player from the chosen portals (worker/news.js; kept 30 min on the server) */
+const newsCache = {};
+const ago = t => { const m = Math.round((Date.now() - t) / 60e3); return m < 60 ? `${Math.max(1, m)} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+async function newsTab(p, pane, stale){
+  const key = p.name;
+  if (!newsCache[key] || Date.now() - newsCache[key].t > 10 * 60e3){
+    try{
+      const r = await fetch(`/api/news?name=${encodeURIComponent(p.name)}`, {cache: "no-store"});
+      if (!r.ok) throw new Error(r.status);
+      newsCache[key] = {t: Date.now(), v: await r.json()};
+    }catch{ if (!stale()) pane.innerHTML = `<div class="empty">Couldn't load news right now. Try again in a moment.</div>`; return; }
+  }
+  if (stale()) return;
+  const items = newsCache[key].v.items || [];
+  const note = `<div class="nw-note">Headlines naming ${esc(p.name)} from sportas.lt, lrt.lt, eurobasket.lt, 15min.lt, delfi.lt, krepsinis.net and euroleaguebasketball.net. Tap to read on the site.</div>`;
+  pane.innerHTML = items.length ? items.map(i => `<a class="nw" href="${esc(i.link)}" target="_blank" rel="noopener">
+      <b>${esc(i.title)}</b><small><span class="src">${esc(i.source || i.site)}</span>${i.at ? ` · ${ago(i.at)}` : ""}<span class="lg">${i.lang === "lt" ? "LT" : "EN"}</span></small></a>`).join("") + note
+    : `<div class="empty">No recent news about ${esc(p.name)} on these sites.</div>` + note;
 }
 
 /* share of a photo's height that is empty (transparent) below the player — measured once, remembered on this phone */
