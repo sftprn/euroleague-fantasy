@@ -113,16 +113,8 @@
   .score{font-weight:700;color:#fff}
   .score.ahead{color:var(--win)} .score.behind{color:var(--loss)}           /* who's winning */
   .score.fin{font-weight:600}
-  /* on court (live): green ring + dot; on the bench: photo dimmed */
-  .p.oncourt .ph{box-shadow:0 0 0 2px var(--win)}
+  /* on court (live): green dot on the photo */
   .oc{position:absolute;left:-1px;top:-1px;width:12px;height:12px;border-radius:50%;background:var(--win);border:2px solid var(--card)}
-  .p.bench .ph{opacity:.45;filter:grayscale(.6)}
-  /* mini minutes timeline under the name */
-  .mt{position:relative;height:4px;border-radius:2px;background:#2E2E34;margin-top:6px;overflow:hidden;max-width:220px}
-  .mt i{position:absolute;top:0;bottom:0;background:#C9C9CF;border-radius:1px}
-  .p.live .mt i{background:var(--orange)}
-  .mt b{position:absolute;top:0;bottom:0;width:1px;background:var(--card)}
-  .mt u{position:absolute;top:0;bottom:0;right:0;background:#0A0A0B66;border-left:1px solid #fff}
 
   .p.empty .ph{background:transparent;border:1.5px dashed #46464D;color:var(--orange);font-size:22px;font-weight:500}
   .p.empty .who b{color:var(--dim);font-weight:600}
@@ -579,22 +571,11 @@ function rowHTML({p, i, s}, n){
   const isCapt = p.captain && p.slot === "full";
   const capt = isCapt ? `<span class="capt${wc.tc ? " tc" : ""}">C</span>` : "";
   const boosted = (wc.tc && isCapt) || (wc.bb && p.slot === "half");   // Triple Captain / Bench Boost players
-  const court = s.kind === "live" && !s.dnp ? (s.on ? " oncourt" : " bench") : "";
-  return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}${court}" data-i="${i}">
+  return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}" data-i="${i}">
     <div class="phw">${photo(p)}${capt}${s.on ? '<i class="oc" title="On court"></i>' : ""}</div>
-    <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small>${minsBar(p, s)}</div>
+    <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
     <div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmtShort(s.shown) : "–"}</div>
   </div>`;
-}
-/* mini minutes timeline: the whole game (4 quarters + overtime), filled where he was on court */
-const stints = {};                                    // game code → ElData.stretches result
-function minsBar(p, s){
-  if (s.kind !== "live" && s.kind !== "final") return "";
-  const st = stints[s.g.c]; if (!st) return "";
-  const mine = st.pl[p.code] || [], len = st.len, x = m => (m / len * 100).toFixed(2) + "%";
-  const ticks = []; for (let m = 10; m < len; m += m < 40 ? 10 : 5) ticks.push(m);
-  return `<div class="mt">${mine.map(([f, t]) => `<i style="left:${x(f)};width:${x(t - f)}"></i>`).join("")}
-    ${ticks.map(m => `<b style="left:${x(m)}"></b>`).join("")}${st.live ? `<u style="left:${x(st.now)}"></u>` : ""}</div>`;
 }
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
 const sortKey = r => r.s.kind === "live" ? [0, -r.s.shown] : r.s.kind === "final" ? [1, -r.s.shown]      // by the PIR shown
@@ -711,9 +692,6 @@ async function refresh(){
     const need = relevantGames().filter(g => DEMO || new Date(g.u) <= new Date());
     const res = await Promise.all(need.map(g => loadBox(g).then(b => [g.c, b]).catch(() => [g.c, box[g.c]])));
     res.forEach(([c, b]) => { if (b) box[c] = b; });
-    // on-court stretches for the minutes bars (finished games come from this phone's cache)
-    if (window.ElData) await Promise.all(need.filter(g => box[g.c] && !box[g.c].pending)
-      .map(g => ElData.stretches(g.c).then(x => { if (!x.pending) stints[g.c] = x; }).catch(() => {})));
     $("#banner").classList.remove("show");
   }catch{ $("#banner").classList.add("show"); }
   busy = false;
