@@ -972,7 +972,7 @@ async function newsTab(p, pane, stale){
   }
   if (stale()) return;
   const items = newsCache[key].v.items || [];
-  const note = `<div class="nw-note">Headlines naming ${esc(p.name)} from sportas.lt, lrt.lt, eurobasket.lt, 15min.lt, delfi.lt, krepsinis.net and euroleaguebasketball.net. Tap to read on the site.</div>`;
+  const note = `<div class="nw-note">Stories naming ${esc(p.name)} from sportas.lt, lrt.lt, eurobasket.lt, 15min.lt, delfi.lt, krepsinis.net and euroleaguebasketball.net. Tap to read on the site.</div>`;
   pane.innerHTML = items.length ? items.map(i => `<a class="nw" href="${esc(i.link)}" target="_blank" rel="noopener">
       <b>${esc(i.title)}</b><small><span class="src">${esc(i.source || i.site)}</span>${i.at ? ` · ${ago(i.at)}` : ""}<span class="lg">${i.lang === "lt" ? "LT" : "EN"}</span></small></a>`).join("") + note
     : `<div class="empty">No recent news about ${esc(p.name)} on these sites.</div>` + note;
