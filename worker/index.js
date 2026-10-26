@@ -8,7 +8,7 @@
 // Euroleague's servers don't reliably allow browser calls from other sites, so the Worker fetches for the browser.
 import { getState, postState } from "./state.js";
 import { postRound, scheduledCheck } from "./rounds.js";
-import { getNews, probeNews } from "./news.js";
+import { getNews } from "./news.js";
 
 // Euroleague rate-limits bursts, so answers are kept and shared by all phones:
 //   finished game box score / play-by-play → stored in D1 for good (never changes)
@@ -69,7 +69,6 @@ export default {
     }
     if (url.pathname === "/api/round" && request.method === "POST") return postRound(request, env);
     if (url.pathname === "/api/news" && request.method === "GET") return getNews(request, env, ctx);
-    if (url.pathname === "/api/news-probe") return probeNews();   // TEMPORARY
     if (request.method === "GET" && url.pathname.startsWith("/el-api/")) return forward(url, "/el-api/", "https://api-live.euroleague.net/", env, ctx);
     if (request.method === "GET" && url.pathname.startsWith("/el-live/")) return forward(url, "/el-live/", "https://live.euroleague.net/api/", env, ctx);
     return env.ASSETS.fetch(request);
