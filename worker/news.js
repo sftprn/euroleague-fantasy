@@ -97,11 +97,14 @@ export async function getNews(request, env, ctx) {
   const parts = name.split(" "), surname = parts.slice(1).join(" ") || name;
   const sites = list => "(" + list.map(s => "site:" + s).join(" OR ") + ")";
   const forms = ltForms(parts[parts.length - 1]);
+  const dbg = url.searchParams.get("dbg");             // TEMPORARY: compare search styles
+  const withSites = dbg !== "nosite";
   const [en, lt, fd] = await Promise.allSettled([
-    search(`"${name}" ${sites(SITES)}`, "en-US", "en"),
-    search(`(${forms.map(f => `"${f}"`).join(" OR ")}) ${sites(SITES.filter(s => s !== "euroleaguebasketball.net"))}`, "lt-LT", "lt"),
+    search(`"${name}"${withSites ? " " + sites(SITES) : " basketball"}`, "en-US", "en"),
+    search(`(${forms.map(f => `"${f}"`).join(" OR ")})${withSites ? " " + sites(SITES.filter(s => s !== "euroleaguebasketball.net")) : ""}`, "lt-LT", "lt"),
     feeds(),
   ]);
+  if (dbg) return json({ en: (en.value || []).map(i => i.site + " | " + i.title), lt: (lt.value || []).map(i => i.site + " | " + i.title) });
   if (en.status === "rejected" && lt.status === "rejected" && fd.status === "rejected") return json({ error: "news unavailable" }, 503);
 
   const stem = stemOf(parts[parts.length - 1]);
