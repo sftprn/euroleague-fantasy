@@ -111,6 +111,10 @@
   .lchip i{width:5px;height:5px;border-radius:50%;background:#fff;animation:blink 1s infinite}
   @keyframes blink{50%{opacity:.25}}
   .score{font-weight:700;color:#fff}
+  .score.ahead{color:var(--win)} .score.behind{color:var(--loss)}           /* who's winning */
+  .score.fin{font-weight:600}
+  /* on court (live): green dot on the photo */
+  .oc{position:absolute;left:-1px;top:-1px;width:12px;height:12px;border-radius:50%;background:var(--win);border:2px solid var(--card)}
 
   .p.empty .ph{background:transparent;border:1.5px dashed #46464D;color:var(--orange);font-size:22px;font-weight:500}
   .p.empty .who b{color:var(--dim);font-weight:600}
@@ -214,6 +218,22 @@
   .hist .w{color:var(--win)} .hist .l{color:var(--loss)}
   .hist-note{font-size:11.5px;color:var(--dim);padding:10px 2px 0}
 
+  /* Team tab: his teammates' stat lines; name column stays put, the rest scrolls sideways */
+  .tmw{overflow-x:auto;margin:0 -16px;padding:0;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .tmt{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+  .tmt th,.tmt td{padding:9px 7px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+  .tmt th{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.05em;cursor:pointer;user-select:none}
+  .tmt th.on{color:#fff} .tmt th.on::after{content:" ▾";font-size:9px} .tmt th.on.asc::after{content:" ▴"}
+  .tmt th:last-child,.tmt td:last-child{padding-right:16px}
+  .tmt th:first-child,.tmt td:first-child{position:sticky;left:0;z-index:1;background:var(--card);text-align:left;max-width:150px;padding-left:16px;overflow:hidden;text-overflow:ellipsis;
+    box-shadow:6px 0 8px -6px #00000099}
+  .tmt td:first-child span{color:var(--dim);font-size:11px;margin-right:6px;display:inline-block;min-width:14px}
+  .tmt td.pir{font-weight:800}
+  .tmt tr.me td{background:#2A1A10} .tmt tr.me td:first-child{background:#2A1A10;color:var(--orange);font-weight:800}
+  .tmt tr.dnp td{color:var(--dim)}
+  .fan{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--orange);margin-left:5px;vertical-align:middle}
+  .tm-note{font-size:11.5px;color:var(--dim);padding:10px 2px 0}
+
   /* wild card toggles */
   .tg{display:flex;align-items:center;gap:14px;width:100%;padding:14px 6px;border:0;background:none;text-align:left;cursor:pointer;border-radius:12px}
   .tg:active{background:var(--card-2)}
@@ -291,6 +311,7 @@
       <div class="tabs" id="shTabs" role="tablist">
         <button data-tab="game" role="tab">Game</button>
         <button data-tab="mins" role="tab">Minutes</button>
+        <button data-tab="team" role="tab">Team</button>
         <button data-tab="season" role="tab">Season</button>
         <button data-tab="edit" role="tab">Edit</button>
       </div>
@@ -499,7 +520,7 @@ async function loadBox(g){
   if (!d || !d.Stats || d.Stats.length < 2) return {pending:true};
   const teams = d.Stats.map(s => {                           // Stats[0] = home, Stats[1] = away
     const pl = {};
-    s.PlayersStats.forEach(p => pl[p.Player_ID.replace(/^P/, "").trim()] = {pir:p.Valuation, min:p.Minutes});
+    s.PlayersStats.forEach(p => pl[p.Player_ID.replace(/^P/, "").trim()] = {pir:p.Valuation, min:p.Minutes, on:!!p.IsPlaying});
     return {pts: +(s.totr?.Points || 0), pl};
   });
   const tot = teams[0].pts + teams[1].pts;
@@ -534,7 +555,7 @@ function stateOf(p, n){
   return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, base, share,
           val: r1(base * share),
           shown: p.slot === "zero" ? r1(base) : r1(base * share),   // 0% group shows full PIR (display only, never counted)
-          score: `${me.pts}–${them.pts}`, q: b.q, t: b.t};
+          score: `${me.pts}–${them.pts}`, lead: Math.sign(me.pts - them.pts), on: live && !!st?.on, q: b.q, t: b.t};
 }
 function coachTotal(n){
   let total = 0, live = false;
@@ -553,9 +574,9 @@ function liveClock(s){
 function subline(p, s){
   const tv = `<span class="tv">${esc(p.tv)}</span>`;
   switch (s.kind){
-    case "live":  return `${tv} ${liveClock(s)} <span class="score">${s.score}</span>`;
+    case "live":  return `${tv} ${liveClock(s)} <span class="score ${s.lead > 0 ? "ahead" : s.lead < 0 ? "behind" : ""}">${s.score}</span>`;
     case "final": return s.dnp ? `${tv} <span class="res D">DNP</span>` :
-                  `${tv} <span class="res ${s.win ? "W" : "L"}">${s.win ? "W +10%" : "L −10%"}</span> ${s.score}`;
+                  `${tv} <span class="score fin ${s.win ? "ahead" : "behind"}">${s.score}</span>`;
     case "soon":  return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · starting`;
     case "up":    return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · ${when(s.g.u)}`;
     default:      return `${tv} · no game this round`;
@@ -568,7 +589,7 @@ function rowHTML({p, i, s}, n){
   const capt = isCapt ? `<span class="capt${wc.tc ? " tc" : ""}">C</span>` : "";
   const boosted = (wc.tc && isCapt) || (wc.bb && p.slot === "half");   // Triple Captain / Bench Boost players
   return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}" data-i="${i}">
-    <div class="phw">${photo(p)}${capt}</div>
+    <div class="phw">${photo(p)}${capt}${s.on ? '<i class="oc" title="On court"></i>' : ""}</div>
     <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
     <div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmtShort(s.shown) : "–"}</div>
   </div>`;
@@ -695,7 +716,7 @@ async function refresh(){
     order = COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n);
     buildSlides();
   } else render();
-  if (actWrap.classList.contains("open") && selected()){ fillSheet(false); if (shTab === "game" || shTab === "mins") renderTab(); }
+  if (actWrap.classList.contains("open") && selected()){ fillSheet(false); if (shTab === "game" || shTab === "mins" || shTab === "team") renderTab(); }
   schedule();
 }
 function schedule(){
@@ -852,14 +873,22 @@ async function renderTab(){
   pane.hidden = shTab === "edit";
   if (shTab === "edit") return;
   const stale = () => seq !== tabSeq || !actWrap.classList.contains("open");
-  if (!pane.dataset.tab || pane.dataset.tab !== shTab + p.code) pane.innerHTML = `<div class="loading">Loading…</div>`;
+  if (!pane.dataset.tab || pane.dataset.tab !== shTab + p.code) paneSet(pane, `<div class="loading">Loading…</div>`);
   pane.dataset.tab = shTab + p.code;
   try{
-    const html = shTab === "game" ? await gamePane(p) : shTab === "mins" ? await minsPane(p) : await seasonPane(p, h => { if (!stale()) pane.innerHTML = h; });
-    if (!stale()) pane.innerHTML = html;
-  }catch{ if (!stale()) pane.innerHTML = `<div class="empty">Couldn't load this right now. Try again in a moment.</div>`; }
+    const html = shTab === "game" ? await gamePane(p) : shTab === "mins" ? await minsPane(p) : shTab === "team" ? await teamPane(p) : await seasonPane(p, h => { if (!stale()) paneSet(pane, h); });
+    if (!stale()) paneSet(pane, html);
+  }catch{ if (!stale()) paneSet(pane, `<div class="empty">Couldn't load this right now. Try again in a moment.</div>`); }
 }
 
+/* live updates redraw the tab: skip it when nothing changed, and keep where you've scrolled (the sheet and the sideways table) */
+function paneSet(pane, html){
+  if (pane._html === html) return;
+  const body = actWrap.querySelector(".sh-body"), y = body.scrollTop, x = pane.querySelector(".tmw")?.scrollLeft || 0;
+  pane.innerHTML = pane._html = html;
+  const w = pane.querySelector(".tmw"); if (w) w.scrollLeft = x;
+  body.scrollTop = y;
+}
 function gameHead(g, b, p){
   const h = g.h, a = g.a;
   if (!b || b.pending) return `<div class="gm"><span class="tm">${esc(h.tv)}</span><span class="sc">vs<small>${new Date(g.u) > new Date() ? esc(when(g.u)) : "STARTING"}</small></span><span class="tm r">${esc(a.tv)}</span></div>`;
@@ -908,6 +937,38 @@ async function minsPane(p){
   return `<div class="mins-sum"><b>${l?.min && l.min !== "DNP" ? esc(l.min) : mmss(total)}</b><small>${mine.length} stint${mine.length > 1 ? "s" : ""}${l?.starter ? " · starter" : ""}${onNow ? ` · <span style="color:var(--win)">on court now</span>` : ""}</small></div>`
     + bar + mine.map(([f, t], i) => `<div class="stint">${clockOf(f, len)} → ${onNow && i === mine.length - 1 ? "now" : clockOf(t, len)}<span>${mmss(t - f)}</span></div>`).join("");
 }
+
+/* Team tab: everyone on his team in this round's game */
+let tmSort = {k: "pir", dir: -1};
+const TM_COLS = [["min", "MIN"], ["pts", "PTS"], ["fg2", "2FG"], ["fg3", "3FG"], ["ft", "FT"], ["tr", "REB"], ["ast", "AST"], ["stl", "STL"],
+                 ["to", "TO"], ["blk", "BLK"], ["pf", "PF"], ["pm", "+/−"], ["pir", "PIR"]];
+async function teamPane(p){
+  const g = gameOf(p);
+  if (!g) return `<div class="empty">No game this round.</div>`;
+  if (new Date(g.u) > new Date()) return `<div class="empty">The team's stats show up once the game starts.</div>`;
+  const b = await ElData.box(g.c);
+  if (b.pending) return `<div class="empty">Waiting for the first stats…</div>`;
+  const t = b.teams.find(t => t.pl[p.code]) || b.teams[g.h.c === p.club ? 0 : 1];
+  const fantasy = new Set(allPlayers().map(x => x.code));
+  const val = (l, k) => k === "min" ? l.mins : k === "fg2" ? l.fg2m : k === "fg3" ? l.fg3m : k === "ft" ? l.ftm : l[k];
+  const rows = Object.entries(t.pl).map(([code, l]) => ({code, l, dnp: l.min === "DNP" || !l.mins}));
+  rows.sort((a, c) => (a.dnp - c.dnp) || tmSort.dir * (val(a.l, tmSort.k) - val(c.l, tmSort.k)) || c.l.mins - a.l.mins);
+  const cell = (l, k) => k === "min" ? esc(l.min) : k === "fg2" ? `${l.fg2m}/${l.fg2a}` : k === "fg3" ? `${l.fg3m}/${l.fg3a}` : k === "ft" ? `${l.ftm}/${l.fta}` : k === "pm" ? sign(l.pm) : l[k];
+  return `<div class="tmw"><table class="tmt"><thead><tr><th data-sort="name">${esc(t.name ? t.name.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) : t.code)}</th>
+      ${TM_COLS.map(([k, lab]) => `<th data-sort="${k}" class="${tmSort.k === k ? "on" + (tmSort.dir > 0 ? " asc" : "") : ""}">${lab}</th>`).join("")}</tr></thead><tbody>
+      ${rows.map(({code, l, dnp}) => `<tr class="${code === p.code ? "me" : ""}${dnp ? " dnp" : ""}">
+        <td><span>${esc(l.no)}</span>${esc(shortName(l.name))}${fantasy.has(code) && code !== p.code ? '<i class="fan" title="On a fantasy roster"></i>' : ""}</td>
+        ${dnp ? `<td colspan="${TM_COLS.length}" style="text-align:left">DNP</td>` : TM_COLS.map(([k]) => `<td class="${k}">${cell(l, k)}</td>`).join("")}</tr>`).join("")}
+    </tbody></table></div>
+    <div class="tm-note">Tap a column to sort. <i class="fan"></i> on someone's fantasy roster.</div>`;
+}
+const shortName = n => { const w = String(n || "").split(" "); return w.length > 1 ? `${w[0][0]}. ${w.slice(1).join(" ")}` : n; };
+$("#shPane").addEventListener("click", e => {
+  const th = e.target.closest(".tmt th[data-sort]"); if (!th || th.dataset.sort === "name") return;
+  const k = th.dataset.sort;
+  tmSort = tmSort.k === k ? {k, dir: -tmSort.dir} : {k, dir: -1};
+  renderTab();
+});
 async function seasonPane(p, partial){
   const draw = rows => {
     const done = rows.filter(r => !r.loading && r.pir != null);
