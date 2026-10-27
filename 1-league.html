@@ -134,6 +134,7 @@
   .open .scrim{opacity:1;pointer-events:auto}
   .open .sheet{transform:translate(-50%,0);visibility:visible}
   .sheet.dragging{transition:none}
+  .sheet.fit{height:auto}                       /* game not started yet: only as tall as what's in it */
   .grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab;touch-action:none}
   .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
   .sh-head{flex:none;padding:4px 16px 0;touch-action:none}
@@ -469,6 +470,7 @@ async function renderGame(){
   $("#board").innerHTML = `${side(g.h)}<div class="mid"><div class="sc">${has ? `${b.teams[0].pts} – ${b.teams[1].pts}` : "vs"}</div>
       <small class="${b?.live ? "lv" : ""}">${b?.live ? esc(clockOf(b)) : has ? "FINAL" : started ? "STARTING" : esc(when(g.u))}</small></div>${side(g.a)}`;
   document.querySelectorAll("#gSeg [data-v]").forEach(x => x.classList.toggle("on", x.dataset.v === gView));
+  gWrap.querySelector(".sheet").classList.toggle("fit", !started);
   const body = $("#gBody"), y = body.scrollTop, xs = [...body.querySelectorAll(".tmw")].map(w => w.scrollLeft);
   let html;
   if (!started) html = `<div class="empty">Box scores show up once the game starts.</div>`;

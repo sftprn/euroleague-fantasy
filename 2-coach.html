@@ -145,7 +145,7 @@
   /* sheets */
   .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
   /* sheet = grab area + header (fixed) + body (scrolls when there's too much); never taller than the screen */
-  .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--card);border:1px solid var(--line);border-bottom:0;
+  .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
          border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - env(safe-area-inset-top) - 16px);max-height:calc(100dvh - env(safe-area-inset-top) - 16px);
          transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
   .open .scrim{opacity:1;pointer-events:auto}
@@ -179,7 +179,7 @@
 
 
   /* player sheet tabs */
-  .tabs{position:sticky;top:-8px;z-index:2;display:flex;gap:4px;padding:4px;margin:-8px -16px 12px;background:var(--card);border-bottom:1px solid var(--line);padding:8px 16px}
+  .tabs{position:sticky;top:-8px;z-index:2;display:flex;gap:4px;padding:4px;margin:-8px -16px 12px;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px}
   .tabs button{flex:1;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
   .tabs button.on{background:var(--card-2);color:#fff}
   .pane{min-height:120px}
@@ -235,7 +235,7 @@
   .tmt th{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.05em;cursor:pointer;user-select:none}
   .tmt th.on{color:#fff} .tmt th.on::after{content:" ▾";font-size:9px} .tmt th.on.asc::after{content:" ▴"}
   .tmt th:last-child,.tmt td:last-child{padding-right:16px}
-  .tmt th:first-child,.tmt td:first-child{position:sticky;left:0;z-index:1;background:var(--card);text-align:left;max-width:150px;padding-left:16px;overflow:hidden;text-overflow:ellipsis;
+  .tmt th:first-child,.tmt td:first-child{position:sticky;left:0;z-index:1;background:var(--bg);text-align:left;max-width:150px;padding-left:16px;overflow:hidden;text-overflow:ellipsis;
     box-shadow:6px 0 8px -6px #00000099}
   .tmt td:first-child span{color:var(--dim);font-size:11px;margin-right:6px;display:inline-block;min-width:14px}
   .tmt td.pir{font-weight:800}
