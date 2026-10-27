@@ -31,15 +31,16 @@
 #psWrap .sh-head b{font-size:20px;font-weight:800;display:block}
 #psWrap .sh-head small{color:var(--muted);font-size:12.5px}
 #psWrap .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:8px 16px calc(22px + env(safe-area-inset-bottom))}
-#psWrap .ph-head{align-items:flex-end;padding:0 0 0 20px;min-height:130px}
-#psWrap .ph-txt{flex:1;min-width:0;padding:6px 0 18px}
-#psWrap .ph-txt .big{display:block;font-size:26px;font-weight:800;line-height:1.15;letter-spacing:-.01em;color:#fff;overflow-wrap:anywhere}
-#psWrap .ph-txt .sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted);line-height:1.35;margin-top:3px}
-#psWrap .ph-txt .big.pir{margin-top:14px}
+#psWrap .ph-head{align-items:flex-end;padding:0 0 0 20px;min-height:0;gap:8px}
+#psWrap .ph-txt{flex:1;min-width:0;padding:2px 0 14px}
+#psWrap .ph-txt .big{display:block;font-size:21px;font-weight:800;line-height:1.2;letter-spacing:-.01em;color:#fff}
+#psWrap .ph-txt .big.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}          /* long names shrink to fit one line (fitName) */
+#psWrap .ph-txt .sub{display:block;font-size:12px;font-weight:400;color:var(--muted);line-height:1.35;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#psWrap .ph-txt .big.pir{margin-top:10px}
 #psWrap .ph-txt .big.pir.none{color:var(--dim)}
-#psWrap .ph-pic{flex:none;width:160px;height:185px;margin:-14px 8px 0 0;align-self:flex-end;position:relative;overflow:hidden;pointer-events:none;user-select:none}
+#psWrap .ph-pic{flex:none;width:140px;height:118px;margin:-22px 12px 0 0;align-self:flex-end;position:relative;overflow:hidden;pointer-events:none;user-select:none}
 #psWrap .ph-pic[hidden]{display:none}
-#psWrap .ph-img{position:absolute;top:0;left:50%;height:118%;width:auto;max-width:none;transform:translateX(-50%)}   /* head to just above the waist: the rest is cut off at the header's edge */
+#psWrap .ph-img{position:absolute;top:0;left:50%;height:215%;width:auto;max-width:none;transform:translateX(-50%)}   /* head and shoulders: the rest is cut off at the header's edge */
 #psWrap .tabs{position:sticky;top:-8px;z-index:2;display:flex;gap:4px;padding:4px;margin:-8px -16px 12px;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px}
 #psWrap .tabs button{flex:1;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
 #psWrap .tabs button.on{background:var(--card-2);color:#fff}
@@ -146,7 +147,7 @@
     <div class="grab" aria-hidden="true"></div>
     <div class="sh-head ph-head">
       <div class="ph-txt">
-        <span class="big" data-ps="name" id="shName"></span>
+        <span class="big nm" data-ps="name" id="shName"></span>
         <span class="sub" data-ps="meta" id="shMeta"></span>
         <span class="big pir" data-ps="pir" id="shPir"></span>
         <span class="sub" data-ps="calc" id="shCalc"></span>
@@ -238,10 +239,16 @@
   }
 
   /* header */
+  function fitName(){                                     // shrink a long name until it fits on one line (21px → 14px)
+    const n = el.name; if (!n) return;
+    n.style.fontSize = "";
+    for (let f = 21; f > 14 && n.scrollWidth > n.clientWidth + 1; f -= 0.5) n.style.fontSize = f - 0.5 + "px";
+  }
+  addEventListener("resize", () => { if (isOpen()) fitName(); });
   function fillHead(first){
     const p = cur; if (!p) return;
     const s = info.state || {kind: "none"};
-    el.name.textContent = p.name;
+    el.name.textContent = p.name; fitName();
     el.meta.textContent = info.meta || `${p.clubName || p.tv || ""} · ${p.pos || ""}`;
     // e.g. "20.00 −10% = 18.00 × 2" (final) or "live 14.00 × 1"
     const calc = s.kind === "final" ? `${fmtFull(s.raw)} ${s.win ? "+10%" : "−10%"} = ${fmtFull(s.base)} × ${s.share}`
