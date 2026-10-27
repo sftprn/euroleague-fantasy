@@ -264,6 +264,7 @@
 <script src="assets/sync.js"></script>
 <script src="assets/data.js"></script>
 <script src="assets/player-sheet.js"></script>
+<script src="assets/game-sheet.js"></script>
 <script>
 /* ───────── league (hardcoded, same as the league page) ───────── */
 const COACHES = [
@@ -633,6 +634,7 @@ async function refresh(){
     buildSlides();
   } else render();
   if (PlayerSheet.isOpen() && selected()) PlayerSheet.update(sheetInfo(selected(), sel.n));
+  if (window.GameSheet) GameSheet.update();
   schedule();
 }
 function schedule(){
@@ -741,6 +743,11 @@ function selected(){ return sel && rosters[sel.n]?.find(x => x.code === sel.code
 const sheetInfo = (p, n) => ({state: stateOf(p, n),
   meta: n === WATCH ? `${p.clubName} · ${p.pos} · Watch team` : `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`});
 PlayerSheet.init({games: () => games, round: () => round, fantasy: () => new Set(allPlayers().map(x => x.code))});
+GameSheet.init({games: () => games, people: () => people, owners(){                 // the score box in a player sheet opens the game
+  const m = new Map();
+  COACHES.forEach(c => (rosters[c.name] || []).forEach(p => { const l = m.get(p.code) || []; l.push(teamOf(c.name)); m.set(p.code, l); }));
+  return m;
+}});
 /* ───────── edit mode: ✕ removes a player, ⋯ opens captain / wild card options ───────── */
 let editing = false, opt = null;               // opt: {n, code} of the player whose options are open
 $("#editBtn").onclick = () => {

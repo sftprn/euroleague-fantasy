@@ -56,12 +56,14 @@
 #psWrap .bd .mid small{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-top:3px;letter-spacing:.05em}
 #psWrap .bd .mid small.lv{color:var(--orange)}
 #psWrap .mn{background:var(--card-2);border-radius:16px;padding:12px 14px 4px;margin-bottom:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
-#psWrap .mn-top{display:flex;align-items:baseline;gap:8px}
-#psWrap .mn-top small{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.06em}
-#psWrap .mn-top b{font-size:20px;font-weight:800;margin-left:auto}
-#psWrap .mn-top .ct{color:var(--muted);font-size:12.5px}
-#psWrap .mn-top .chev{color:var(--dim);font-size:11px;transition:transform .2s;display:inline-block}
-#psWrap .mn.open .chev{transform:rotate(180deg)}
+#psWrap .mn-top{display:flex;align-items:center;gap:10px}
+#psWrap .mn-top b{font-size:20px;font-weight:800}
+#psWrap .mn-top .ct{color:var(--muted);font-size:12.5px;margin-left:auto;text-align:right}
+#psWrap .mn-top .chev{flex:none;width:30px;height:30px;border-radius:50%;background:#2E2E33;display:grid;place-items:center;color:#fff}
+#psWrap .mn-top .chev svg{width:16px;height:16px;transition:transform .2s}
+#psWrap .mn.open .chev svg{transform:rotate(180deg)}
+#psWrap .bd[data-game]{cursor:pointer;-webkit-tap-highlight-color:transparent}
+#psWrap .bd[data-game]:active{background:#2E2E33}
 #psWrap .mn .tl{background:#2E2E33}
 #psWrap .mn .tl .q{background:var(--card-2)}
 #psWrap .mn .stint:first-of-type{border-top:1px solid var(--line)}
@@ -208,6 +210,7 @@
     el.pane.addEventListener("click", e => {
       if (e.target.closest(".mn")){ minsOpen = !minsOpen; renderTab(); return; }     // minutes: tap to show / hide each stint
       if (e.target.closest(".tsb")) openTeam();
+      const bd = e.target.closest(".bd[data-game]"); if (bd) GameSheet.open(+bd.dataset.game);   // score box → the game sheet on top
     });
     el.tsbody.addEventListener("click", e => {           // team stats: tap a column to sort
       const th = e.target.closest(".tmt th[data-sort]"); if (!th || th.dataset.sort === "name") return;
@@ -289,7 +292,7 @@
     const has = b && !b.pending && b.teams?.length === 2, started = Date.parse(g.u) <= Date.now();
     const side = t => `<div class="side${t.c === p.club ? " me" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}<b>${esc(t.n || t.tv)}</b></div>`;
     const status = b?.live ? `<small class="lv">${esc(liveTxt(b.q ? b : info.state || {}))}</small>` : has ? `<small>FINAL</small>` : `<small>${started ? "STARTING" : esc(when(g.u))}</small>`;
-    return `<div class="bd">${side(g.h)}<div class="mid"><div class="sc">${has ? `${b.teams[0].pts} – ${b.teams[1].pts}` : "vs"}</div>${status}</div>${side(g.a)}</div>`;
+    return `<div class="bd"${window.GameSheet ? ` data-game="${g.c}" role="button" tabindex="0" aria-label="Open the game"` : ""}>${side(g.h)}<div class="mid"><div class="sc">${has ? `${b.teams[0].pts} – ${b.teams[1].pts}` : "vs"}</div>${status}</div>${side(g.a)}</div>`;
   }
   const teamBtn = `<button class="tsb" type="button">Team stats</button>`;
   async function gamePane(p){
@@ -321,7 +324,7 @@
     const extra = [mine.length ? `${mine.length} stint${mine.length > 1 ? "s" : ""}` : "", l.starter ? "starter" : "",
                    onNow || (l.on && b.live && !st) ? `<span style="color:var(--win)">on court</span>` : ""].filter(Boolean).join(" · ");
     return `<div class="mn${minsOpen && mine.length ? " open" : ""}" role="button" tabindex="0" aria-expanded="${minsOpen}">
-      <div class="mn-top"><small>MINUTES</small><span class="ct">${extra}</span><b>${esc(l.min && l.min !== "DNP" ? l.min : mmss(total))}</b>${mine.length ? `<span class="chev">▾</span>` : ""}</div>
+      <div class="mn-top"><b>${esc(l.min && l.min !== "DNP" ? l.min : mmss(total))}</b><span class="ct">${extra}</span>${mine.length ? `<span class="chev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></span>` : ""}</div>
       <div class="tl">
         ${mine.map(([f, t]) => `<div class="sg" style="left:${x(f)};width:calc(${x(t - f)} - 1px)"></div>`).join("")}
         ${marks.map(m => `<div class="q" style="left:${x(m)}"></div>`).join("")}
