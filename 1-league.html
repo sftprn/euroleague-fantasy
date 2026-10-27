@@ -18,7 +18,7 @@
 <style>
   :root{
     --bg:#0A0A0B; --card:#18181B; --card-2:#232327; --line:#2B2B30; --text:#FFFFFF; --muted:#9A9AA3; --dim:#5E5E66;
-    --orange:#FF6B1A;
+    --orange:#FF6B1A; --win:#3DDC84;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
@@ -126,6 +126,66 @@
   .pl .tv{font-weight:700;color:#C9C9CF}
   .row .plus-rd{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
   .row.editing{cursor:default}
+  /* game sheet (tap a game in the Games tab): score, Box score / Court */
+  .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
+  .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
+         border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - env(safe-area-inset-top) - 16px);max-height:calc(100dvh - env(safe-area-inset-top) - 16px);
+         height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
+  .open .scrim{opacity:1;pointer-events:auto}
+  .open .sheet{transform:translate(-50%,0);visibility:visible}
+  .sheet.dragging{transition:none}
+  .grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab;touch-action:none}
+  .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
+  .sh-head{flex:none;padding:14px 16px 0;touch-action:none}
+  .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+  .sh-close{position:absolute;right:12px;top:10px;width:34px;height:34px;border-radius:11px;border:0;background:var(--card-2);color:#fff;font-size:15px;cursor:pointer;z-index:2}
+  .board{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 14px;margin-bottom:12px}
+  .board .side{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
+  .board .side img{width:44px;height:44px;object-fit:contain}
+  .board .side b{font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .board .mid{text-align:center;flex:none}
+  .board .mid .sc{font-size:34px;font-weight:800;letter-spacing:-.02em}
+  .board .mid small{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-top:2px;letter-spacing:.05em}
+  .board .mid small.lv{color:var(--orange)}
+
+  /* box score tables */
+  .bx{background:var(--card);border:1px solid var(--line);border-radius:18px;margin-bottom:12px;overflow:hidden}
+  .bx h3{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;padding:12px 14px 4px}
+  .bx h3 img{width:20px;height:20px;object-fit:contain}
+  .bx h3 span{margin-left:auto;font-size:16px}
+  .tmw{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .tmt{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+  .tmt th,.tmt td{padding:9px 7px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+  .tmt tr:last-child td{border-bottom:0}
+  .tmt th{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.05em;cursor:pointer;user-select:none}
+  .tmt th.on{color:#fff} .tmt th.on::after{content:" ▾";font-size:9px} .tmt th.on.asc::after{content:" ▴"}
+  .tmt th:last-child,.tmt td:last-child{padding-right:14px}
+  .tmt th:first-child,.tmt td:first-child{position:sticky;left:0;z-index:1;background:var(--card);text-align:left;max-width:160px;padding-left:14px;
+    overflow:hidden;text-overflow:ellipsis;box-shadow:6px 0 8px -6px #00000099}
+  .tmt td:first-child .no{color:var(--dim);font-size:11px;margin-right:6px;display:inline-block;min-width:14px}
+  .tmt td:first-child small{display:block;font-size:10.5px;color:var(--orange);font-weight:700;margin-top:1px;padding-left:20px;overflow:hidden;text-overflow:ellipsis}
+  .tmt td.pir{font-weight:800}
+  .tmt tr.fan td{background:#1E1712} .tmt tr.fan td:first-child{background:#1E1712}
+  .tmt tr.dnp td{color:var(--dim)}
+  .tmt .oc{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--win);margin-left:5px;vertical-align:middle}
+
+  /* court view */
+  .court{position:relative;margin-bottom:14px}
+  .court h3{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;margin:4px 2px 8px}
+  .court h3 img{width:20px;height:20px;object-fit:contain}
+  .court h3 small{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600}
+  .floor{position:relative;width:100%;aspect-ratio:828/551;background:url("assets/court.svg") center/100% 100% no-repeat}
+  .pc{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;width:84px;text-align:center}
+  .pc .ph{width:46px;height:46px;border-radius:50%;background:var(--card-2);overflow:hidden;position:relative;display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--muted);
+          border:2px solid #FFFFFF33}
+  .pc .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+  .pc.fan .ph{border-color:var(--orange);box-shadow:0 0 0 3px #FF6B1A40}
+  .pc b{font-size:11.5px;font-weight:700;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-shadow:0 1px 3px #000}
+  .pc .v{font-size:11px;font-weight:800;background:#0A0A0BCC;border-radius:6px;padding:1px 6px;margin-top:2px}
+  .pc .own{position:absolute;top:-6px;right:12px;background:var(--orange);color:#fff;font-size:9.5px;font-weight:800;border-radius:6px;padding:1px 5px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .note{font-size:11.5px;color:var(--dim);padding:6px 2px 0}
+  .sh-body .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
+  .lg{cursor:pointer}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 </style>
 </head>
@@ -182,8 +242,23 @@
   </div>
 </div>
 
+<!-- one game: opens over the page from the Games tab; close it to get back -->
+<div id="gWrap">
+  <div class="scrim" data-gclose></div>
+  <div class="sheet" role="dialog" aria-label="Game">
+    <button class="sh-close" data-gclose aria-label="Close">✕</button>
+    <div class="grab" aria-hidden="true"></div>
+    <div class="sh-head">
+      <div class="board" id="board"></div>
+      <div class="seg" id="gSeg"><button data-v="box">Box score</button><button data-v="court">Court</button></div>
+    </div>
+    <div class="sh-body" id="gBody"></div>
+  </div>
+</div>
+
 <script src="assets/demo.js"></script>
 <script src="assets/sync.js"></script>
+<script src="assets/data.js"></script>
 <script>
 /* ───────── league (hardcoded) ───────── */
 const DEFAULT_COACHES = [
@@ -325,10 +400,10 @@ function render(){
   renderStart();
   renderWatch();
   renderGames();
+  if (gOpen) renderGame();
 }
 
 /* live games of the round: score + clock; tap → the game's court view in the Game Center */
-const GC_PAGE = DIRECT ? "3-games.html" : "/3-games";
 const clockOf = b => { const q = String(b.q || "").replace(/\D/g, ""); return (q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE") + (b.t && b.t !== "00:00" ? " " + b.t.replace(/^0/, "") : ""); };
 function renderGames(){
   if (!games.length) return;
@@ -347,12 +422,131 @@ function renderGames(){
     const tm = (t, pts, behind) => `<div class="tm${behind ? " behind" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}<b>${esc(t.n || t.tv)}</b>${has ? `<span class="pts">${pts}</span>` : ""}</div>`;
     const st = s.live ? `<span class="s"><i></i>${esc(clockOf(s.b))}</span>` : s.k === 3 ? "FINAL" : s.k === 1 ? "STARTING" : esc(when(g.u));
     const f = fans(g);
-    return `<a class="lg${s.live ? " live" : ""}" href="${GC_PAGE}?game=${g.c}${s.live ? "&view=court" : ""}">
+    return `<div class="lg${s.live ? " live" : ""}" data-game="${g.c}" role="button" tabindex="0">
       <div class="teams">${tm(g.h, hp, has && hp < ap)}${tm(g.a, ap, has && ap < hp)}</div>
-      <div class="st">${st}${f ? `<span class="fan">${f} fantasy</span>` : ""}</div></a>`;
+      <div class="st">${st}${f ? `<span class="fan">${f} fantasy</span>` : ""}</div></div>`;
   }).join("");
 }
 const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
+
+/* ───────── game sheet: score, both box scores, court view (fantasy players marked) ───────── */
+const gWrap = $("#gWrap");
+let gOpen = null, gView = "box", gSort = {k: "pir", dir: -1}, peopleMap = null;
+const loadPeople = () => cached(`elf.people.${SEASON}`, 12 * 3600e3, async () => {     // same list + cache as the coach page
+  const nice = s => String(s || "").split(",").map(x => x.trim()).reverse().join(" ").toLowerCase().replace(/(^|[\s'-])\p{L}/gu, c => c.toUpperCase());
+  const d = (await getJSON(`${V2}/people?personType=J`)).data;
+  const m = new Map();
+  d.filter(x => x.active).forEach(x => m.set(x.person.code, {code: x.person.code, name: nice(x.person.name), club: x.club.code, tv: x.club.tvCode || x.club.code,
+    clubName: x.club.editorialName || x.club.name, crest: x.club.images?.crest || "", img: x.images?.headshot || "", pos: (x.positionName || "–").charAt(0)}));
+  return [...m.values()];
+});
+function owners(){                                    // player code → fantasy teams that have him
+  const m = new Map();
+  COACHES.forEach(c => rosterOf(c.name).forEach(p => { const l = m.get(p.code) || []; l.push(teamOf(c)); m.set(p.code, l); }));
+  return m;
+}
+function openGame(gc){
+  gOpen = games.find(g => g.c === gc); if (!gOpen) return;
+  gView = box[gc]?.live ? "court" : "box";
+  gWrap.classList.add("open");
+  $("#gBody").scrollTop = 0;
+  if (!peopleMap) loadPeople().then(l => { peopleMap = new Map(l.map(p => [p.code, p])); if (gOpen) renderGame(); }).catch(() => {});
+  renderGame();
+}
+function closeGame(){ gWrap.classList.remove("open"); gOpen = null; }
+const sign = v => v > 0 ? "+" + v : String(v);
+const shortName = n => { const w = String(n || "").split(" "); return w.length > 1 ? `${w[0][0]}. ${w.slice(1).join(" ")}` : n; };
+const TM_COLS = [["min", "MIN"], ["pts", "PTS"], ["fg2", "2FG"], ["fg3", "3FG"], ["ft", "FT"], ["tr", "REB"], ["ast", "AST"], ["stl", "STL"],
+                 ["to", "TO"], ["blk", "BLK"], ["pf", "PF"], ["pm", "+/−"], ["pir", "PIR"]];
+let gSeq = 0;
+async function renderGame(){
+  const g = gOpen; if (!g) return;
+  const seq = ++gSeq, started = Date.parse(g.u) <= Date.now();
+  let b = null;
+  if (started){ try{ b = await ElData.box(g.c); }catch{} }
+  if (seq !== gSeq || gOpen !== g) return;
+  const has = b && !b.pending && b.teams?.length === 2;
+  const side = t => `<div class="side">${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}<b>${esc(t.n || t.tv)}</b></div>`;
+  $("#board").innerHTML = `${side(g.h)}<div class="mid"><div class="sc">${has ? `${b.teams[0].pts} – ${b.teams[1].pts}` : "vs"}</div>
+      <small class="${b?.live ? "lv" : ""}">${b?.live ? esc(clockOf(b)) : has ? "FINAL" : started ? "STARTING" : esc(when(g.u))}</small></div>${side(g.a)}`;
+  document.querySelectorAll("#gSeg [data-v]").forEach(x => x.classList.toggle("on", x.dataset.v === gView));
+  const body = $("#gBody"), y = body.scrollTop, xs = [...body.querySelectorAll(".tmw")].map(w => w.scrollLeft);
+  let html;
+  if (!started) html = `<div class="empty">Box scores show up once the game starts.</div>`;
+  else if (!has) html = `<div class="empty">${b ? "Waiting for the first stats…" : "Couldn't load this game right now."}</div>`;
+  else {
+    const own = owners();
+    html = gView === "box" ? [0, 1].map(i => boxTable(b, i, i ? g.a : g.h, own)).join("")
+         : [1, 0].map(i => courtHalf(b, i, i ? g.a : g.h, own)).join("")
+           + `<div class="note">${b.live ? "Live: the five on court for each team, with their PIR." : "Game over: the starting fives, with their final PIR."} Orange = on a fantasy roster.</div>`;
+  }
+  if (body._html !== html){                           // live updates: redraw only on change, keep where you've scrolled
+    body.innerHTML = body._html = html;
+    body.querySelectorAll(".tmw").forEach((w, i) => w.scrollLeft = xs[i] || 0);
+    body.scrollTop = y;
+  }
+}
+function boxTable(b, i, t, own){
+  const T = b.teams[i];
+  const val = (l, k) => k === "min" ? l.mins : k === "fg2" ? l.fg2m : k === "fg3" ? l.fg3m : k === "ft" ? l.ftm : l[k];
+  const rows = Object.entries(T.pl).map(([code, l]) => ({code, l, dnp: l.min === "DNP" || !l.mins}))
+    .sort((x, y) => (x.dnp - y.dnp) || gSort.dir * (val(x.l, gSort.k) - val(y.l, gSort.k)) || y.l.mins - x.l.mins);
+  const cell = (l, k) => k === "min" ? esc(l.min) : k === "fg2" ? `${l.fg2m}/${l.fg2a}` : k === "fg3" ? `${l.fg3m}/${l.fg3a}` : k === "ft" ? `${l.ftm}/${l.fta}` : k === "pm" ? sign(l.pm) : l[k];
+  return `<div class="bx"><h3>${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}${esc(t.n || t.tv)}<span>${T.pts}</span></h3>
+    <div class="tmw"><table class="tmt"><thead><tr><th>Player</th>
+      ${TM_COLS.map(([k, lab]) => `<th data-sort="${k}" class="${gSort.k === k ? "on" + (gSort.dir > 0 ? " asc" : "") : ""}">${lab}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(({code, l, dnp}) => { const o = own.get(code); return `<tr class="${o ? "fan" : ""}${dnp ? " dnp" : ""}">
+      <td><span class="no">${esc(l.no)}</span>${esc(shortName(l.name))}${b.live && l.on ? '<i class="oc" title="On court"></i>' : ""}${o ? `<small>${esc(o.join(", "))}</small>` : ""}</td>
+      ${dnp ? `<td colspan="${TM_COLS.length}" style="text-align:left">DNP</td>` : TM_COLS.map(([k]) => `<td class="${k}">${cell(l, k)}</td>`).join("")}</tr>`; }).join("")}
+    </tbody></table></div></div>`;
+}
+// spots on the half court (basket at the top), two rows so the chips never overlap
+const SPOTS = [[50, 27], [17, 33], [83, 33], [31, 76], [69, 76]];
+const POS_RANK = {C: 0, F: 1, G: 2};
+function courtHalf(b, i, t, own){
+  const T = b.teams[i], pp = code => peopleMap?.get(code) || {};
+  const five = Object.entries(T.pl).filter(([, l]) => b.live ? l.on : l.starter)
+    .sort(([a], [c]) => (POS_RANK[pp(a).pos] ?? 1) - (POS_RANK[pp(c).pos] ?? 1)).slice(0, 5);
+  const chips = five.map(([code, l], k) => {
+    const o = own.get(code), p = pp(code), [x, y] = SPOTS[k];
+    const ini = esc((l.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""));
+    return `<div class="pc${o ? " fan" : ""}" style="left:${x}%;top:${y}%">
+      <div class="ph">${ini}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
+      ${o ? `<span class="own">${esc(o[0])}${o.length > 1 ? " +" + (o.length - 1) : ""}</span>` : ""}
+      <b>${esc(shortName(l.name))}</b><span class="v">${l.pir} PIR</span></div>`;
+  }).join("");
+  return `<div class="court"><h3>${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}${esc(t.n || t.tv)}<small>${b.live ? "on court" : "starting five"}</small></h3>
+    <div class="floor">${chips}</div>${five.length ? "" : `<div class="note">No line-up yet.</div>`}</div>`;
+}
+$("#gamesList").addEventListener("click", e => { const c = e.target.closest("[data-game]"); if (c) openGame(+c.dataset.game); });
+$("#gamesList").addEventListener("keydown", e => { const c = e.target.closest("[data-game]"); if (c && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openGame(+c.dataset.game); } });
+gWrap.querySelectorAll("[data-gclose]").forEach(x => x.onclick = closeGame);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && gOpen) closeGame(); });
+$("#gSeg").addEventListener("click", e => { const x = e.target.closest("[data-v]"); if (!x) return; gView = x.dataset.v; $("#gBody").scrollTop = 0; renderGame(); });
+$("#gBody").addEventListener("click", e => {
+  const th = e.target.closest(".tmt th[data-sort]"); if (!th) return;
+  const k = th.dataset.sort; gSort = gSort.k === k ? {k, dir: -gSort.dir} : {k, dir: -1};
+  renderGame();
+});
+// drag the grab bar or the score down to close (a short drag springs back)
+(function(){
+  const sh = gWrap.querySelector(".sheet");
+  let y0 = 0, dy = 0, t0 = 0, id = null;
+  const end = () => {
+    if (id == null) return;
+    id = null; sh.classList.remove("dragging");
+    const fast = dy > 30 && dy / Math.max(1, Date.now() - t0) > 0.5;
+    sh.style.transform = "";
+    if (dy > Math.min(140, sh.offsetHeight * 0.25) || fast) closeGame();
+  };
+  sh.querySelectorAll(".grab, .board").forEach(h => {
+    h.addEventListener("pointerdown", e => { id = e.pointerId; y0 = e.clientY; dy = 0; t0 = Date.now(); sh.classList.add("dragging"); h.setPointerCapture(id); });
+    h.addEventListener("pointermove", e => { if (e.pointerId !== id) return; dy = Math.max(0, e.clientY - y0); sh.style.transform = `translate(-50%, ${dy}px)`; });
+    h.addEventListener("pointerup", end);
+    h.addEventListener("pointercancel", end);
+  });
+})();
+
 /* private watch team summary (players are only on this phone; not part of the standings) */
 function renderWatch(){
   $("#watchRow").href = `${COACH_PAGE}?coach=watch`;
