@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0B">
 <!-- home-screen app: stay full-screen when moving between pages (iOS + Android) -->
 <link rel="manifest" href="/manifest.webmanifest">
@@ -205,6 +205,11 @@
   .toast{position:fixed;left:50%;bottom:calc(60px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#fff;color:#000;font-size:13px;font-weight:600;padding:10px 14px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;z-index:40}
   .toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
+<style>html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
+<script>/* no zooming on iPhone: not when a text field gets focus (maximum-scale above), not by pinching, not by double-tapping */
+document.addEventListener("gesturestart", e => e.preventDefault(), {passive: false});
+document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preventDefault(); }, {passive: false});
+</script>
 </head>
 <body>
 <div class="art" aria-hidden="true"></div>
