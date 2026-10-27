@@ -74,6 +74,24 @@
   .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
   .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
   .seg button.on{background:var(--orange);color:#fff}
+  /* live games */
+  .lg{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
+  .lg:first-child{border-top:0}
+  .lg:active{background:#1F1F23}
+  .lg .teams{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .lg .tm{display:flex;align-items:center;gap:9px}
+  .lg .tm img{width:22px;height:22px;object-fit:contain;flex:none}
+  .lg .tm b{flex:1;min-width:0;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lg .tm .pts{font-size:17px;font-weight:800;min-width:30px;text-align:right}
+  .lg .tm.behind b,.lg .tm.behind .pts{color:var(--muted);font-weight:600}
+  .lg .st{width:72px;flex:none;text-align:right;font-size:12px;font-weight:800;color:var(--orange);border-left:1px solid var(--line);padding-left:10px;align-self:stretch;
+          display:flex;align-items:center;justify-content:flex-end;gap:5px;letter-spacing:.03em}
+  .lg .st i{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}
+  .nolive{padding:18px 16px;text-align:center;color:var(--muted);font-size:14px}
+  .all-games{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;margin-top:10px;border-radius:14px;border:1px solid var(--line);
+             background:var(--card);color:#fff;font-weight:700;font-size:15px;text-decoration:none}
+  .all-games:active{background:#1F1F23}
+  .all-games .chev{margin:0}
   .watch{display:block;margin-top:10px;border-style:dashed;color:inherit;text-decoration:none}
   .watch .rank{color:var(--muted);display:grid;place-items:center}
   .watch .score{font-size:18px;color:var(--muted)}
@@ -95,7 +113,6 @@
   <header>
     <img class="logo" src="assets/euroleague.svg" alt="">
     <div class="titles"><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
-    <a class="icon-btn" id="gcBtn" href="/3-games" aria-label="Game Center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M12 5v14M3 12h4M17 12h4"/><circle cx="12" cy="12" r="2.2"/></svg></a>
     <button class="icon-btn" id="editBtn" aria-label="Edit team names and custom PIR">✎</button>
   </header>
 
@@ -120,6 +137,11 @@
       <div class="score" id="watchVal"><span class="chev">›</span></div>
     </div>
   </a>
+
+  <!-- live games of the round (from the Game Center); tap one for its court view -->
+  <div class="sec-t">LIVE GAMES</div>
+  <div class="list" id="liveGames"><div class="nolive">Loading…</div></div>
+  <a class="all-games" id="allGames" href="/3-games">View all games<span class="chev">›</span></a>
 
   <div id="topWrap" hidden>
     <div class="sec-t" id="topTitle">TOP 10 PLAYERS</div>
@@ -162,7 +184,6 @@ const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFul
 // On the website, API calls go through the Worker's proxy (/el-api, /el-live). Local file → direct.
 const DIRECT = location.protocol === "file:";
 const COACH_PAGE = DIRECT ? "2-coach.html" : "/2-coach";   // same-origin, no redirect hop (keeps the home-screen app full-screen)
-if (DIRECT) document.getElementById("gcBtn").href = "3-games.html";
 const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
 const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
 const LIVE_POLL = window.ELF_DEMO ? 5_000 : 30_000, IDLE_POLL = 5 * 60_000;
@@ -205,9 +226,9 @@ async function cached(key, ttl, loader){
   try{ const v = await loader(); store.set(key, {t:Date.now(), v}); return v; }
   catch(e){ if (c) return c.v; throw e; }
 }
-const loadGames = () => cached(`elf.games.${SEASON}`, 10 * 60e3, async () => {
+const loadGames = () => cached(`elf.lgames.${SEASON}`, 10 * 60e3, async () => {
   const d = (await getJSON(`${V2}/games`)).data;
-  const side = s => ({c:s.club.code, tv:s.club.tvCode || s.club.code});
+  const side = s => ({c:s.club.code, tv:s.club.tvCode || s.club.code, n:s.club.editorialName || s.club.name || s.club.code, cr:s.club.images?.crest || ""});
   return d.map(x => ({c:x.gameCode, r:x.round, u:x.utcDate, p:x.played, h:side(x.local), a:side(x.road)}));
 });
 async function loadBox(g){
@@ -223,6 +244,7 @@ async function loadBox(g){
   });
   const tot = teams[0].pts + teams[1].pts;
   const b = {live: !!d.Live, final: !d.Live && tot > 0, pending: !d.Live && tot === 0, teams};
+  if (b.live){ try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${g.c}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = h?.RemainingPartialTime; }catch{} }
   if (b.final) store.set(key, b);
   return b;
 }
@@ -270,6 +292,7 @@ function render(){
   renderTop();
   renderStart();
   renderWatch();
+  renderLive();
 
   // season total = custom PIR + this round's PIR
   const tot = rows.map(c => ({...c, base: baseOf(c), sum: r1(baseOf(c) + c.total)})).sort((a, b) => b.sum - a.sum);
@@ -288,6 +311,22 @@ function render(){
   }
 }
 
+/* live games of the round: score + clock; tap → the game's court view in the Game Center */
+const GC_PAGE = DIRECT ? "3-games.html" : "/3-games";
+function renderLive(){
+  $("#allGames").href = GC_PAGE;
+  if (!games.length) return;
+  const live = games.filter(g => g.r === round && box[g.c]?.live).sort((a, b) => Date.parse(a.u) - Date.parse(b.u));
+  if (!live.length){ $("#liveGames").innerHTML = `<div class="nolive">No live games currently</div>`; return; }
+  const clock = b => { const q = String(b.q || "").replace(/\D/g, ""); return (q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE") + (b.t && b.t !== "00:00" ? " " + b.t.replace(/^0/, "") : ""); };
+  $("#liveGames").innerHTML = live.map(g => {
+    const b = box[g.c], hp = b.teams[0].pts, ap = b.teams[1].pts;
+    const tm = (t, pts, behind) => `<div class="tm${behind ? " behind" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}<b>${esc(t.n || t.tv)}</b><span class="pts">${pts}</span></div>`;
+    return `<a class="lg" href="${GC_PAGE}?game=${g.c}&view=court">
+      <div class="teams">${tm(g.h, hp, hp < ap)}${tm(g.a, ap, ap < hp)}</div>
+      <div class="st"><i></i>${esc(clock(b))}</div></a>`;
+  }).join("");
+}
 /* private watch team summary (players are only on this phone; not part of the standings) */
 function renderWatch(){
   $("#watchRow").href = `${COACH_PAGE}?coach=watch`;

@@ -259,9 +259,9 @@ function countFans(g){                           // fantasy players (anyone's ro
 }
 
 /* ───────── one game ───────── */
-async function openGame(gc){
+async function openGame(gc, want){
   open = games.find(g => g.c === gc); if (!open) return;
-  view = statusOf(open).kind === "live" ? "court" : "box";
+  view = want || (statusOf(open).kind === "live" ? "court" : "box");
   $("#detail").classList.add("open");
   $("#detail").scrollTop = 0;
   await renderDetail();
@@ -367,8 +367,12 @@ Shared.on(() => { if (round == null && Shared.league?.round && games.length) rou
   }catch{ $("#games").innerHTML = `<div class="empty">Couldn't reach the Euroleague API. Pull down to try again.</div>`; return; }
   const st = games.filter(started);
   round = Shared.league?.round ?? (st.length ? Math.max(...st.map(g => g.r)) : Math.min(...games.map(g => g.r)));
-  const want = +new URLSearchParams(location.search).get("round");
+  const qp = new URLSearchParams(location.search);
+  const want = +qp.get("round");
   if (want) round = want;
+  // opened from a live game on the League page: go straight to that game (court view)
+  const gq = games.find(g => g.c === +qp.get("game"));
+  if (gq){ round = gq.r; await refresh(); openGame(gq.c, qp.get("view") === "box" ? "box" : "court"); return; }
   refresh();
 })();
 </script>
