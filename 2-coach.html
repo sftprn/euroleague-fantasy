@@ -42,7 +42,14 @@
   .icon-btn{width:44px;height:44px;padding:0;line-height:1;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
             display:grid;place-items:center;text-decoration:none;color:#fff;font-size:24px;font-weight:500;cursor:pointer;flex:none}
   .icon-btn svg{display:block}
-  .icon-btn.has-wc{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange) inset}
+  .icon-btn#editBtn{font-size:20px}
+  .icon-btn.on{background:var(--orange);border-color:var(--orange);font-weight:800}
+  /* edit mode: ⋯ (captain / wild cards) and ✕ (remove) on every card */
+  .pbtns{display:flex;gap:8px;flex:none}
+  .pbtn{width:38px;height:38px;border-radius:12px;border:0;display:grid;place-items:center;cursor:pointer;font:800 15px Inter,system-ui,sans-serif;padding:0}
+  .pbtn.more{background:var(--card-2);color:#fff}
+  .pbtn.del{background:var(--loss-soft);color:var(--loss)}
+  .tg[disabled]{opacity:.35;pointer-events:none}
   .title{text-align:center;min-width:0;flex:1;padding:0 10px;transition:opacity .16s ease,transform .16s ease}
   .title.fade{opacity:0;transform:translateY(-2px)}
   .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -282,9 +289,7 @@
   <div class="bar">
     <a class="icon-btn" id="backBtn" href="/1-league" aria-label="Back">‹</a>
     <div class="title" id="title"><h1 id="coachName">&nbsp;</h1><div class="meta" id="meta">Loading…</div></div>
-    <button class="icon-btn" id="wcBtn" aria-label="Wild Cards">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
-    </button>
+    <button class="icon-btn" id="editBtn" aria-label="Edit players">✎</button>
   </div>
 </header>
 
@@ -316,29 +321,27 @@
         <button data-tab="mins" role="tab">Minutes</button>
         <button data-tab="team" role="tab">Team</button>
         <button data-tab="season" role="tab">Season</button>
-        <button data-tab="edit" role="tab">Edit</button>
       </div>
       <div class="pane" id="shPane"></div>
-      <div id="shEdit" hidden>
-        <button class="act capt-act" id="captBtn"><span class="ic">C</span><span id="captLbl"></span></button>
-        <button class="act danger" id="removeBtn"><span class="ic">✕</span><span id="removeLbl">Remove from roster</span></button>
-      </div>
     </div>
   </div>
 </div>
 
-<!-- wild cards -->
+<!-- player options (edit mode ⋯): captain / triple captain (one at a time) + bench boost -->
 <div id="wcWrap">
   <div class="scrim" data-close></div>
   <div class="sheet">
     <div class="grab" aria-hidden="true"></div>
-    <div class="sh-head"><div><b>Wild Cards</b><small id="wcSub"></small></div></div>
+    <div class="sh-head"><div><b id="optName"></b><small id="wcSub"></small></div></div>
     <div class="sh-body">
-      <button class="tg" data-wc="tc">
-        <div class="txt"><b>Triple Captain</b></div><i class="sw"></i>
+      <button class="tg" data-o="c">
+        <div class="txt"><b>Captain</b><small id="optCNote">2× PIR</small></div><i class="sw"></i>
       </button>
-      <button class="tg" data-wc="bb">
-        <div class="txt"><b>Bench Boost</b></div><i class="sw"></i>
+      <button class="tg" data-o="tc">
+        <div class="txt"><b>Triple Captain</b><small id="optTcNote">3× PIR</small></div><i class="sw"></i>
+      </button>
+      <button class="tg" data-o="bb">
+        <div class="txt"><b>Bench Boost</b><small>Whole team this round: the 50% group counts 100%</small></div><i class="sw"></i>
       </button>
     </div>
   </div>
@@ -438,7 +441,7 @@ function applyShared(first){
   if (!built) return;
   if (!DEMO && Shared.league?.round && round !== Shared.league.round) round = Shared.league.round;   // next round started
   if ($("#actWrap").classList.contains("open") && !selected()) $("#actWrap").classList.remove("open");
-  if ($("#wcWrap").classList.contains("open")) renderWc();
+  if ($("#wcWrap").classList.contains("open")) renderOpt();
   if ($("#finder").classList.contains("open")) renderResults();
   render(); refresh();      // show it now; refresh also loads box scores for newly added clubs
 }
@@ -598,7 +601,8 @@ function rowHTML({p, i, s}, n){
   return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}" data-i="${i}">
     <div class="phw">${photo(p)}${capt}${s.on ? '<i class="oc" title="On court"></i>' : ""}</div>
     <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
-    <div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmtShort(s.shown) : "–"}</div>
+    ${editing ? `<div class="pbtns">${n === WATCH ? "" : `<button class="pbtn more" data-opt="${i}" aria-label="Captain and wild cards">⋯</button>`}<button class="pbtn del" data-del="${i}" aria-label="Remove ${esc(p.name)}">✕</button></div>`
+              : `<div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmtShort(s.shown) : "–"}</div>`}
   </div>`;
 }
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
@@ -660,8 +664,6 @@ function renderHeader(){
     ? `${live ? '<i class="dot"></i>' : ""}Round ${round} · <b>${fmtShort(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
     : "Loading…";
   const wc = chipsOf(cur);
-  $("#wcBtn").classList.toggle("has-wc", !!(wc.tc || wc.bb));
-  $("#wcBtn").style.visibility = cur === WATCH ? "hidden" : "";       // no wild cards on the watch team
 }
 function render(){
   if (!built) return;
@@ -821,6 +823,12 @@ document.querySelectorAll(".sheet").forEach(sh => {
 const coachOf = el => el.closest(".slide")?.dataset.coach;
 
 document.addEventListener("click", e => {
+  const del = e.target.closest("[data-del]"), more = e.target.closest("[data-opt]");
+  if (del || more){
+    const n = coachOf(del || more), p = rosters[n]?.[+(del || more).dataset[del ? "del" : "opt"]];
+    if (p) del ? removePlayer(n, p.code) : openOpt(n, p.code);
+    return;
+  }
   const add = e.target.closest("[data-add]");
   if (add){ openFinder(coachOf(add), add.dataset.add); return; }
   const r = e.target.closest(".slide .p[data-i]"); if (!r) return;
@@ -829,7 +837,7 @@ document.addEventListener("click", e => {
   sel = {n, code: p.code};
   fillSheet(true);
   actWrap.querySelector(".sh-body").scrollTop = 0;
-  shTab = stateOf(p, n).kind === "live" || stateOf(p, n).kind === "final" ? "game" : (shTab === "edit" ? "edit" : "season");
+  shTab = stateOf(p, n).kind === "live" || stateOf(p, n).kind === "final" ? "game" : "season";
   renderTab();
   actWrap.classList.add("open");
 });
@@ -841,7 +849,6 @@ function fillSheet(first){
   const n = sel.n, s = stateOf(p, n);
   $("#shName").textContent = p.name;
   $("#shMeta").textContent = n === WATCH ? `${p.clubName} · ${p.pos} · Watch team` : `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`;
-  $("#removeLbl").textContent = n === WATCH ? "Remove from watch team" : "Remove from roster";
   // e.g. "20.00 −10% = 18.00 × 2" (final) or "live 14.00 × 1"
   const calc = s.kind === "final" ? `${fmtFull(s.raw)} ${s.win ? "+10%" : "−10%"} = ${fmtFull(s.base)} × ${s.share}`
              : s.kind === "live" ? `live ${fmtFull(s.raw)} × ${s.share}` : "";
@@ -850,8 +857,6 @@ function fillSheet(first){
   $("#shPir").classList.toggle("none", !has);
   $("#shCalc").textContent = calc;
   $("#shCalc").hidden = !calc;
-  $("#captBtn").hidden = p.slot !== "full";
-  $("#captLbl").textContent = p.captain ? "Remove captain" : `Make captain (${chipsOf(n).tc ? "3" : "2"}× PIR)`;
   if (!first) return;
   const img = $("#shImg"), pic = $("#shPic");
   pic.hidden = !p.img; img.onerror = () => { pic.hidden = true; };
@@ -886,9 +891,6 @@ async function renderTab(){
   const p = selected(); if (!p) return;
   const seq = ++tabSeq, pane = $("#shPane");
   document.querySelectorAll("#shTabs [data-tab]").forEach(b => { b.classList.toggle("on", b.dataset.tab === shTab); b.setAttribute("aria-selected", b.dataset.tab === shTab); });
-  $("#shEdit").hidden = shTab !== "edit";
-  pane.hidden = shTab === "edit";
-  if (shTab === "edit") return;
   const stale = () => seq !== tabSeq || !actWrap.classList.contains("open");
   if (!pane.dataset.tab || pane.dataset.tab !== shTab + p.code) paneSet(pane, `<div class="loading">Loading…</div>`);
   pane.dataset.tab = shTab + p.code;
@@ -1045,30 +1047,54 @@ function photoGap(url){
   });
 }
 function selected(){ return sel && rosters[sel.n]?.find(x => x.code === sel.code); }
-$("#captBtn").onclick = () => {
-  const list = rosters[sel.n], p = selected();
-  if (!p){ actWrap.classList.remove("open"); return; }
-  const make = !p.captain;
-  list.forEach(x => delete x.captain);
-  if (make) p.captain = true;
-  save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader();
-  toast(make ? `${p.name} is captain` : "Captain removed");
+/* ───────── edit mode: ✕ removes a player, ⋯ opens captain / wild card options ───────── */
+let editing = false, opt = null;               // opt: {n, code} of the player whose options are open
+$("#editBtn").onclick = () => {
+  editing = !editing;
+  const b = $("#editBtn");
+  b.classList.toggle("on", editing);
+  b.textContent = editing ? "✓" : "✎";
+  b.setAttribute("aria-label", editing ? "Done editing" : "Edit players");
+  render();
 };
-$("#removeBtn").onclick = () => { const i = rosters[sel.n].findIndex(x => x.code === sel.code); if (i < 0){ actWrap.classList.remove("open"); return; } const [p] = rosters[sel.n].splice(i, 1); save(sel.n); actWrap.classList.remove("open"); renderSlide(sel.n); renderHeader(); toast(`${p.name} removed`); };
-
-/* wild cards */
-function renderWc(){
-  const wc = chipsOf(cur);
-  $("#wcSub").textContent = `${teamOf(cur)} · Round ${round ?? "–"}`;
-  wcWrap.querySelectorAll("[data-wc]").forEach(b => b.classList.toggle("on", !!wc[b.dataset.wc]));
+function removePlayer(n, code){
+  const i = rosters[n].findIndex(x => x.code === code); if (i < 0) return;
+  const [p] = rosters[n].splice(i, 1);
+  save(n); renderSlide(n); renderHeader();
+  toast(`${p.name} removed`);
 }
-$("#wcBtn").onclick = () => { if (round == null) return; renderWc(); wcWrap.classList.add("open"); };
+const optPlayer = () => opt && rosters[opt.n]?.find(x => x.code === opt.code);
+function openOpt(n, code){ opt = {n, code}; if (!renderOpt()) return; wcWrap.classList.add("open"); }
+function renderOpt(){
+  const p = optPlayer(); if (!p){ wcWrap.classList.remove("open"); return false; }
+  const wc = chipsOf(opt.n), full = p.slot === "full";
+  $("#optName").textContent = p.name;
+  $("#wcSub").textContent = `${teamOf(opt.n)} · Round ${round ?? "–"}`;
+  const c = wcWrap.querySelector('[data-o="c"]'), tc = wcWrap.querySelector('[data-o="tc"]');
+  c.classList.toggle("on", !!p.captain && !wc.tc);
+  tc.classList.toggle("on", !!p.captain && !!wc.tc);
+  c.disabled = tc.disabled = !full;                                  // captain only from the 100% group
+  $("#optCNote").textContent = full ? "2× PIR" : "Only players in the 100% group";
+  $("#optTcNote").textContent = full ? "3× PIR" : "Only players in the 100% group";
+  wcWrap.querySelector('[data-o="bb"]').classList.toggle("on", !!wc.bb);
+  return true;
+}
 wcWrap.addEventListener("click", e => {
-  const b = e.target.closest("[data-wc]"); if (!b) return;
-  const k = b.dataset.wc, on = !chipsOf(cur)[k];
-  setChip(cur, k, on);
-  renderWc(); renderSlide(cur); renderHeader();
-  if (on && k === "tc" && !rosters[cur].some(p => p.captain)) toast("Pick a captain in the 100% group for Triple Captain to count");
+  const b = e.target.closest("[data-o]"); if (!b || b.disabled) return;
+  const p = optPlayer(); if (!p || round == null) return;
+  const n = opt.n, k = b.dataset.o, wc = chipsOf(n);
+  if (k === "bb"){ setChip(n, "bb", !wc.bb); toast(wc.bb ? "Bench Boost off" : "Bench Boost on"); }
+  else {
+    // Captain and Triple Captain: one at a time; tapping the selected one clears it
+    const isNow = k === "c" ? (p.captain && !wc.tc) : (p.captain && wc.tc);
+    rosters[n].forEach(x => delete x.captain);
+    if (!isNow) p.captain = true;
+    save(n);
+    const wantTc = !isNow && k === "tc";
+    if (!!wc.tc !== wantTc) setChip(n, "tc", wantTc);
+    toast(isNow ? "Captain removed" : `${p.name} is ${k === "tc" ? "Triple Captain" : "captain"}`);
+  }
+  renderOpt(); renderSlide(n); renderHeader();
 });
 
 /* full-screen add player */
@@ -1151,7 +1177,7 @@ function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("sh
    Drop on another group's heading / empty slot → move there if it has room. */
 document.addEventListener("pointerdown", e => {
   const card = e.target.closest(".slide .p[data-i]");
-  if (!card || e.button > 0) return;
+  if (!card || e.button > 0 || e.target.closest(".pbtn")) return;
   drag = {card, n: coachOf(card), slide: card.closest(".slide"), i:+card.dataset.i, x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, id:e.pointerId, type:e.pointerType, on:false};
   if (e.pointerType !== "mouse") drag.timer = setTimeout(() => drag && startDrag(), 300);
 });
