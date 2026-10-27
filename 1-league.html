@@ -124,22 +124,24 @@
   .pl .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
   .pl .who small{color:var(--muted)}
   .pl .tv{font-weight:700;color:#C9C9CF}
+  #topList .row.pl{cursor:pointer}
+  #topList .row.pl:active{background:#1F1F23}
   .row .plus-rd{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
   .row.editing{cursor:default}
   /* game sheet (tap a game in the Games tab): score, Box score / Court */
-  .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
-  .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
+  #gWrap .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
+  #gWrap .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
          border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - env(safe-area-inset-top) - 16px);max-height:calc(100dvh - env(safe-area-inset-top) - 16px);
          height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
-  .open .scrim{opacity:1;pointer-events:auto}
-  .open .sheet{transform:translate(-50%,0);visibility:visible}
-  .sheet.dragging{transition:none}
-  .sheet.fit{height:auto}                       /* game not started yet: only as tall as what's in it */
-  .grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab;touch-action:none}
-  .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
-  .sh-head{flex:none;padding:4px 16px 0;touch-action:none}
+  #gWrap.open .scrim{opacity:1;pointer-events:auto}
+  #gWrap.open .sheet{transform:translate(-50%,0);visibility:visible}
+  #gWrap .sheet.dragging{transition:none}
+  #gWrap .sheet.fit{height:auto}                       /* game not started yet: only as tall as what's in it */
+  #gWrap .grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab;touch-action:none}
+  #gWrap .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
+  #gWrap .sh-head{flex:none;padding:4px 16px 0;touch-action:none}
   #gWrap .board{background:none;border:0;border-radius:0;padding:6px 4px 16px}       /* score sits on the sheet, not in a box */
-  .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+  #gWrap .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
   .board{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 14px;margin-bottom:12px}
   .board .side{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
   .board .side img{width:44px;height:44px;object-fit:contain}
@@ -185,7 +187,7 @@
   .pc .v{font-size:11px;font-weight:800;background:#0A0A0BCC;border-radius:6px;padding:1px 6px;margin-top:2px}
   .pc .own{position:absolute;top:-6px;right:12px;background:var(--orange);color:#fff;font-size:9.5px;font-weight:800;border-radius:6px;padding:1px 5px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .note{font-size:11.5px;color:var(--dim);padding:6px 2px 0}
-  .sh-body .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
+  #gWrap .sh-body .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
   .lg{cursor:pointer}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 </style>
@@ -259,6 +261,7 @@
 <script src="assets/demo.js"></script>
 <script src="assets/sync.js"></script>
 <script src="assets/data.js"></script>
+<script src="assets/player-sheet.js"></script>
 <script>
 /* ───────── league (hardcoded) ───────── */
 const DEFAULT_COACHES = [
@@ -401,6 +404,8 @@ function render(){
   renderWatch();
   renderGames();
   if (gOpen) renderGame();
+  if (PlayerSheet.isOpen()){ const p = PlayerSheet.current(), r = topRows.find(x => x.p.code === p?.code);
+    if (p) PlayerSheet.update({state: sheetState(p), meta: r ? sheetMeta(p, r.teams) : undefined}); }
 }
 
 /* live games of the round: score + clock; tap → the game's court view in the Game Center */
@@ -568,14 +573,39 @@ function renderTop(){
   }));
   const top = [...seen.values()].sort((a, b) => b.s.f - a.s.f).slice(0, 10);
   if (!top.length){ $("#topList").innerHTML = `<div class="nolive">No live games yet — the round's top players show up once games start.</div>`; return; }
+  topRows = top;
   $("#topList").innerHTML = top.map(({p, s, teams}, i) => `
-    <div class="row pl">
+    <div class="row pl" data-code="${esc(p.code)}" role="button" tabindex="0">
       <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
       <div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
       <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span> · ${esc(teams.join(", "))}</small></div>
       <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${fmtShort(s.f)}</div>
     </div>`).join("");
 }
+
+/* Players tab: tap a player → the same player sheet as on the team pages (assets/player-sheet.js) */
+let topRows = [];
+function sheetState(p){                       // his game this round: PIR (raw live, ±10% once final), no group / captain share
+  const g = games.find(g => g.r === round && (g.h.c === p.club || g.a.c === p.club));
+  if (!g) return {kind: "none"};
+  if (Date.parse(g.u) > Date.now()) return {kind: "up"};
+  const b = box[g.c];
+  if (!b || b.pending) return {kind: "soon"};
+  const home = g.h.c === p.club;
+  const ti = b.teams[0].pl[p.code] ? 0 : b.teams[1].pl[p.code] ? 1 : (home ? 0 : 1);
+  const me = b.teams[ti], them = b.teams[1 - ti], st = me.pl[p.code];
+  const dnp = !st || /dnp/i.test(st.min || ""), raw = dnp ? 0 : st.pir, win = me.pts > them.pts;
+  const base = b.live ? raw : adjustPir(raw, win);
+  return {kind: b.live ? "live" : "final", raw, win, base, share: 1, val: base, dnp, q: b.q, t: b.t};
+}
+const sheetMeta = (p, teams) => `${p.clubName || p.tv} · ${p.pos || "–"} · ${teams.join(", ")}`;
+PlayerSheet.init({games: () => games, round: () => round, fantasy: () => new Set(COACHES.flatMap(c => rosterOf(c.name)).map(x => x.code))});
+function openPlayer(code){
+  const r = topRows.find(x => x.p.code === code); if (!r) return;
+  PlayerSheet.open(r.p, {state: sheetState(r.p), meta: sheetMeta(r.p, r.teams)});
+}
+$("#topList").addEventListener("click", e => { const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code); });
+$("#topList").addEventListener("keydown", e => { const r = e.target.closest("[data-code]"); if (r && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openPlayer(r.dataset.code); } });
 
 /* ───────── refresh loop ───────── */
 function relevantGames(){
