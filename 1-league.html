@@ -74,6 +74,21 @@
   .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
   .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
   .seg button.on{background:var(--orange);color:#fff}
+  /* Teams table: rank · team · ROUND │ TOTAL */
+  .tbl .th{display:flex;align-items:center;gap:14px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--dim);border-bottom:1px solid var(--line)}
+  .tbl .th .who{font-size:10.5px}
+  .tbl .th button{all:unset;cursor:pointer;color:var(--dim);white-space:nowrap} .tbl .th button.on{color:#fff}
+  .tbl .th button.on::after{content:" ▾"}
+  .tbl .th + .row{border-top:0}
+  .tbl .row,.tbl .th{gap:10px}
+  .tbl .who b{font-size:15.5px}
+  .c-rd{width:52px;text-align:right;flex:none;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:flex-end;position:relative}
+  .c-rd .live-dot{position:absolute;left:-6px;top:50%;margin-top:-3.5px}
+  .c-tot{width:70px;text-align:right;flex:none;font-size:15px;font-weight:700;color:#C9C9CF;align-self:stretch;display:flex;align-items:center;justify-content:flex-end;
+         border-left:1px solid var(--line);margin:-15px 0;padding:15px 0}
+  .th .c-rd,.th .c-tot{font-size:10.5px;font-weight:800;color:var(--dim);margin:-10px 0 -8px;padding:10px 0 8px}
+  .row.lead .c-tot{border-left-color:#FFFFFF33;color:#FFFFFFD9;margin:-14px 0;padding:14px 0}
+  .tbl .row.editing .base-input{width:92px}
   /* live games */
   .lg{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
   .lg:first-child{border-top:0}
@@ -87,7 +102,13 @@
   .lg .st{width:72px;flex:none;text-align:right;font-size:12px;font-weight:800;color:var(--orange);border-left:1px solid var(--line);padding-left:10px;align-self:stretch;
           display:flex;align-items:center;justify-content:flex-end;gap:5px;letter-spacing:.03em}
   .lg .st i{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}
-  .nolive{padding:18px 16px;text-align:center;color:var(--muted);font-size:14px}
+  .nolive{padding:22px 16px;text-align:center;color:var(--muted);font-size:14px}
+  .lg .st{color:var(--muted);font-weight:700}
+  .lg.live{background:linear-gradient(90deg,#FF6B1A1A,transparent 70%)}
+  .lg.live .st{color:var(--orange);font-weight:800}
+  .lg .st .fan{display:block;font-size:11px;color:var(--orange);font-weight:700;margin-top:3px;letter-spacing:0}
+  .lg .st{flex-direction:column;align-items:flex-end;justify-content:center;gap:0}
+  .lg .st .s{display:flex;align-items:center;gap:5px}
   .all-games{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;margin-top:10px;border-radius:14px;border:1px solid var(--line);
              background:var(--card);color:#fff;font-weight:700;font-size:15px;text-decoration:none}
   .all-games:active{background:#1F1F23}
@@ -122,31 +143,34 @@
   </div>
 
   <div class="seg" role="tablist" id="seg">
-    <button role="tab" data-view="round">Round</button>
-    <button role="tab" data-view="total">Total</button>
+    <button role="tab" data-view="teams">Teams</button>
+    <button role="tab" data-view="games">Games</button>
+    <button role="tab" data-view="players">Players</button>
   </div>
-  <div class="list" id="list"></div>
 
-  <div class="list" id="totalList" hidden></div>
-
+  <!-- Teams: round PIR | season total, as a small table (tap a column title to sort by it) -->
+  <div id="vTeams">
+    <div class="list tbl" id="list"></div>
   <!-- private watch team: stored only on this phone, never counted; opens as the last page of the team pages -->
-  <a class="list watch" id="watchRow" href="/2-coach?coach=watch">
+    <a class="list watch" id="watchRow" href="/2-coach?coach=watch">
     <div class="row">
       <div class="rank"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
       <div class="who"><b>Watch team</b><small id="watchSub">Only on this phone · follow any players</small></div>
       <div class="score" id="watchVal"><span class="chev">›</span></div>
     </div>
   </a>
+  </div>
 
-  <!-- live games of the round (from the Game Center); tap one for its court view -->
-  <div class="sec-t">LIVE GAMES</div>
-  <div class="list" id="liveGames"><div class="nolive">Loading…</div></div>
-  <a class="all-games" id="allGames" href="/3-games">View all games<span class="chev">›</span></a>
+  <!-- Games: this round's games (Game Center); tap one to open it -->
+  <div id="vGames" hidden>
+    <div class="list" id="gamesList"><div class="nolive">Loading…</div></div>
+  </div>
 
-  <div id="topWrap" hidden>
-    <div class="sec-t" id="topTitle">TOP 10 PLAYERS</div>
+  <!-- Players: top 10 of the round among everyone's rosters -->
+  <div id="vPlayers" hidden>
     <div class="list" id="topList"></div>
   </div>
+
 
   <!-- demos for testing (shown in edit mode); they run in a pretend league, nothing reaches the real one -->
   <div id="demoLinks" hidden>
@@ -275,58 +299,60 @@ function coachTotal(c){
 
 function render(){
   $("#roundTxt").textContent = `${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} · ROUND ${round ?? "–"}`;
-  const rows = COACHES.map(c => ({...c, team: teamOf(c), ...coachTotal(c)})).sort((a, b) => b.total - a.total);
+  // Teams: round PIR | season total (custom PIR + this round); sorted by the column picked (remembered on this phone)
+  const rows = COACHES.map(c => { const r = coachTotal(c), base = baseOf(c); return {...c, team: teamOf(c), ...r, base, sum: r1(base + r.total)}; })
+                      .sort((a, b) => sortBy === "total" ? b.sum - a.sum || b.total - a.total : b.total - a.total || b.sum - a.sum);
   if (!editing || !$("#list .team-input")){
-    $("#list").innerHTML = rows.map((c, i) => editing ? `
+    const th = `<div class="th"><div class="rank">#</div><div class="who">TEAM</div>
+      <div class="c-rd"><button data-sort="round" class="${sortBy === "round" ? "on" : ""}">ROUND</button></div>
+      <div class="c-tot"><button data-sort="total" class="${sortBy === "total" ? "on" : ""}">TOTAL</button></div></div>`;
+    $("#list").innerHTML = th + rows.map((c, i) => editing ? `
       <div class="row editing${i === 0 ? " lead" : ""}">
         <div class="rank">${i + 1}</div>
-        <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name"></div>
+        <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name">
+          <span class="plus-rd">+ ${fmtShort(c.total)} this round</span></div>
+        <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Total for ${esc(c.team)} before this round">
       </div>` : `
       <a class="row${i === 0 ? " lead" : ""}" href="${COACH_PAGE}?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
         <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmtShort(c.total)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.total)}`}<span class="chev">›</span></div>
+        <div class="c-rd">${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.total)}</div>
+        <div class="c-tot">${fmtShort(c.sum)}</div>
       </a>`).join("");
   }
 
   renderTop();
   renderStart();
   renderWatch();
-  renderLive();
-
-  // season total = custom PIR + this round's PIR
-  const tot = rows.map(c => ({...c, base: baseOf(c), sum: r1(baseOf(c) + c.total)})).sort((a, b) => b.sum - a.sum);
-  if (!editing || !$("#totalList .base-input")){
-    $("#totalList").innerHTML = tot.map((c, i) => editing ? `
-      <div class="row editing${i === 0 ? " lead" : ""}">
-        <div class="rank">${i + 1}</div>
-        <div class="who"><b>${esc(c.team)}</b><span class="plus-rd">+ ${fmtShort(c.total)} this round</span></div>
-        <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Custom PIR for ${esc(c.team)}">
-      </div>` : `
-      <a class="row${i === 0 ? " lead" : ""}" href="${COACH_PAGE}?coach=${encodeURIComponent(c.name)}">
-        <div class="rank">${i + 1}</div>
-        <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmtShort(c.sum)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.sum)}`}<span class="chev">›</span></div>
-      </a>`).join("");
-  }
+  renderGames();
 }
 
 /* live games of the round: score + clock; tap → the game's court view in the Game Center */
 const GC_PAGE = DIRECT ? "3-games.html" : "/3-games";
-function renderLive(){
-  $("#allGames").href = GC_PAGE;
+const clockOf = b => { const q = String(b.q || "").replace(/\D/g, ""); return (q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE") + (b.t && b.t !== "00:00" ? " " + b.t.replace(/^0/, "") : ""); };
+function renderGames(){
   if (!games.length) return;
-  const live = games.filter(g => g.r === round && box[g.c]?.live).sort((a, b) => Date.parse(a.u) - Date.parse(b.u));
-  if (!live.length){ $("#liveGames").innerHTML = `<div class="nolive">No live games currently</div>`; return; }
-  const clock = b => { const q = String(b.q || "").replace(/\D/g, ""); return (q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE") + (b.t && b.t !== "00:00" ? " " + b.t.replace(/^0/, "") : ""); };
-  $("#liveGames").innerHTML = live.map(g => {
-    const b = box[g.c], hp = b.teams[0].pts, ap = b.teams[1].pts;
-    const tm = (t, pts, behind) => `<div class="tm${behind ? " behind" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}<b>${esc(t.n || t.tv)}</b><span class="pts">${pts}</span></div>`;
-    return `<a class="lg" href="${GC_PAGE}?game=${g.c}&view=court">
-      <div class="teams">${tm(g.h, hp, hp < ap)}${tm(g.a, ap, ap < hp)}</div>
-      <div class="st"><i></i>${esc(clock(b))}</div></a>`;
+  const now = Date.now();
+  const stOf = g => { const b = box[g.c];
+    if (b?.live) return {k: 0, live: true, b};
+    if (b?.final) return {k: 3, b};
+    if (Date.parse(g.u) <= now) return {k: 1};
+    return {k: 2}; };
+  const rg = games.filter(g => g.r === round).map(g => ({g, s: stOf(g)}))
+                  .sort((x, y) => x.s.k - y.s.k || Date.parse(x.g.u) - Date.parse(y.g.u));   // live, starting, upcoming, finished
+  if (!rg.length){ $("#gamesList").innerHTML = `<div class="nolive">No games this round.</div>`; return; }
+  const fans = g => new Set(COACHES.flatMap(c => rosterOf(c.name)).filter(p => p.club === g.h.c || p.club === g.a.c).map(p => p.code)).size;
+  $("#gamesList").innerHTML = rg.map(({g, s}) => {
+    const has = !!s.b, hp = has ? s.b.teams[0].pts : "", ap = has ? s.b.teams[1].pts : "";
+    const tm = (t, pts, behind) => `<div class="tm${behind ? " behind" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}<b>${esc(t.n || t.tv)}</b>${has ? `<span class="pts">${pts}</span>` : ""}</div>`;
+    const st = s.live ? `<span class="s"><i></i>${esc(clockOf(s.b))}</span>` : s.k === 3 ? "FINAL" : s.k === 1 ? "STARTING" : esc(when(g.u));
+    const f = fans(g);
+    return `<a class="lg${s.live ? " live" : ""}" href="${GC_PAGE}?game=${g.c}${s.live ? "&view=court" : ""}">
+      <div class="teams">${tm(g.h, hp, has && hp < ap)}${tm(g.a, ap, has && ap < hp)}</div>
+      <div class="st">${st}${f ? `<span class="fan">${f} fantasy</span>` : ""}</div></a>`;
   }).join("");
 }
+const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
 /* private watch team summary (players are only on this phone; not part of the standings) */
 function renderWatch(){
   $("#watchRow").href = `${COACH_PAGE}?coach=watch`;
@@ -346,8 +372,7 @@ function renderTop(){
     if (e) e.teams.push(teamOf(c)); else seen.set(p.code, {p, s, teams:[teamOf(c)]});
   }));
   const top = [...seen.values()].sort((a, b) => b.s.f - a.s.f).slice(0, 10);
-  $("#topWrap").hidden = !top.length;
-  $("#topTitle").textContent = `TOP 10 PLAYERS · ROUND ${round ?? "–"}`;
+  if (!top.length){ $("#topList").innerHTML = `<div class="nolive">No live games yet — the round's top players show up once games start.</div>`; return; }
   $("#topList").innerHTML = top.map(({p, s, teams}, i) => `
     <div class="row pl">
       <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
@@ -385,10 +410,11 @@ $("#editBtn").onclick = () => {
   b.classList.toggle("on", editing);
   b.textContent = editing ? "✓" : "✎";
   b.setAttribute("aria-label", editing ? "Save changes" : "Edit team names and custom PIR");
-  $("#list").innerHTML = ""; $("#totalList").innerHTML = "";
+  $("#list").innerHTML = "";
+  if (editing && view !== "teams"){ view = "teams"; showView(); }
   $("#demoLinks").hidden = !editing;
   render();
-  if (editing) (view === "total" ? $("#totalList .base-input") : $("#list .team-input"))?.focus();
+  if (editing) $("#list .team-input")?.focus();
 };
 $("#list").addEventListener("input", e => {
   const inp = e.target.closest(".team-input"); if (!inp) return;
@@ -401,7 +427,7 @@ $("#list").addEventListener("input", e => {
   inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {team: v && v !== def ? v : ""}), 400);
 });
 
-$("#totalList").addEventListener("input", e => {
+$("#list").addEventListener("input", e => {
   const inp = e.target.closest(".base-input"); if (!inp) return;
   const raw = inp.value.replace(",", ".").trim();
   const v = raw === "" ? 0 : Number(raw);
@@ -410,20 +436,28 @@ $("#totalList").addEventListener("input", e => {
   clearTimeout(inp._t);
   inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {base: v}), 400);
 });
-$("#totalList").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".base-input")) e.target.blur(); });
+$("#list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".base-input")) e.target.blur(); });
+$("#list").addEventListener("click", e => {             // tap ROUND / TOTAL to sort by it
+  const b = e.target.closest("[data-sort]"); if (!b) return;
+  e.preventDefault(); sortBy = b.dataset.sort;
+  try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{}
+  render();
+});
 
-/* Round / Total switch (remembered on this phone) */
-let view = "round";
-try{ view = localStorage.getItem("elf.leagueView") === "total" ? "total" : "round"; }catch{}
+/* Teams / Games / Players tabs (remembered on this phone) */
+const VIEWS = ["teams", "games", "players"];
+let view = "teams", sortBy = "round";
+try{ const v = localStorage.getItem("elf.leagueTab"); if (VIEWS.includes(v)) view = v; sortBy = localStorage.getItem("elf.teamsSort") === "total" ? "total" : "round"; }catch{}
 function showView(){
-  $("#list").hidden = view !== "round";
-  $("#totalList").hidden = view !== "total";
+  $("#vTeams").hidden = view !== "teams";
+  $("#vGames").hidden = view !== "games";
+  $("#vPlayers").hidden = view !== "players";
   document.querySelectorAll("#seg [data-view]").forEach(b => { b.classList.toggle("on", b.dataset.view === view); b.setAttribute("aria-selected", b.dataset.view === view); });
 }
 $("#seg").addEventListener("click", e => {
   const b = e.target.closest("[data-view]"); if (!b) return;
   view = b.dataset.view;
-  try{ localStorage.setItem("elf.leagueView", view); }catch{}
+  try{ localStorage.setItem("elf.leagueTab", view); }catch{}
   showView();
 });
 showView();
