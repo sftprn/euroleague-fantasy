@@ -37,9 +37,9 @@
 #psWrap .ph-txt .sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted);line-height:1.35;margin-top:3px}
 #psWrap .ph-txt .big.pir{margin-top:14px}
 #psWrap .ph-txt .big.pir.none{color:var(--dim)}
-#psWrap .ph-pic{flex:none;width:150px;height:185px;margin:-14px 8px 0 0;align-self:flex-end;position:relative;overflow:hidden;pointer-events:none;user-select:none}
+#psWrap .ph-pic{flex:none;width:160px;height:185px;margin:-14px 8px 0 0;align-self:flex-end;position:relative;overflow:hidden;pointer-events:none;user-select:none}
 #psWrap .ph-pic[hidden]{display:none}
-#psWrap .ph-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;transform:translateY(var(--gap,0px))}
+#psWrap .ph-img{position:absolute;top:0;left:50%;height:118%;width:auto;max-width:none;transform:translateX(-50%)}   /* head to just above the waist: the rest is cut off at the header's edge */
 #psWrap .tabs{position:sticky;top:-8px;z-index:2;display:flex;gap:4px;padding:4px;margin:-8px -16px 12px;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px}
 #psWrap .tabs button{flex:1;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
 #psWrap .tabs button.on{background:var(--card-2);color:#fff}
@@ -253,15 +253,7 @@
     if (!first) return;
     const img = el.img, pic = el.pic;
     pic.hidden = !p.img; img.onerror = () => { pic.hidden = true; };
-    img.style.removeProperty("--gap");
-    if (p.img){ img.src = p.img; photoGap(p.img).then(g => {
-      if (img.src !== p.img || !g) return;
-      const fit = () => {                                 // height the photo is actually drawn at (contain)
-        const h = img.naturalWidth ? Math.min(pic.offsetHeight, pic.offsetWidth * img.naturalHeight / img.naturalWidth) : pic.offsetHeight;
-        img.style.setProperty("--gap", (g * h).toFixed(1) + "px");
-      };
-      img.complete ? fit() : img.addEventListener("load", fit, {once: true});
-    }); }
+    if (p.img) img.src = p.img;
     else img.removeAttribute("src");
   }
 
@@ -444,30 +436,6 @@
     return items.length ? items.map(i => `<a class="nw" href="${esc(i.link)}" target="_blank" rel="noopener">
         <b>${esc(i.title)}</b><small><span class="src">${esc(i.source || i.site)}</span>${i.at ? ` · ${ago(i.at)}` : ""}<span class="nlg">${i.lang === "lt" ? "LT" : "EN"}</span></small></a>`).join("") + note
       : `<div class="empty">No recent news about ${esc(p.name)} on these sites.</div>` + note;
-  }
-
-  /* share of a photo's height that is empty (transparent) below the player — measured once, remembered on this phone */
-  const gaps = store.get("elf.photoGap", {});
-  function photoGap(url){
-    if (url in gaps) return Promise.resolve(gaps[url]);
-    return new Promise(res => {
-      const im = new Image();
-      im.crossOrigin = "anonymous";                      // separate request (?g=1) so the normal cached photo is never affected
-      im.onload = () => {
-        try{
-          const w = 60, h = Math.round(60 * im.naturalHeight / im.naturalWidth) || 80;
-          const c = document.createElement("canvas"); c.width = w; c.height = h;
-          const x = c.getContext("2d"); x.drawImage(im, 0, 0, w, h);
-          const d = x.getImageData(0, 0, w, h).data;
-          let last = h - 1;
-          rows: for (; last > 0; last--) for (let i = 0; i < w; i++) if (d[(last * w + i) * 4 + 3] > 24) break rows;
-          gaps[url] = Math.round((h - 1 - last) / h * 1000) / 1000; store.set("elf.photoGap", gaps);
-        }catch{ gaps[url] = 0; }
-        res(gaps[url]);
-      };
-      im.onerror = () => res(0);
-      im.src = url + (url.includes("?") ? "&" : "?") + "g=1";
-    });
   }
 
   /* public */
