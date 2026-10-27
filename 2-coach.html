@@ -414,9 +414,9 @@ const loadPeople = () => cached(`elf.people.${SEASON}`, 12 * 3600e3, async () =>
   return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
 });
 
-const loadGames = () => cached(`elf.games.${SEASON}`, 10 * 60e3, async () => {
+const loadGames = () => cached(`elf.games2.${SEASON}`, 10 * 60e3, async () => {
   const d = (await getJSON(`${V2}/games`)).data;
-  const side = s => ({c:s.club.code, tv:s.club.tvCode || s.club.code});
+  const side = s => ({c:s.club.code, tv:s.club.tvCode || s.club.code, n:s.club.editorialName || s.club.name || s.club.code, cr:s.club.images?.crest || ""});
   return d.map(x => ({c:x.gameCode, r:x.round, u:x.utcDate, p:x.played, h:side(x.local), a:side(x.road)}));
 });
 
