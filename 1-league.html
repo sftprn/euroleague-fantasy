@@ -71,11 +71,9 @@
   .start-btn.voted{background:var(--card);border:2px solid var(--orange);color:var(--orange);box-shadow:none}
   .start-btn:disabled{opacity:.6}
   .start-note{text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin-top:8px}
-  /* round points, season total underneath */
-  .pts{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
-  .pts .tot{font-size:12px;font-weight:600;color:var(--muted);margin-top:4px;white-space:nowrap}
-  .row.lead .pts .tot{color:#FFFFFFB3}
-  .row.editing .who .plus-rd{margin-top:5px}
+  .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+  .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .seg button.on{background:var(--orange);color:#fff}
   .watch{display:block;margin-top:10px;border-style:dashed;color:inherit;text-decoration:none}
   .watch .rank{color:var(--muted);display:grid;place-items:center}
   .watch .score{font-size:18px;color:var(--muted)}
@@ -105,7 +103,13 @@
     <div class="start-note" id="startNote"></div>
   </div>
 
+  <div class="seg" role="tablist" id="seg">
+    <button role="tab" data-view="round">Round</button>
+    <button role="tab" data-view="total">Total</button>
+  </div>
   <div class="list" id="list"></div>
+
+  <div class="list" id="totalList" hidden></div>
 
   <!-- private watch team: stored only on this phone, never counted; opens as the last page of the team pages -->
   <a class="list watch" id="watchRow" href="/2-coach?coach=watch">
@@ -247,27 +251,39 @@ function coachTotal(c){
 
 function render(){
   $("#roundTxt").textContent = `${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} · ROUND ${round ?? "–"}`;
-  // one list, by this round's PIR; the season total (custom PIR + this round) underneath
-  const rows = COACHES.map(c => { const r = coachTotal(c), base = baseOf(c); return {...c, team: teamOf(c), ...r, base, sum: r1(base + r.total)}; })
-                      .sort((a, b) => b.total - a.total);
+  const rows = COACHES.map(c => ({...c, team: teamOf(c), ...coachTotal(c)})).sort((a, b) => b.total - a.total);
   if (!editing || !$("#list .team-input")){
     $("#list").innerHTML = rows.map((c, i) => editing ? `
       <div class="row editing${i === 0 ? " lead" : ""}">
         <div class="rank">${i + 1}</div>
-        <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name">
-          <span class="plus-rd">+ ${fmtShort(c.total)} this round</span></div>
-        <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Total for ${esc(c.team)}">
+        <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name"></div>
       </div>` : `
       <a class="row${i === 0 ? " lead" : ""}" href="${COACH_PAGE}?coach=${encodeURIComponent(c.name)}">
         <div class="rank">${i + 1}</div>
         <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="score"><div class="pts"><span>${c.live ? '<i class="live-dot"></i> ' : ""}${fmtShort(c.total)}</span><small class="tot">Total ${fmtShort(c.sum)}</small></div><span class="chev">›</span></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmtShort(c.total)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.total)}`}<span class="chev">›</span></div>
       </a>`).join("");
   }
 
   renderTop();
   renderStart();
   renderWatch();
+
+  // season total = custom PIR + this round's PIR
+  const tot = rows.map(c => ({...c, base: baseOf(c), sum: r1(baseOf(c) + c.total)})).sort((a, b) => b.sum - a.sum);
+  if (!editing || !$("#totalList .base-input")){
+    $("#totalList").innerHTML = tot.map((c, i) => editing ? `
+      <div class="row editing${i === 0 ? " lead" : ""}">
+        <div class="rank">${i + 1}</div>
+        <div class="who"><b>${esc(c.team)}</b><span class="plus-rd">+ ${fmtShort(c.total)} this round</span></div>
+        <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Custom PIR for ${esc(c.team)}">
+      </div>` : `
+      <a class="row${i === 0 ? " lead" : ""}" href="${COACH_PAGE}?coach=${encodeURIComponent(c.name)}">
+        <div class="rank">${i + 1}</div>
+        <div class="who"><b>${esc(c.team)}</b></div>
+        <div class="score">${i === 0 ? `<div>${c.live ? '<i class="live-dot"></i> ' : ""}${fmtShort(c.sum)}</div>` : `${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.sum)}`}<span class="chev">›</span></div>
+      </a>`).join("");
+  }
 }
 
 /* private watch team summary (players are only on this phone; not part of the standings) */
@@ -328,10 +344,10 @@ $("#editBtn").onclick = () => {
   b.classList.toggle("on", editing);
   b.textContent = editing ? "✓" : "✎";
   b.setAttribute("aria-label", editing ? "Save changes" : "Edit team names and custom PIR");
-  $("#list").innerHTML = "";
+  $("#list").innerHTML = ""; $("#totalList").innerHTML = "";
   $("#demoLinks").hidden = !editing;
   render();
-  if (editing) $("#list .team-input")?.focus();
+  if (editing) (view === "total" ? $("#totalList .base-input") : $("#list .team-input"))?.focus();
 };
 $("#list").addEventListener("input", e => {
   const inp = e.target.closest(".team-input"); if (!inp) return;
@@ -344,7 +360,7 @@ $("#list").addEventListener("input", e => {
   inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {team: v && v !== def ? v : ""}), 400);
 });
 
-$("#list").addEventListener("input", e => {
+$("#totalList").addEventListener("input", e => {
   const inp = e.target.closest(".base-input"); if (!inp) return;
   const raw = inp.value.replace(",", ".").trim();
   const v = raw === "" ? 0 : Number(raw);
@@ -353,7 +369,23 @@ $("#list").addEventListener("input", e => {
   clearTimeout(inp._t);
   inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {base: v}), 400);
 });
-$("#list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".base-input")) e.target.blur(); });
+$("#totalList").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".base-input")) e.target.blur(); });
+
+/* Round / Total switch (remembered on this phone) */
+let view = "round";
+try{ view = localStorage.getItem("elf.leagueView") === "total" ? "total" : "round"; }catch{}
+function showView(){
+  $("#list").hidden = view !== "round";
+  $("#totalList").hidden = view !== "total";
+  document.querySelectorAll("#seg [data-view]").forEach(b => { b.classList.toggle("on", b.dataset.view === view); b.setAttribute("aria-selected", b.dataset.view === view); });
+}
+$("#seg").addEventListener("click", e => {
+  const b = e.target.closest("[data-view]"); if (!b) return;
+  view = b.dataset.view;
+  try{ localStorage.setItem("elf.leagueView", view); }catch{}
+  showView();
+});
+showView();
 
 
 /* ───────── Start Round X ─────────
