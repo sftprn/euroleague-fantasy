@@ -246,7 +246,8 @@ async function run(env, force) {
   // the report: every 3 h, or every 10 min while a listed player's game is less than 3 h away
   const close = (cur?.entries || []).some(e => e.next && e.next.u - now < CLOSE && e.next.u > now - 30 * 60e3);
   const unmatched = (cur?.entries || []).some(e => !e.club);               // a team we couldn't place: try again sooner
-  const reportDue = force || !cur || now - (cur.fetchedAt || 0) >= (close ? CLOSE_EVERY : unmatched ? 30 * 60e3 : EVERY);
+  const noLast = (cur?.entries || []).some(e => !("last" in e));            // stored before last-game links existed: read now
+  const reportDue = force || !cur || noLast || now - (cur.fetchedAt || 0) >= (close ? CLOSE_EVERY : unmatched ? 30 * 60e3 : EVERY);
   let doc = cur || { entries: [] };
   if (reportDue) doc = await readReport(cur, now);
   // news research: a few entries per run (the server may only make ~50 requests per run), most urgent first
