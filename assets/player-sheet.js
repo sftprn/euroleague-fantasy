@@ -41,10 +41,12 @@
 #psWrap .ph-pic{flex:none;width:140px;height:118px;margin:-22px 12px 0 0;align-self:flex-end;position:relative;overflow:hidden;pointer-events:none;user-select:none}
 #psWrap .ph-pic[hidden]{display:none}
 #psWrap .ph-img{position:absolute;top:0;left:50%;height:215%;width:auto;max-width:none;transform:translateX(-50%)}   /* head and shoulders: the rest is cut off at the header's edge */
-#psWrap .tabs{position:sticky;top:-8px;z-index:2;display:flex;gap:4px;padding:4px;margin:-8px -16px 12px;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px}
+#psWrap .tabs{flex:none;display:flex;gap:4px;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px}   /* own row: never scrolls with the content */
+#psWrap .sheet.pm > .sh-body{padding-top:12px;overflow-x:hidden}
 #psWrap .tabs button{flex:1;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
 #psWrap .tabs button.on{background:var(--card-2);color:#fff}
-#psWrap .pane{min-height:120px}
+#psWrap .pane{min-height:120px;will-change:transform}
+#psWrap .pane.sliding{transition:transform .18s ease,opacity .18s ease}
 #psWrap .pane .empty{color:var(--muted);font-size:13.5px;text-align:center;padding:26px 10px}
 #psWrap .pane .loading{color:var(--dim);font-size:13px;text-align:center;padding:26px 10px}
 #psWrap .bd{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card-2);border-radius:16px;padding:16px 12px 14px;margin-bottom:10px}
@@ -156,11 +158,11 @@
       </div>
       <div class="ph-pic" data-ps="pic" id="shPic"><img class="ph-img" data-ps="img" id="shImg" alt=""></div>
     </div>
+    <div class="tabs" data-ps="tabs" id="shTabs" role="tablist">
+      <button data-tab="game" role="tab">Game</button>
+      <button data-tab="season" role="tab">Season</button>
+    </div>
     <div class="sh-body">
-      <div class="tabs" data-ps="tabs" id="shTabs" role="tablist">
-        <button data-tab="game" role="tab">Game</button>
-        <button data-tab="season" role="tab">Season</button>
-      </div>
       <div class="pane" data-ps="pane" id="shPane"></div>
     </div>
   </div>
@@ -208,7 +210,36 @@
     wrap.querySelector("[data-psclose]").onclick = close;
     wrap.querySelector("[data-tsclose]").onclick = closeTeam;
     document.addEventListener("keydown", e => { if (e.key === "Escape" && isOpen()) tsOpen ? closeTeam() : close(); });
-    el.tabs.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b){ tab = b.dataset.tab; renderTab(); } });
+    el.tabs.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b && b.dataset.tab !== tab) switchTab(b.dataset.tab); });
+    // swipe left / right on the content to go to the next / previous tab (the content follows your finger)
+    let hs = null;
+    el.body.addEventListener("touchstart", e => {
+      hs = e.touches.length === 1 ? {x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: e.timeStamp, mode: null, dx: 0} : null;
+    }, {passive: true});
+    el.body.addEventListener("touchmove", e => {
+      if (!hs) return;
+      const t = e.touches[0], dx = t.clientX - hs.x0, dy = t.clientY - hs.y0;
+      if (!hs.mode){
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        hs.mode = Math.abs(dx) > Math.abs(dy) * 1.2 ? "h" : "v";
+        if (hs.mode === "h") el.pane.classList.remove("sliding");
+      }
+      if (hs.mode !== "h") return;
+      if (e.cancelable) e.preventDefault();
+      const next = TABS[TABS.indexOf(tab) + (dx < 0 ? 1 : -1)];
+      hs.dx = next ? dx : dx * 0.25;                       // no tab that way: just a little give
+      el.pane.style.transform = `translateX(${hs.dx}px)`;
+    }, {passive: false});
+    const hend = e => {
+      const h = hs; hs = null;
+      if (!h || h.mode !== "h") return;
+      const next = TABS[TABS.indexOf(tab) + (h.dx < 0 ? 1 : -1)];
+      const fast = Math.abs(h.dx) > 30 && Math.abs(h.dx) / Math.max(1, e.timeStamp - h.t0) > 0.4;
+      if (next && (Math.abs(h.dx) > el.body.clientWidth * 0.25 || fast)) switchTab(next, h.dx < 0 ? 1 : -1);
+      else { el.pane.classList.add("sliding"); el.pane.style.transform = ""; }
+    };
+    el.body.addEventListener("touchend", hend);
+    el.body.addEventListener("touchcancel", hend);
     el.pane.addEventListener("click", e => {
       if (e.target.closest(".mn")){ minsOpen = !minsOpen; renderTab(); return; }     // minutes: tap to show / hide each stint
       const tb = e.target.closest(".tsb"); if (tb) openTeam(tb.dataset.top);     // Team stats / News → a sheet on top
@@ -274,6 +305,21 @@
     pane.innerHTML = pane._html = html;
     const w = pane.querySelector(".tmw"); if (w) w.scrollLeft = x;
     el.body.scrollTop = y;
+  }
+  const TABS = ["game", "season"];
+  function switchTab(t, dir){                             // dir: 1 = came from a swipe left, -1 = swipe right, none = tapped
+    const pane = el.pane, w = el.body.clientWidth;
+    if (!dir) dir = TABS.indexOf(t) > TABS.indexOf(tab) ? 1 : -1;
+    pane.classList.add("sliding");
+    pane.style.transform = `translateX(${-dir * w}px)`; pane.style.opacity = "0";
+    setTimeout(() => {
+      tab = t; el.body.scrollTop = 0;
+      pane.classList.remove("sliding");
+      pane.style.transform = `translateX(${dir * w * 0.4}px)`;
+      renderTab();
+      void pane.offsetWidth;                               // start the slide-in from the other side
+      pane.classList.add("sliding"); pane.style.transform = ""; pane.style.opacity = "";
+    }, 170);
   }
   async function renderTab(){
     const p = cur; if (!p) return;
@@ -465,6 +511,7 @@
     tab = k === "live" || k === "final" ? "game" : "season";
     minsOpen = false; closeTeam();
     el.pane._html = null; el.pane.dataset.tab = "";
+    el.pane.classList.remove("sliding"); el.pane.style.transform = el.pane.style.opacity = "";
     renderTab();
     wrap.classList.add("open");
   }
