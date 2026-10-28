@@ -418,6 +418,7 @@
       ${e.comment ? `<div class="inj-txt">${esc(e.comment)}</div>` : ""}
       ${sev ? `<div class="inj-sev"><b>${esc(sev.word)}</b>${sev.level ? ` · ${esc(sev.label)} — usually ${esc(sev.typical)}` : ` · ${esc(sev.typical)}`}</div>` : ""}
       ${e.verdict ? `<div class="inj-ver">${esc(e.verdict)}</div>` : ""}
+      ${e.lastGame ? `<div class="inj-ver">Last game (round ${e.lastGame.r}): ${e.lastGame.dnp ? (e.lastGame.absent ? "not in the squad" : "didn't play") : `played ${e.lastGame.mins} min`}</div>` : ""}
       ${injOpen ? `<div class="inj-more">
         <h4>SOURCES</h4>${(e.sources || []).map(s => `<a href="${esc(s.link)}" target="_blank" rel="noopener">${esc(s.title)}<small>${esc(s.source || "")}${s.at ? ` · ${injAgo(s.at)}` : ""}</small></a>`).join("")}
         ${e.why?.length ? `<h4>HOW THE % WAS WORKED OUT</h4><ul>${e.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}

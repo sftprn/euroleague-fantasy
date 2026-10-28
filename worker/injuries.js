@@ -11,17 +11,26 @@ import { feeds, fold, ltForms, parse, search, UA } from "./news.js";
 const REPORT = "https://basketnews.com/news-212393-euroleague-injury-report-updated.html";
 const GAMES = "https://api-live.euroleague.net/v2/competitions/E/seasons/";
 const EVERY = 3 * 3600e3, CLOSE = 3 * 3600e3, CLOSE_EVERY = 10 * 60e3;
-const NEWS_VERSION = 3;                         // bump to re-check every entry with a new search method
-const RESEARCH_EVERY = 12 * 3600e3, RESEARCH_CLOSE = 60 * 60e3, RESEARCH_PER_RUN = 10;
+const NEWS_VERSION = 4;                         // bump to re-check every entry with a new search method
+const RESEARCH_EVERY = 12 * 3600e3, RESEARCH_CLOSE = 60 * 60e3, RESEARCH_PER_RUN = 12, RESEARCH_WITH_FEEDS = 6;   // fewer players on runs that also re-read the feeds (≈50 requests a run)
 const NEWS_AGE = 21 * 86400e3;
 // more sources than the News tab: international basketball sites' own feeds (read once per run, shared)
+// more sources than the News tab: basketball sites and national sports papers whose feeds the server can read (tested
+// from Cloudflare). Greek and Hebrew papers are left out: they write players' names in their own script.
 const EXTRA_FEEDS = [
-  ["https://www.eurohoops.net/en/feed/", "eurohoops.net"],
-  ["https://sportando.basketball/en/feed/", "sportando.basketball"],
-  ["https://www.talkbasket.net/feed", "talkbasket.net"],
-  ["https://basketnews.com/rss/news.xml", "basketnews.com"],
-  ["https://www.eurohoops.net/en/category/euroleague/feed/", "eurohoops.net"],
+  ["https://www.eurohoops.net/en/feed/", "eurohoops.net"], ["https://www.eurohoops.net/en/category/euroleague/feed/", "eurohoops.net"],
+  ["https://sportando.basketball/en/feed/", "sportando.basketball"], ["https://www.sportando.basketball/en/category/euroleague/feed/", "sportando.basketball"],
+  ["https://www.talkbasket.net/feed", "talkbasket.net"], ["https://basketnews.com/news/rss", "basketnews.com"], ["https://basketnews.lt/news/rss", "basketnews.lt"],
+  ["https://e00-marca.uecdn.es/rss/baloncesto.xml", "marca.com"], ["https://feeds.as.com/mrss-s/pages/as/site/as.com/section/baloncesto/portada/", "as.com"],
+  ["https://www.mundodeportivo.com/rss/baloncesto", "mundodeportivo.com"], ["https://www.eurohoops.net/es/feed/", "eurohoops.net/es"],
+  ["https://www.gazzetta.it/rss/basket.xml", "gazzetta.it"], ["https://www.sportando.basketball/feed/", "sportando.basketball/it"],
+  ["https://dwh.lequipe.fr/api/edito/rss?path=/Basket/", "lequipe.fr"],
+  ["https://www.aspor.com.tr/rss/basketbol.xml", "aspor.com.tr"], ["https://www.trtspor.com.tr/rss/basketbol.rss", "trtspor.com.tr"],
+  ["https://www.fotomac.com.tr/rss/basketbol.xml", "fotomac.com.tr"], ["https://www.cnnturk.com/feed/rss/spor/basketbol/news", "cnnturk.com"],
+  ["https://www.eurohoops.net/tr/feed/", "eurohoops.net/tr"],
+  ["https://www.kurir.rs/rss/sport", "kurir.rs"], ["https://www.telegraf.rs/rss/sport", "telegraf.rs"],
 ];
+const FEEDS_EVERY = 30 * 60e3;                    // the feeds are read at most every 30 min and kept (D1 kv 'injfeeds')
 const season = () => { const d = new Date(); return "E" + (d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1); };
 const json = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 const strip = s => String(s || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'")
@@ -108,7 +117,7 @@ const NEG = /\b(ruled out|will miss|to miss|sidelined|setback|out for|won'?t pla
 
 /* ── % chance to play the next game ── */
 const BASE = { 1: 96, 2: 82, 3: 50, 4: 55, 7: 40, 5: 20, 6: 4 };      // Ready, Expected, Questionable, Game-time, Uncertain, Doubtful, Out
-function chanceOf(e, nextRound, signals) {
+function chanceOf(e, nextRound, signals, lastg) {
   let p = BASE[e.statusId] ?? 45;
   const why = [`basketnews status “${e.status}”: ${p}%`];
   const r = fold(e.round);
@@ -122,6 +131,11 @@ function chanceOf(e, nextRound, signals) {
   }
   const k = kindOf(e.comment);
   if (k?.level === 0 && (e.statusId === 5 || e.statusId === 7)) { p = Math.max(p, 35); why.push(`reason isn't an injury (coach's decision / roster) → ${p}%`); }
+  if (lastg && e.statusId !== 6 && e.statusId !== 1) {     // what he did in his club's last game
+    if (!lastg.dnp && lastg.mins >= 10) { p = Math.min(92, p + 15); why.push(`played ${lastg.mins} min in round ${lastg.r} → ${p}%`); }
+    else if (!lastg.dnp) { p = Math.min(92, p + 5); why.push(`played ${lastg.mins} min in round ${lastg.r} → ${p}%`); }
+    else { p = Math.max(1, p - 5); why.push(`didn't play in round ${lastg.r} → ${p}%`); }
+  }
   if (signals.pos && !signals.neg && p < 90) { p = Math.min(95, p + 12); why.push(`latest news sounds positive → ${p}%`); }
   if (signals.neg && !signals.pos && p > 3) { p = Math.max(1, p - 12); why.push(`latest news sounds negative → ${p}%`); }
   return { chance: Math.max(1, Math.min(97, Math.round(p))), why };
@@ -152,11 +166,30 @@ async function newsFor(e, shared) {
     .sort((a, b) => b.at - a.at)
     .filter(i => { const k = fold(i.title).slice(0, 60); if (seen.has(k)) return false; seen.add(k); return true; });
 }
-async function research(e, nextRound, shared) {
+/* ── did he play his club's last game? (our own stored box score; Euroleague only if we don't have it) ── */
+async function lastGame(e, DB, budget) {
+  if (!e.last) return null;
+  const target = `https://live.euroleague.net/api/Boxscore?gamecode=${e.last.c}&seasoncode=${season()}`;
+  let body = null;
+  try { body = (await DB.prepare("SELECT v FROM elcache2 WHERE k = ?").bind(target).first())?.v || null; } catch {}
+  if (!body && budget.n-- > 0) { try { const r = await fetch(target, { headers: { accept: "application/json" } }); if (r.ok) body = await r.text(); } catch {} }
+  if (!body) return null;
+  let d; try { d = JSON.parse(body); } catch { return null; }
+  const want = nameKey(e.name).split(" "), last = want[want.length - 1];
+  for (const t of d?.Stats || []) for (const p of t.PlayersStats || []) {
+    const got = nameKey(String(p.Player || "").split(",").reverse().join(" ")).split(" ");     // "MILUTINOV, NIKOLA" → nikola milutinov
+    if (got.includes(last) && got.some(w => w[0] === want[0][0])) {
+      const m = /^(\d+):(\d+)$/.exec(p.Minutes || ""), mins = m ? +m[1] + +m[2] / 60 : 0;
+      return { r: e.last.r, mins: Math.round(mins), dnp: !mins };
+    }
+  }
+  return { r: e.last.r, mins: 0, dnp: true, absent: true };                                   // not even on the roster sheet
+}
+async function research(e, nextRound, shared, DB, budget) {
   let items = [];
   try { items = await newsFor(e, shared); } catch {}
   // injury words in the languages these stories come in (EN, LT, IT, ES, FR, TR, EL, DE, SR/HR)
-  const injuryWords = /injur|hurt|out\b|miss|return|sideline|doubtful|questionable|status|surgery|sprain|strain|pain|game-time|ruled|traum|praleis|grįž|serga|sveikat|nežais|infortun|in dubbio|stop\b|rientr|lesion|baja\b|duda|blessur|forfait|sakat|τραυμα|τραυματ|verletz|ausfall|povred|ozled/;
+  const injuryWords = /injur|hurt|out\b|miss|return|sideline|doubtful|questionable|status|surgery|sprain|strain|pain|game-time|ruled|traum|praleis|grįž|serga|sveikat|nežais|infortun|in dubbio|stop\b|rientr|lesion|lesionad|baja\b|duda|molestia|blessur|bless[eé]|forfait|incertain|sakat|forma giyem|kadroda yok|τραυμα|τραυματ|verletz|ausfall|povred|neće igrat|propust|ozled/;
   const about = items.filter(i => injuryWords.test(fold(i.title + " " + i.about)));
   const recent = about.filter(i => !i.at || Date.now() - i.at < 7 * 86400e3);
   const text = recent.map(i => i.title + " " + i.about).join(" ");
@@ -168,10 +201,11 @@ async function research(e, nextRound, shared) {
   const sites = [...new Set(about.map(i => i.source || i.site))];
   const verdict = about.length >= 2 ? `Backed by ${about.length} other reports (${sites.slice(0, 3).join(", ")}${sites.length > 3 ? "…" : ""})`
                 : about.length === 1 ? `One other report mentions it (${sites[0]})` : "No other reports found yet — only the basketnews report";
-  const { chance, why } = chanceOf(e, nextRound, signals);
+  const lastg = DB ? await lastGame(e, DB, budget || { n: 0 }) : null;
+  const { chance, why } = chanceOf(e, nextRound, signals, lastg);
   const sources = [{ title: "BasketNews EuroLeague injury report", link: REPORT, source: "basketnews.com", at: null },
                    ...about.slice(0, 6).map(i => ({ title: i.title, link: i.link, source: i.source || i.site, at: i.at || null }))];
-  return { severity, verdict, signals, chance, why, sources, researchedAt: Date.now(), nv: NEWS_VERSION };
+  return { severity, verdict, signals, chance, why, sources, lastGame: lastg, researchedAt: Date.now(), nv: NEWS_VERSION };
 }
 
 /* ── the scheduled job ── */
@@ -186,6 +220,26 @@ export function injuryCheck(env, force = false) {
   if (!busy) busy = run(env, force).catch(e => console.log("injury check failed", e?.message)).finally(() => { busy = null; });
   return busy;
 }
+// every feed's recent stories, read at most every 30 min and kept in D1 so each run doesn't re-read 25 feeds
+async function sharedFeeds(DB, now) {
+  const row = await DB.prepare("SELECT v FROM kv WHERE k = 'injfeeds'").first().catch(() => null);
+  const kept = row ? JSON.parse(row.v) : null;
+  if (kept && now - kept.t < FEEDS_EVERY) return { items: kept.items, read: false };
+  const got = await Promise.allSettled(EXTRA_FEEDS.map(async ([u, site]) => {
+    const x = await fetch(u, { headers: UA });
+    if (!x.ok) throw new Error(x.status);
+    return parse(await x.text(), "en", site).map(i => ({ ...i, site: i.site || site }));
+  }));
+  let lt = [], elr = [];
+  try { lt = await feeds(); } catch {}
+  try { elr = await search(`"injury report" site:euroleaguebasketball.net`, "en-US", "en"); } catch {}   // Euroleague's own weekly injury report
+  const items = [...got.flatMap(x => x.status === "fulfilled" ? x.value : []), ...lt, ...elr]
+    .filter(i => i.title && (!i.at || now - i.at < NEWS_AGE))
+    .map(({ title, link, at, source, site, about }) => ({ title, link, at, source, site, about: (about || "").slice(0, 300) }));
+  const ok = got.filter(x => x.status === "fulfilled").length;
+  await DB.prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('injfeeds', ?)").bind(JSON.stringify({ t: now, ok, items })).run().catch(() => {});
+  return { items, read: true };
+}
 async function run(env, force) {
   const DB = env.DB, now = Date.now();
   const cur = await load(DB);
@@ -197,19 +251,14 @@ async function run(env, force) {
   if (reportDue) doc = await readReport(cur, now);
   // news research: a few entries per run (the server may only make ~50 requests per run), most urgent first
   const entries = doc.entries;
-  const queue = entries.filter(e => needsNews(e) && due(e, now) < 9).sort((a, b) => due(a, now) - due(b, now) || (a.next?.u || 9e15) - (b.next?.u || 9e15)).slice(0, RESEARCH_PER_RUN);
+  let queue = entries.filter(e => needsNews(e) && due(e, now) < 9).sort((a, b) => due(a, now) - due(b, now) || (a.next?.u || 9e15) - (b.next?.u || 9e15));
   if (!reportDue && !queue.length) return;
   if (queue.length) {
-    const extra = await Promise.allSettled(EXTRA_FEEDS.map(async ([u, site]) => {
-      const x = await fetch(u, { headers: UA });
-      if (!x.ok) throw new Error(x.status);
-      return parse(await x.text(), "en", site).map(i => ({ ...i, site: i.site || site }));
-    }));
-    let lt = [], elr = [];
-    try { lt = await feeds(); } catch {}
-    try { elr = await search(`"injury report" site:euroleaguebasketball.net`, "en-US", "en"); } catch {}   // Euroleague's own weekly injury report
-    const shared = [...extra.flatMap(x => x.status === "fulfilled" ? x.value : []), ...lt, ...elr];
-    await Promise.all(queue.map(async e => Object.assign(e, await research(e, e.next?.r, shared))));   // in parallel: a run must finish within ~30 s
+    const fresh = await sharedFeeds(DB, now);
+    queue = queue.slice(0, fresh.read ? RESEARCH_WITH_FEEDS : RESEARCH_PER_RUN);
+    const shared = fresh.items;
+    const budget = { n: 4 };                                 // box scores we don't have yet: fetch at most a few per run
+    await Promise.all(queue.map(async e => Object.assign(e, await research(e, e.next?.r, shared, DB, budget))));   // in parallel: a run must finish within ~30 s
   }
   for (const e of entries) if (e.chance == null || (!needsNews(e) && !e.researchedAt)) Object.assign(e, quick(e));
   await DB.prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('injuries', ?)").bind(JSON.stringify(doc)).run();
@@ -230,6 +279,11 @@ async function readReport(cur, now) {
   const clubs = new Map();
   games.forEach(g => [g.local, g.road].forEach(s => s?.club?.code && clubs.set(s.club.code, { c: s.club.code, tv: s.club.tvCode || s.club.code,
     n: [s.club.name, s.club.editorialName, s.club.abbreviatedName, s.club.alias, s.club.city].filter(Boolean).join(" ") })));   // every name variant (e.g. "Barça" vs "FC Barcelona")
+  const lastOf = code => {                                   // the club's most recent finished game
+    const g = games.filter(g => (g.local.club.code === code || g.road.club.code === code) && g.played)
+                   .sort((a, b) => Date.parse(b.utcDate) - Date.parse(a.utcDate))[0];
+    return g ? { r: g.round, c: g.gameCode } : null;
+  };
   const nextOf = code => {                                   // the club's next game not yet finished
     const g = games.filter(g => (g.local.club.code === code || g.road.club.code === code) && !g.played && Date.parse(g.utcDate) > now - 3 * 3600e3)
                    .sort((a, b) => Date.parse(a.utcDate) - Date.parse(b.utcDate))[0];
@@ -247,28 +301,14 @@ async function readReport(cur, now) {
     const club = clubFor(e.team, list), next = club ? nextOf(club.c) : null;
     const old = prev.get(nameKey(e.name) + "|" + e.team);
     const same = old && old.status === e.status && old.round === e.round && old.comment === e.comment && old.next?.r === next?.r;
-    return { ...e, key: nameKey(e.name), club: club?.c || null, next, ...(same ? { severity: old.severity, verdict: old.verdict, signals: old.signals,
-             chance: old.chance, why: old.why, sources: old.sources, researchedAt: old.researchedAt, nv: old.nv } : {}) };
+    return { ...e, key: nameKey(e.name), club: club?.c || null, next, last: club ? lastOf(club.c) : null, ...(same ? { severity: old.severity, verdict: old.verdict, signals: old.signals,
+             chance: old.chance, why: old.why, sources: old.sources, lastGame: old.lastGame, researchedAt: old.researchedAt, nv: old.nv } : {}) };
   });
   return { fetchedAt: now, updated: rep.updated, entries };
 }
 
 export async function getInjuries(request, env, ctx) {
   if (!env.DB) return json({ error: "D1 database not bound as DB" }, 500);
-  if (new URL(request.url).searchParams.get("feedprobe") === "1") {        // temporary: which feeds can the server read?
-    const C = ["https://basketnews.com/news/rss", "https://basketnews.lt/news/rss",
-      "https://www.aspor.com.tr/rss/basketbol.xml", "https://www.trtspor.com.tr/rss/basketbol.rss", "https://www.hurriyet.com.tr/rss/sporarena", "https://www.sabah.com.tr/rss/spor.xml",
-      "https://www.fotomac.com.tr/rss/basketbol.xml", "https://www.cnnturk.com/feed/rss/spor/basketbol/news", "https://www.sozcu.com.tr/feeds-rss-category-spor",
-      "https://www.sportske.net/rss/kosarka", "https://www.novosti.rs/rss/sport", "https://www.kurir.rs/rss/sport", "https://www.blic.rs/rss/Sport", "https://www.telegraf.rs/rss/sport",
-      "https://www.one.co.il/cat/coop/xml/rss/newsfeed.aspx", "https://www.sport5.co.il/RSS.aspx?FolderID=4", "https://www.ynet.co.il/Integration/StoryRss3.xml",
-      "https://www.sport-fm.gr/rss/news", "https://www.novasports.gr/rss/", "https://www.contra.gr/rss/", "https://www.basketblog.gr/feed/", "https://www.sdna.gr/rss/mpasket",
-      "https://www.abendzeitung-muenchen.de/sport/fc-bayern-basketball/rss", "https://www.kicker.de/basketball/startseite/rss", "https://www.lequipe.fr/rss/actu_rss_Basket.xml",
-      "https://www.sportando.basketball/en/category/euroleague/feed/", "https://www.eurohoops.net/en/category/news/feed/"];
-    const out = await Promise.all(C.map(async u => { const t0 = Date.now(); try { const r = await fetch(u, { headers: UA, redirect: "follow" }); const x = await r.text();
-      const items = parse(x, "en", "").length; const first = (/<item[\s>][\s\S]*?<title[^>]*>([\s\S]*?)<\/title>/.exec(x) || [])[1] || "";
-      return { u, status: r.status, items, ms: Date.now() - t0, first: first.replace(/<!\[CDATA\[|\]\]>/g, "").slice(0, 60) }; } catch (e) { return { u, err: String(e.message).slice(0, 60) }; } }));
-    return json(out);
-  }
   let cur = await load(env.DB);
   if (!cur) { await injuryCheck(env); cur = await load(env.DB); }      // very first time: wait for it
   else ctx.waitUntil(injuryCheck(env));                                  // otherwise refresh in the background when due
