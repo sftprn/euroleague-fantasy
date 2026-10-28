@@ -109,7 +109,8 @@
   .res{font-size:10.5px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.03em}
   .res.W{background:var(--win-soft);color:var(--win)} .res.L{background:var(--loss-soft);color:var(--loss)} .res.D{background:var(--card-2);color:var(--muted)}
   /* injury report status (basketnews colours, dark theme) */
-  .res.inj{--c:#B5BDC9;color:var(--c);background:color-mix(in srgb, var(--c) 16%, transparent);letter-spacing:.02em}
+  .res.inj{--c:#B5BDC9;color:var(--c);background:color-mix(in srgb, var(--c) 16%, transparent);letter-spacing:.02em;
+    border:1px solid color-mix(in srgb, var(--c) 50%, transparent);padding:1px 5px}   /* border in the status colour; 1px less padding keeps the height */
   .res.inj[data-s="1"]{--c:#3DDC84} .res.inj[data-s="2"]{--c:#2EC4C4} .res.inj[data-s="3"]{--c:#5AA2FF} .res.inj[data-s="4"]{--c:#FFC247}
   .res.inj[data-s="5"]{--c:#FF8C69} .res.inj[data-s="6"]{--c:#FF5A4E}
   .p.benched .val{color:var(--dim);font-weight:700}
