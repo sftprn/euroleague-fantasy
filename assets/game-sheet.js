@@ -18,7 +18,7 @@ height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s 
 #gWrap .sheet.fit{height:auto}                       /* game not started yet: only as tall as what's in it */
 #gWrap .grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab;touch-action:none}
 #gWrap .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
-#gWrap .sh-head{flex:none;display:block;padding:4px 16px 0;border:0;touch-action:none}
+#gWrap .sh-head{flex:none;display:block;padding:4px 16px 0;border:0;border-bottom:1px solid var(--line);touch-action:none}   /* the line under the score stays put while the content scrolls */
 #gWrap .sh-body{overflow-x:hidden;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
 #gWrap .board{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 14px;margin-bottom:12px}
 #gWrap .board .side{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
@@ -71,7 +71,7 @@ border:2px solid #FFFFFF33}
 #gWrap .note{font-size:11.5px;color:var(--dim);padding:6px 2px 0}
 #gWrap .sh-body .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
 
-#gWrap .seg{display:flex;gap:4px;margin:0 -16px;padding:8px 16px;background:var(--bg);border:0;border-top:1px solid var(--line);border-radius:0}   /* team tabs: like the player sheet's tabs; they scroll with the content */
+#gWrap .seg{display:flex;gap:4px;margin:0 -16px;padding:8px 16px;background:var(--bg);border:0;border-radius:0}   /* team tabs: like the player sheet's tabs; they scroll with the content */
 #gWrap #gContent{will-change:transform}
 #gWrap #gContent.sliding{transition:transform .18s ease,opacity .18s ease}
 #gWrap .seg button{flex:1;min-width:0;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
