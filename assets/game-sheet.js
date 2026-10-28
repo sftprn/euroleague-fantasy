@@ -126,6 +126,7 @@ border:2px solid #FFFFFF33}
       h.addEventListener("pointerup", end);
       h.addEventListener("pointercancel", end);
     });
+    window.SheetDrag?.attach(sh, close);                 // swipe down anywhere once scrolled to the top
   }
 
   function open(gc){

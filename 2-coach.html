@@ -268,6 +268,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <script src="assets/demo.js"></script>
 <script src="assets/sync.js"></script>
 <script src="assets/data.js"></script>
+<script src="assets/sheet-drag.js"></script>
 <script src="assets/player-sheet.js"></script>
 <script src="assets/game-sheet.js"></script>
 <script>
@@ -706,6 +707,7 @@ const wcWrap = $("#wcWrap"), finder = $("#finder");
 document.querySelectorAll("[data-close]").forEach(s => s.onclick = () => wcWrap.classList.remove("open"));
 /* every sheet: press the grab area (or header) and drag down to close; a short drag springs back */
 document.querySelectorAll(".sheet").forEach(sh => {
+  SheetDrag.attach(sh, () => sh.parentElement.classList.remove("open"));      // …or swipe down anywhere once scrolled to the top
   let y0 = 0, dy = 0, t0 = 0, id = null;
   const move = y => { dy = Math.max(0, y - y0); sh.style.transform = `translate(-50%, ${dy}px)`; };
   const end = () => {

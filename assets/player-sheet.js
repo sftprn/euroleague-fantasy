@@ -237,6 +237,7 @@
       });
     };
     drag(el.sheet, close); drag(el.ts, closeTeam);
+    window.SheetDrag?.attach(el.sheet, close); window.SheetDrag?.attach(el.ts, closeTeam);   // swipe down anywhere once scrolled to the top
   }
 
   /* header */
