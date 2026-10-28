@@ -93,6 +93,8 @@
   .lg{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
   .lg:first-child{border-top:0}
   .day-h{display:flex;align-items:center;min-height:40px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--line)}   /* Games tab: a list per day, date on top like the Teams table header */
+  .day-h{justify-content:space-between;gap:10px}
+  .day-h span{letter-spacing:.06em;text-transform:none;font-weight:700;font-size:11.5px}
   .day-h + .lg{border-top:0}
   #gamesList .list + .list{margin-top:12px}
   .lg:active{background:#1F1F23}
@@ -128,6 +130,10 @@
   .pl .who small{color:var(--muted)}
   .pl .tv{font-weight:700;color:#C9C9CF}
   #topList .row.pl{cursor:pointer}
+  .pick{position:relative;display:block;margin-bottom:12px}                 /* Players tab: All teams / one fantasy team */
+  .pick select{appearance:none;-webkit-appearance:none;width:100%;height:46px;border:1px solid var(--line);border-radius:14px;background:var(--card);
+    color:#fff;font:700 16px Inter,system-ui,sans-serif;padding:0 44px 0 16px;cursor:pointer}
+  .pick::after{content:"";position:absolute;right:18px;top:50%;width:8px;height:8px;border:solid var(--muted);border-width:0 2px 2px 0;transform:translateY(-70%) rotate(45deg);pointer-events:none}
   #topList .row.pl:active{background:#1F1F23}
   .row .plus-rd{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
   .row.editing{cursor:default}
@@ -179,6 +185,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 
   <!-- Players: top 10 of the round among everyone's rosters -->
   <div id="vPlayers" hidden>
+    <label class="pick"><select id="topTeam" aria-label="Show top players from"></select></label>
     <div class="list" id="topList"></div>
   </div>
 
@@ -373,7 +380,7 @@ function renderGames(){
   const days = [...new Set(rg.map(x => dayKey(x.g.u)))].sort();
   const html = days.length < 2 ? `<div class="list">${rg.map(row).join("")}</div>`
     : days.map(k => { const list = rg.filter(x => dayKey(x.g.u) === k);
-        return `<div class="list"><div class="day-h">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}))}</div>${list.map(row).join("")}</div>`; }).join("");
+        return `<div class="list"><div class="day-h">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}))}<span>${list.length} game${list.length === 1 ? "" : "s"}</span></div>${list.map(row).join("")}</div>`; }).join("");
   if ($("#gamesList")._html !== html) $("#gamesList").innerHTML = $("#gamesList")._html = html;
 }
 const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
@@ -414,8 +421,15 @@ function renderTop(){
     const e = seen.get(p.code);
     if (e) e.teams.push(teamOf(c)); else seen.set(p.code, {p, s, teams:[teamOf(c)]});
   }));
-  const top = [...seen.values()].sort((a, b) => b.s.f - a.s.f).slice(0, 10);
-  if (!top.length){ $("#topList").innerHTML = `<div class="nolive">No live games yet — the round's top players show up once games start.</div>`; return; }
+  // team picker: All teams (default) or one fantasy team; remembered on this phone
+  const sel = $("#topTeam"), pick = COACHES.some(c => c.name === store.get("elf.topTeam", "")) ? store.get("elf.topTeam", "") : "";
+  const opts = `<option value="">All teams</option>` + COACHES.map(c => `<option value="${esc(c.name)}">${esc(teamOf(c))}</option>`).join("");
+  if (sel._opts !== opts){ sel.innerHTML = sel._opts = opts; }
+  sel.value = pick;
+  const only = pick ? COACHES.find(c => c.name === pick) : null;
+  const top = [...seen.values()].filter(x => !only || rosterOf(only.name).some(q => q.code === x.p.code))
+                                .sort((a, b) => b.s.f - a.s.f).slice(0, 10);
+  if (!top.length){ topRows = []; $("#topList").innerHTML = `<div class="nolive">${only && seen.size ? `No ${esc(teamOf(only))} players have played yet this round.` : "No live games yet — the round's top players show up once games start."}</div>`; return; }
   topRows = top;
   $("#topList").innerHTML = top.map(({p, s, teams}, i) => `
     <div class="row pl" data-code="${esc(p.code)}" role="button" tabindex="0">
@@ -447,6 +461,7 @@ function openPlayer(code){
   const r = topRows.find(x => x.p.code === code); if (!r) return;
   PlayerSheet.open(r.p, {state: sheetState(r.p), meta: sheetMeta(r.p, r.teams)});
 }
+$("#topTeam").addEventListener("change", e => { store.set("elf.topTeam", e.target.value); renderTop(); });
 $("#topList").addEventListener("click", e => { const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code); });
 $("#topList").addEventListener("keydown", e => { const r = e.target.closest("[data-code]"); if (r && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openPlayer(r.dataset.code); } });
 
