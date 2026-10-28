@@ -209,7 +209,7 @@ async function run(env, force) {
     try { lt = await feeds(); } catch {}
     try { elr = await search(`"injury report" site:euroleaguebasketball.net`, "en-US", "en"); } catch {}   // Euroleague's own weekly injury report
     const shared = [...extra.flatMap(x => x.status === "fulfilled" ? x.value : []), ...lt, ...elr];
-    for (const e of queue) Object.assign(e, await research(e, e.next?.r, shared));
+    await Promise.all(queue.map(async e => Object.assign(e, await research(e, e.next?.r, shared))));   // in parallel: a run must finish within ~30 s
   }
   for (const e of entries) if (e.chance == null || (!needsNews(e) && !e.researchedAt)) Object.assign(e, quick(e));
   await DB.prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('injuries', ?)").bind(JSON.stringify(doc)).run();
