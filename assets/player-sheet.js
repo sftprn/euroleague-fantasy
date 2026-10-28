@@ -242,7 +242,8 @@
     el.body.addEventListener("touchcancel", hend);
     el.pane.addEventListener("click", e => {
       if (e.target.closest(".mn")){ minsOpen = !minsOpen; renderTab(); return; }     // minutes: tap to show / hide each stint
-      const tb = e.target.closest(".tsb"); if (tb) openTeam(tb.dataset.top);     // Team stats / News → a sheet on top
+      const tb = e.target.closest(".tsb");                 // Team stats → the game sheet on his team's tab; News → a sheet on top
+      if (tb){ const g = gameOf(cur); if (tb.dataset.top === "team" && g && window.GameSheet) GameSheet.open(g.c, {club: cur.club}); else openTeam(tb.dataset.top); }
       const bd = e.target.closest(".bd[data-game]"); if (bd) GameSheet.open(+bd.dataset.game, {club: cur?.club});   // on his team's tab   // score box → the game sheet on top
     });
     el.tsbody.addEventListener("click", e => {           // team stats: tap a column to sort
