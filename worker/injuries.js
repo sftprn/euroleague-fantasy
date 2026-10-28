@@ -11,7 +11,7 @@ import { feeds, fold, ltForms, parse, search, UA } from "./news.js";
 const REPORT = "https://basketnews.com/news-212393-euroleague-injury-report-updated.html";
 const GAMES = "https://api-live.euroleague.net/v2/competitions/E/seasons/";
 const EVERY = 3 * 3600e3, CLOSE = 3 * 3600e3, CLOSE_EVERY = 10 * 60e3;
-const NEWS_VERSION = 4;                         // bump to re-check every entry with a new search method
+const NEWS_VERSION = 5;                         // bump to re-check every entry with a new search method
 const RESEARCH_EVERY = 12 * 3600e3, RESEARCH_CLOSE = 60 * 60e3, RESEARCH_PER_RUN = 12, RESEARCH_WITH_FEEDS = 6;   // fewer players on runs that also re-read the feeds (≈50 requests a run)
 const NEWS_AGE = 21 * 86400e3;
 // more sources than the News tab: international basketball sites' own feeds (read once per run, shared)
