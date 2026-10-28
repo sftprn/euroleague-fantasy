@@ -20,7 +20,7 @@ const MAX_AGE = 120 * 86400e3;                 // ignore stories older than ~4 m
 const mem = new Map();
 let tableReady = false;
 
-const fold = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+export const fold = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 // Lithuanian forms of a surname (nominative + genitive are what headlines use most)
 export function ltForms(surname) {
@@ -45,7 +45,7 @@ const stemOf = surname => { const f = fold(surname).replace(/[^a-z'-]/g, ""); re
 const ent = s => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
   .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).trim();
 const siteOf = u => String(u || "").replace(/^https?:\/\/(www\.)?/i, "").replace(/[\/?#].*$/, "").toLowerCase();
-function parse(xml, lang, fixedSource) {
+export function parse(xml, lang, fixedSource) {
   const items = [];
   for (const m of xml.matchAll(/<item[\s>]([\s\S]*?)<\/item>/g)) {
     const x = m[1], tag = t => { const r = new RegExp(`<${t}(?:\\s[^>]*)?>([\\s\\S]*?)</${t}>`, "i").exec(x); return r ? ent(r[1]) : ""; };
@@ -60,15 +60,15 @@ function parse(xml, lang, fixedSource) {
   }
   return items;
 }
-const UA = { "user-agent": "Mozilla/5.0 (compatible; EL-Fantasy/1.0)", accept: "application/rss+xml, text/xml" };
-async function search(q, mkt, lang) {
+export const UA = { "user-agent": "Mozilla/5.0 (compatible; EL-Fantasy/1.0)", accept: "application/rss+xml, text/xml" };
+export async function search(q, mkt, lang) {
   const url = `https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setmkt=${mkt}&setlang=${lang}&count=50`;
   const r = await fetch(url, { headers: UA });
   if (!r.ok) throw new Error("news " + r.status);
   return parse(await r.text(), lang);
 }
 // the portals' own feeds: read once per 10 min, shared by every player's search
-async function feeds() {
+export async function feeds() {
   if (Date.now() - feedCache.t < FEED_TTL) return feedCache.items;
   const all = await Promise.allSettled(FEEDS.map(async ([u, site]) => {
     const r = await fetch(u, { headers: UA });

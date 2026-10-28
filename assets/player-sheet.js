@@ -58,6 +58,32 @@
 #psWrap .bd .mid .sc{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
 #psWrap .bd .mid small{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-top:3px;letter-spacing:.05em}
 #psWrap .bd .mid small.lv{color:var(--orange)}
+#psWrap .inj{--c:#B5BDC9;--t:#262A31;background:var(--t);border:1px solid color-mix(in srgb, var(--c) 30%, transparent);border-radius:16px;padding:12px 14px;margin-bottom:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}   /* injury report card, tinted by status */
+#psWrap .inj[data-s="1"]{--c:#3DDC84;--t:#10301F}
+#psWrap .inj[data-s="2"]{--c:#2EC4C4;--t:#0E2C2D}
+#psWrap .inj[data-s="3"]{--c:#5AA2FF;--t:#12233A}
+#psWrap .inj[data-s="4"]{--c:#FFC247;--t:#33270C}
+#psWrap .inj[data-s="5"]{--c:#FF8C69;--t:#361C14}
+#psWrap .inj[data-s="6"]{--c:#FF5A4E;--t:#3A1513}
+#psWrap .inj-top{display:flex;align-items:center;gap:10px}
+#psWrap .inj-pill{flex:none;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--c);background:color-mix(in srgb, var(--c) 18%, transparent);border-radius:7px;padding:3px 8px}
+#psWrap .inj-rd{font-size:12.5px;color:var(--muted);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#psWrap .inj-pct{margin-left:auto;text-align:right;flex:none}
+#psWrap .inj-pct b{display:block;font-size:20px;font-weight:800;color:var(--c);line-height:1.1}
+#psWrap .inj-pct small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+#psWrap .inj .chev{flex:none;width:30px;height:30px;border-radius:50%;background:#FFFFFF14;display:grid;place-items:center;color:#fff}
+#psWrap .inj .chev svg{width:16px;height:16px;transition:transform .2s}
+#psWrap .inj.open .chev svg{transform:rotate(180deg)}
+#psWrap .inj-txt{font-size:14px;line-height:1.4;margin-top:9px}
+#psWrap .inj-sev{font-size:12.5px;color:#D6D6DC;margin-top:6px;line-height:1.4}
+#psWrap .inj-sev b{color:var(--c);font-weight:700}
+#psWrap .inj-ver{font-size:12px;color:var(--muted);margin-top:3px}
+#psWrap .inj-more{margin-top:10px;border-top:1px solid #FFFFFF1A;padding-top:4px}
+#psWrap .inj-more h4{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:var(--muted);margin:10px 0 2px}
+#psWrap .inj-more a{display:block;padding:8px 0;border-bottom:1px solid #FFFFFF12;color:#fff;text-decoration:none;font-size:13.5px;line-height:1.35}
+#psWrap .inj-more a small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+#psWrap .inj-more li{font-size:12.5px;color:#D6D6DC;margin:4px 0 0 16px;line-height:1.4}
+#psWrap .inj-more p{font-size:11.5px;color:var(--dim);margin-top:10px}
 #psWrap .mn{background:var(--card-2);border-radius:16px;padding:12px 14px 4px;margin-bottom:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #psWrap .mn-top{display:flex;align-items:center;gap:10px}
 #psWrap .mn-top b{font-size:20px;font-weight:800}
@@ -174,7 +200,7 @@
   </div>`;
 
   let ctx = {games: () => [], round: () => null, fantasy: () => new Set()};
-  let wrap, el = {}, cur = null, info = {state: {kind: "none"}, meta: ""}, tab = "game", seq = 0, tmSort = {k: "pir", dir: -1}, minsOpen = false, tsOpen = false, tsSeq = 0, topMode = "team";
+  let wrap, el = {}, cur = null, info = {state: {kind: "none"}, meta: ""}, tab = "game", seq = 0, tmSort = {k: "pir", dir: -1}, minsOpen = false, injOpen = false, tsOpen = false, tsSeq = 0, topMode = "team";
   const newsCache = {};
 
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -242,6 +268,7 @@
     el.body.addEventListener("touchcancel", hend);
     el.pane.addEventListener("click", e => {
       if (e.target.closest(".mn")){ minsOpen = !minsOpen; renderTab(); return; }     // minutes: tap to show / hide each stint
+      if (e.target.closest(".inj") && !e.target.closest("a")){ injOpen = !injOpen; renderTab(); return; }   // injury card: tap for sources
       const tb = e.target.closest(".tsb");                 // Team stats → the game sheet on his team's tab; News → a sheet on top
       if (tb){ const g = gameOf(cur); if (tb.dataset.top === "team" && g && window.GameSheet) GameSheet.open(g.c, {club: cur.club}); else openTeam(tb.dataset.top); }
       const bd = e.target.closest(".bd[data-game]"); if (bd) GameSheet.open(+bd.dataset.game, {club: cur?.club});   // on his team's tab   // score box → the game sheet on top
@@ -343,22 +370,53 @@
   }
   const btns = (team = true) => `<div class="btns">${team ? `<button class="tsb" type="button" data-top="team">Team stats</button>` : ""}<button class="tsb" type="button" data-top="news">News</button></div>`;
   async function gamePane(p){
-    const g = gameOf(p);
-    if (!g) return btns(false) + `<div class="empty">No game this round.</div>`;
-    if (Date.parse(g.u) > Date.now()) return board(g, null, p) + btns(false) + `<div class="empty">Stats show up once the game starts.</div>`;
+    const g = gameOf(p), inj = injCard(p, await injuryOf(p));
+    if (!g) return inj + btns(false) + `<div class="empty">No game this round.</div>`;
+    if (Date.parse(g.u) > Date.now()) return board(g, null, p) + inj + btns(false) + `<div class="empty">Stats show up once the game starts.</div>`;
     const [b, st] = await Promise.all([ElData.box(g.c), ElData.stretches(g.c).catch(() => null)]);
-    if (b.pending) return board(g, b, p) + btns(false) + `<div class="empty">Waiting for the first stats…</div>`;
+    if (b.pending) return board(g, b, p) + inj + btns(false) + `<div class="empty">Waiting for the first stats…</div>`;
     const l = await ElData.line(g.c, p.code);
-    if (!l || l.min === "DNP" || !l.mins) return board(g, b, p) + btns() + `<div class="empty">Did not play${b.live ? " yet" : ""}.</div>`;
+    if (!l || l.min === "DNP" || !l.mins) return board(g, b, p) + inj + btns() + `<div class="empty">Did not play${b.live ? " yet" : ""}.</div>`;
     const pf = Math.min(5, l.pf || 0);
     const cell = (v, lab, extra = "") => `<div><b>${v}</b><small>${lab}</small>${extra}</div>`;
-    return board(g, b, p) + minsBlock(st, l, p, b) + `<div class="grid">
+    return board(g, b, p) + inj + minsBlock(st, l, p, b) + `<div class="grid">
       ${cell(l.pts, "PTS")}${cell(l.tr, "REB", `<em>${l.or} off · ${l.dr} def</em>`)}${cell(l.ast, "AST")}${cell(sign(l.pm), "+/−")}
       ${cell(`${l.fg2m}/${l.fg2a}`, "2PT", `<em>${pct(l.fg2m, l.fg2a)}</em>`)}${cell(`${l.fg3m}/${l.fg3a}`, "3PT", `<em>${pct(l.fg3m, l.fg3a)}</em>`)}
       ${cell(`${l.ftm}/${l.fta}`, "FT", `<em>${pct(l.ftm, l.fta)}</em>`)}${cell(l.stl, "STL")}
       ${cell(l.to, "TO")}${cell(l.blk, "BLK", `<em>${l.blka} against</em>`)}${cell(l.fd, "DRAWN", `<em>fouls on him</em>`)}
       <div><b>${l.pf}</b><small>FOULS</small><div class="fouls${pf >= 4 ? " warn" : ""}">${[1,2,3,4,5].map(i => `<i class="${i <= pf ? "on" : ""}"></i>`).join("")}</div></div>
     </div>` + btns();
+  }
+  /* injury report card (basketnews report + news check, from /api/injuries) */
+  let injData = null, injAt = 0, injLoad = null;
+  const nk = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+  async function injuryOf(p){
+    if (!injData || Date.now() - injAt > 10 * 60e3){
+      injLoad ||= fetch("/api/injuries", {cache: "no-store"}).then(r => r.ok ? r.json() : null).then(d => { if (d){ injData = d; injAt = Date.now(); } }).catch(() => {}).finally(() => { injLoad = null; });
+      await Promise.race([injLoad, new Promise(r => setTimeout(r, injData ? 0 : 2500))]);    // first time: wait briefly; after that, refresh in the background
+    }
+    const list = injData?.entries || [], k = nk(p.name), last = k.split(" ").pop();
+    return list.find(e => e.key === k && (!e.club || e.club === p.club))
+        || list.find(e => e.club === p.club && e.key.split(" ").pop() === last && e.key[0] === k[0]) || null;
+  }
+  const injAgo = t => { const m = Math.round((Date.now() - t) / 60e3); return m < 60 ? `${Math.max(1, m)} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+  function injCard(p, e){
+    if (!e) return "";
+    const sev = e.severity, who = e.next ? `to play vs ${esc(e.next.opp)}` : "to play next game";
+    const ret = e.round ? (/^\d|^round/i.test(e.round) ? `Back: ${esc(e.round)}` : esc(e.round)) : "";
+    return `<div class="inj${injOpen ? " open" : ""}" data-s="${e.statusId}" role="button" tabindex="0" aria-expanded="${injOpen}">
+      <div class="inj-top"><span class="inj-pill">${esc(e.status)}</span><span class="inj-rd">${ret}</span>
+        <span class="inj-pct"><b>${e.chance ?? "–"}%</b><small>${who}</small></span>
+        <span class="chev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></span></div>
+      ${e.comment ? `<div class="inj-txt">${esc(e.comment)}</div>` : ""}
+      ${sev ? `<div class="inj-sev"><b>${esc(sev.word)}</b>${sev.level ? ` · ${esc(sev.label)} — usually ${esc(sev.typical)}` : ` · ${esc(sev.typical)}`}</div>` : ""}
+      ${e.verdict ? `<div class="inj-ver">${esc(e.verdict)}</div>` : ""}
+      ${injOpen ? `<div class="inj-more">
+        <h4>SOURCES</h4>${(e.sources || []).map(s => `<a href="${esc(s.link)}" target="_blank" rel="noopener">${esc(s.title)}<small>${esc(s.source || "")}${s.at ? ` · ${injAgo(s.at)}` : ""}</small></a>`).join("")}
+        ${e.why?.length ? `<h4>HOW THE % WAS WORKED OUT</h4><ul>${e.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
+        <p>basketnews report updated ${injData?.updated ? injAgo(injData.updated) : "–"} · checked ${injData?.fetchedAt ? injAgo(injData.fetchedAt) : "–"}. Severity is a typical range for this kind of injury, not a medical opinion.</p>
+      </div>` : ""}
+    </div>`;
   }
   function minsBlock(st, l, p, b){                        // boxed: minutes, stints and the on-court bar; tap to list each stint
     const mine = st && !st.pending ? st.pl[p.code] || [] : [];
@@ -510,7 +568,7 @@
     el.body.scrollTop = 0;
     const k = info.state.kind;
     tab = k === "live" || k === "final" ? "game" : "season";
-    minsOpen = false; closeTeam();
+    minsOpen = false; injOpen = false; closeTeam();
     el.pane._html = null; el.pane.dataset.tab = "";
     el.pane.classList.remove("sliding"); el.pane.style.transform = el.pane.style.opacity = "";
     renderTab();

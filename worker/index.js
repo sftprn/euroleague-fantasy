@@ -4,6 +4,7 @@
 //   /api/round   "Start Round X" votes (rounds.js)
 //   /api/news    latest headlines about one player from the chosen portals (news.js)
 //   /api/feedback  anonymous feedback list; the admin page marks items complete (feedback.js)
+//   /api/injuries  basketnews injury report + news check, % chance to play (injuries.js; refreshed by the 10-min cron)
 //   /el-api/*    → https://api-live.euroleague.net/*   (players, schedule)
 //   /el-live/*   → https://live.euroleague.net/api/*   (live box scores, play-by-play, game clock)
 // Euroleague's servers don't reliably allow browser calls from other sites, so the Worker fetches for the browser.
@@ -11,6 +12,7 @@ import { getState, postState } from "./state.js";
 import { postRound, scheduledCheck } from "./rounds.js";
 import { getNews } from "./news.js";
 import { handleFeedback } from "./feedback.js";
+import { getInjuries, injuryCheck } from "./injuries.js";
 
 // Euroleague rate-limits bursts, so answers are kept and shared by all phones:
 //   finished game box score / play-by-play → stored in D1; re-checked with Euroleague once an hour (they sometimes correct
@@ -81,6 +83,7 @@ export default {
     }
     if (url.pathname === "/api/round" && request.method === "POST") return postRound(request, env);
     if (url.pathname === "/api/news" && request.method === "GET") return getNews(request, env, ctx);
+    if (url.pathname === "/api/injuries" && request.method === "GET") return getInjuries(request, env, ctx);
     if (url.pathname === "/api/feedback" || url.pathname.startsWith("/api/feedback/")) return handleFeedback(request, env, url.pathname);
     if (request.method === "GET" && url.pathname.startsWith("/el-api/")) return forward(url, "/el-api/", "https://api-live.euroleague.net/", env, ctx);
     if (request.method === "GET" && url.pathname.startsWith("/el-live/")) return forward(url, "/el-live/", "https://live.euroleague.net/api/", env, ctx);
@@ -88,5 +91,6 @@ export default {
   },
   async scheduled(event, env, ctx) {
     ctx.waitUntil(scheduledCheck(env));
+    ctx.waitUntil(injuryCheck(env));
   },
 };
