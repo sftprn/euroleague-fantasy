@@ -390,11 +390,18 @@
   /* injury report card (basketnews report + news check, from /api/injuries) */
   let injData = null, injAt = 0, injLoad = null;
   const nk = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+  function loadInjuries(){                               // shared copy, re-read every 10 min (the team lists use it too)
+    if (injData && Date.now() - injAt < 10 * 60e3) return Promise.resolve(injData);
+    injLoad ||= fetch("/api/injuries", {cache: "no-store"}).then(r => r.ok ? r.json() : null).then(d => { if (d){ injData = d; injAt = Date.now(); } return injData; })
+      .catch(() => injData).finally(() => { injLoad = null; });
+    return injLoad;
+  }
   async function injuryOf(p){
-    if (!injData || Date.now() - injAt > 10 * 60e3){
-      injLoad ||= fetch("/api/injuries", {cache: "no-store"}).then(r => r.ok ? r.json() : null).then(d => { if (d){ injData = d; injAt = Date.now(); } }).catch(() => {}).finally(() => { injLoad = null; });
-      await Promise.race([injLoad, new Promise(r => setTimeout(r, injData ? 0 : 2500))]);    // first time: wait briefly; after that, refresh in the background
-    }
+    if (!injData || Date.now() - injAt > 10 * 60e3)
+      await Promise.race([loadInjuries(), new Promise(r => setTimeout(r, injData ? 0 : 2500))]);    // first time: wait briefly; after that, refresh in the background
+    return injuryNow(p);
+  }
+  function injuryNow(p){                                  // from the copy we have (no waiting)
     const list = injData?.entries || [], k = nk(p.name), last = k.split(" ").pop();
     return list.find(e => e.key === k && (!e.club || e.club === p.club))
         || list.find(e => e.club === p.club && e.key.split(" ").pop() === last && e.key[0] === k[0]) || null;
@@ -586,5 +593,6 @@
     init(c){ ctx = {...ctx, ...c}; },
     open, update, close, isOpen,
     current: () => cur,
+    loadInjuries, injury: injuryNow,                      // injury report entry for a player (team lists show its status as a badge)
   };
 })();

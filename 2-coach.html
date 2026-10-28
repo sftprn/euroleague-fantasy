@@ -108,6 +108,11 @@
   .tv{font-weight:700;color:#C9C9CF}
   .res{font-size:10.5px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.03em}
   .res.W{background:var(--win-soft);color:var(--win)} .res.L{background:var(--loss-soft);color:var(--loss)} .res.D{background:var(--card-2);color:var(--muted)}
+  /* injury report status (basketnews colours, dark theme) */
+  .res.inj{--c:#B5BDC9;color:var(--c);background:color-mix(in srgb, var(--c) 16%, transparent);letter-spacing:.02em}
+  .res.inj[data-s="1"]{--c:#3DDC84} .res.inj[data-s="2"]{--c:#2EC4C4} .res.inj[data-s="3"]{--c:#5AA2FF} .res.inj[data-s="4"]{--c:#FFC247}
+  .res.inj[data-s="5"]{--c:#FF8C69} .res.inj[data-s="6"]{--c:#FF5A4E}
+  .p.benched .val{color:var(--dim);font-weight:700}
   .val{min-width:56px;text-align:right;font-size:20px;font-weight:800}
   .p.up .val,.p.soon .val,.p.none .val{color:var(--dim);font-weight:700}
   .z-zero .p .val{color:var(--dim)}
@@ -459,17 +464,21 @@ function stateOf(p, n){
   const home = g.h.c === p.club, opp = home ? g.a : g.h;
   const started = DEMO || new Date(g.u) <= new Date();
   const b = box[g.c];
-  if (!started) return {kind:"up", g, opp, home};
-  if (!b || b.pending) return {kind:"soon", g, opp, home};
+  if (!started) return {kind:"up", g, opp, home, inj: window.PlayerSheet?.injury?.(p)};
+  if (!b || b.pending) return {kind:"soon", g, opp, home, inj: window.PlayerSheet?.injury?.(p)};
   const ti = b.teams[0].pl[p.code] ? 0 : b.teams[1].pl[p.code] ? 1 : (home ? 0 : 1);
   const me = b.teams[ti], them = b.teams[1 - ti], st = me.pl[p.code];
   const dnp = !st || /dnp/i.test(st.min || "");
   const raw = st && !dnp ? st.pir : 0;
   const win = me.pts > them.pts;
   const live = b.live;
+  const mins = /^(\d+):(\d+)$/.exec(st?.min || "");
+  const appeared = !!st && !dnp && (!!st.on || (mins ? +mins[1] * 60 + +mins[2] : 0) > 0);
+  const inj = window.PlayerSheet?.injury?.(p);
+  if (live && inj && !appeared) return {kind: "benched", g, opp, home, inj};      // on the injury report and not on court yet: not shown as live
   const base = live ? raw : adjustPir(raw, win);
   const share = shareOf(n, p);
-  return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, base, share,
+  return {kind: live ? "live" : "final", g, opp, home, raw, dnp, win, base, share, inj,
           val: r1(base * share),
           shown: p.slot === "zero" ? r1(base) : r1(base * share),   // 0% group shows full PIR (display only, never counted)
           score: `${me.pts}–${them.pts}`, lead: Math.sign(me.pts - them.pts), on: live && !!st?.on, q: b.q, t: b.t};
@@ -488,14 +497,17 @@ function liveClock(s){
   const qtxt = q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE";
   return `<span class="lchip"><i></i>${qtxt}${s.t && s.t !== "00:00" ? " " + esc(s.t.replace(/^0/, "")) : ""}</span>`;
 }
+const injBadge = e => e ? `<span class="res inj" data-s="${e.statusId}" title="Injury report">${esc(e.status)}</span>` : "";
 function subline(p, s){
   const tv = `<span class="tv">${esc(p.tv)}</span>`;
+  const badge = injBadge(s.inj);
   switch (s.kind){
+    case "benched": return `${tv} ${badge}`;
     case "live":  return `${tv} ${liveClock(s)} <span class="score ${s.lead > 0 ? "ahead" : s.lead < 0 ? "behind" : ""}">${s.score}</span>`;
-    case "final": return s.dnp ? `${tv} <span class="res D">DNP</span>` :
+    case "final": return s.dnp ? `${tv} ${badge || `<span class="res D">DNP</span>`}` :
                   `${tv} <span class="score fin ${s.win ? "ahead" : "behind"}">${s.score}</span>`;
-    case "soon":  return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · starting`;
-    case "up":    return `${tv} · ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · ${when(s.g.u)}`;
+    case "soon":  return `${tv} ${badge ? badge + " " : ""}· ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · starting`;
+    case "up":    return `${tv} ${badge ? badge + " " : ""}· ${s.home ? "vs" : "@"} ${esc(s.opp.tv)} · ${when(s.g.u)}`;
     default:      return `${tv} · no game this round`;
   }
 }
@@ -514,7 +526,7 @@ function rowHTML({p, i, s}, n){
 }
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
 const sortKey = r => r.s.kind === "live" ? [0, -r.s.shown] : r.s.kind === "final" ? [1, -r.s.shown]      // by the PIR shown
-                   : r.s.kind === "soon" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
+                   : r.s.kind === "soon" || r.s.kind === "benched" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
 const hasPir = r => r.s.kind === "live" || r.s.kind === "final";
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0);
 // players with PIR: sorted by PIR, on top (captain first only on a tie) · players without PIR yet: manual order
@@ -752,6 +764,8 @@ function selected(){ return sel && rosters[sel.n]?.find(x => x.code === sel.code
 const sheetInfo = (p, n) => ({state: stateOf(p, n),
   meta: n === WATCH ? `${p.clubName} · ${p.pos} · Watch team` : `${p.clubName} · ${p.pos} · ${LABEL[p.slot]}${p.captain ? " · Captain" : ""}`});
 PlayerSheet.init({games: () => games, round: () => round, fantasy: () => new Set(allPlayers().map(x => x.code))});
+function loadInj(){ PlayerSheet.loadInjuries().then(() => { if (built) render(); }).catch(() => {}); }   // injury badges in the lists
+loadInj(); setInterval(loadInj, 10 * 60e3);
 GameSheet.init({games: () => games, people: () => people, owners(){                 // the score box in a player sheet opens the game
   const m = new Map();
   COACHES.forEach(c => (rosters[c.name] || []).forEach(p => { const l = m.get(p.code) || []; l.push(teamOf(c.name)); m.set(p.code, l); }));
