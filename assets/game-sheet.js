@@ -1,8 +1,9 @@
-/* Game sheet — one game over the page: score, both box scores (sortable) and a Court view with the five on court.
+/* Game sheet — one game over the page: score board, then a switch between the two teams; each team's tab shows
+   its court (the five on court while live, else the starting five) and its full-width box score (sortable).
    Opens from the League page's Games tab and from the player sheet's score box (team pages and League page).
    Usage:
      GameSheet.init({games: () => games, owners: () => Map(player code → [fantasy team names]), people: async () => [{code, img, pos}]});
-     GameSheet.open(gameCode)   GameSheet.update()   (live refresh while it's open)
+     GameSheet.open(gameCode, {club})   (club: open on that team's tab; default the home team)   GameSheet.update()   (live refresh while it's open)
      GameSheet.close()          GameSheet.isOpen()
    Needs assets/data.js (ElData). Sits above the player sheet. */
 (function(){
@@ -18,7 +19,7 @@ height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s 
 #gWrap .grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab;touch-action:none}
 #gWrap .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
 #gWrap .sh-head{flex:none;display:block;padding:4px 16px 0;border:0;touch-action:none}
-#gWrap .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+#gWrap .sh-body{overflow-x:hidden;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
 #gWrap .board{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 14px;margin-bottom:12px}
 #gWrap .board .side{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
 #gWrap .board .side img{width:44px;height:44px;object-fit:contain}
@@ -29,7 +30,7 @@ height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s 
 #gWrap .board .mid small.lv{color:var(--orange)}
 
 /* box score tables */
-#gWrap .bx{background:var(--card);border:1px solid var(--line);border-radius:18px;margin-bottom:12px;overflow:hidden}
+#gWrap .bx{margin:4px -16px 0;border-top:1px solid var(--line)}          /* box score: full sheet width, on the sheet's own background */
 #gWrap .bx h3{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;padding:12px 14px 4px}
 #gWrap .bx h3 img{width:20px;height:20px;object-fit:contain}
 #gWrap .bx h3 span{margin-left:auto;font-size:16px}
@@ -42,7 +43,7 @@ height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s 
 #gWrap .tmt th.on::after{content:" ▾";font-size:9px}
 #gWrap .tmt th.on.asc::after{content:" ▴"}
 #gWrap .tmt th:last-child,#gWrap .tmt td:last-child{padding-right:14px}
-#gWrap .tmt th:first-child,#gWrap .tmt td:first-child{position:sticky;left:0;z-index:1;background:var(--card);text-align:left;max-width:160px;padding-left:14px;
+#gWrap .tmt th:first-child,#gWrap .tmt td:first-child{position:sticky;left:0;z-index:1;background:var(--bg);text-align:left;max-width:160px;padding-left:16px;
 overflow:hidden;text-overflow:ellipsis;box-shadow:6px 0 8px -6px #00000099}
 #gWrap .tmt td:first-child .no{color:var(--dim);font-size:11px;margin-right:6px;display:inline-block;min-width:14px}
 #gWrap .tmt td:first-child small{display:block;font-size:10.5px;color:var(--orange);font-weight:700;margin-top:1px;padding-left:20px;overflow:hidden;text-overflow:ellipsis}
@@ -53,11 +54,12 @@ overflow:hidden;text-overflow:ellipsis;box-shadow:6px 0 8px -6px #00000099}
 #gWrap .tmt .oc{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--win);margin-left:5px;vertical-align:middle}
 
 /* court view */
-#gWrap .court{position:relative;margin-bottom:14px}
+#gWrap .court{position:relative;margin:0 0 14px}
 #gWrap .court h3{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;margin:4px 2px 8px}
 #gWrap .court h3 img{width:20px;height:20px;object-fit:contain}
 #gWrap .court h3 small{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600}
-#gWrap .floor{position:relative;width:100%;aspect-ratio:828/551;background:url("assets/court.svg") center/100% 100% no-repeat}
+#gWrap .floor{position:relative;width:calc(100% + 32px + 8%);margin:0 calc(-16px - 4%);aspect-ratio:828/551;   /* a little wider than the sheet: the drawing's side edges hide past it */
+background:url("assets/court.svg") center/100% 100% no-repeat}
 #gWrap .pc{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;width:84px;text-align:center}
 #gWrap .pc .ph{width:46px;height:46px;border-radius:50%;background:var(--card-2);overflow:hidden;position:relative;display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--muted);
 border:2px solid #FFFFFF33}
@@ -82,7 +84,7 @@ border:2px solid #FFFFFF33}
     <div class="grab" aria-hidden="true"></div>
     <div class="sh-head">
       <div class="board" id="board"></div>
-      <div class="seg" id="gSeg"><button data-v="box">Box score</button><button data-v="court">Court</button></div>
+      <div class="seg" id="gSeg"></div>
     </div>
     <div class="sh-body" id="gBody"></div>
   </div>`;
@@ -104,7 +106,7 @@ border:2px solid #FFFFFF33}
     wrap = document.createElement("div"); wrap.id = "gWrap"; wrap.innerHTML = HTML; document.body.appendChild(wrap);
     wrap.querySelectorAll("[data-gclose]").forEach(x => x.onclick = close);
     document.addEventListener("keydown", e => { if (e.key === "Escape" && gOpen){ e.stopImmediatePropagation(); close(); } }, true);
-    $("#gSeg").addEventListener("click", e => { const x = e.target.closest("[data-v]"); if (!x) return; gView = x.dataset.v; $("#gBody").scrollTop = 0; render(); });
+    $("#gSeg").addEventListener("click", e => { const x = e.target.closest("[data-v]"); if (!x || +x.dataset.v === gView) return; gView = +x.dataset.v; $("#gBody").scrollTop = 0; render(); });
     $("#gBody").addEventListener("click", e => {
       const th = e.target.closest(".tmt th[data-sort]"); if (!th) return;
       const k = th.dataset.sort; gSort = gSort.k === k ? {k, dir: -gSort.dir} : {k, dir: -1};
@@ -129,10 +131,10 @@ border:2px solid #FFFFFF33}
     window.SheetDrag?.attach(sh, close);                 // swipe down anywhere once scrolled to the top
   }
 
-  function open(gc){
+  function open(gc, opt = {}){                           // opt.club: open on that club's tab (from a player sheet); otherwise the home team
     build();
     gOpen = ctx.games().find(g => g.c === gc); if (!gOpen) return;
-    gView = null;                                        // picked once the score is in: Court while live, else Box score
+    gView = opt.club && opt.club === gOpen.a.c ? 1 : 0;   // 0 = home team, 1 = away team
     wrap.classList.add("open");
     const body = $("#gBody"); body.scrollTop = 0; body._html = null; body.innerHTML = "";
     if (!peopleMap) Promise.resolve(ctx.people()).then(l => { if (l?.length){ peopleMap = new Map(l.map(p => [p.code, p])); if (gOpen) render(); } }).catch(() => {});
@@ -147,11 +149,11 @@ border:2px solid #FFFFFF33}
     if (started){ try{ b = await ElData.box(g.c); }catch{} }
     if (seq !== gSeq || gOpen !== g) return;
     const has = b && !b.pending && b.teams?.length === 2;
-    if (!gView) gView = b?.live ? "court" : "box";
     const side = t => `<div class="side">${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}<b>${esc(t.n || t.tv)}</b></div>`;
     $("#board").innerHTML = `${side(g.h)}<div class="mid"><div class="sc">${has ? `${b.teams[0].pts} – ${b.teams[1].pts}` : "vs"}</div>
         <small class="${b?.live ? "lv" : ""}">${b?.live ? esc(clockOf(b)) : has ? "FINAL" : started ? "STARTING" : esc(when(g.u))}</small></div>${side(g.a)}`;
-    wrap.querySelectorAll("#gSeg [data-v]").forEach(x => x.classList.toggle("on", x.dataset.v === gView));
+    const seg = [g.h, g.a].map((t, i) => `<button data-v="${i}" class="${i === gView ? "on" : ""}">${esc(t.n || t.tv)}</button>`).join("");
+    if ($("#gSeg")._html !== seg) $("#gSeg").innerHTML = $("#gSeg")._html = seg;
     $(".sheet").classList.toggle("fit", !started);
     const body = $("#gBody"), y = body.scrollTop, xs = [...body.querySelectorAll(".tmw")].map(w => w.scrollLeft);
     let html;
@@ -159,9 +161,7 @@ border:2px solid #FFFFFF33}
     else if (!has) html = `<div class="empty">${b ? "Waiting for the first stats…" : "Couldn't load this game right now."}</div>`;
     else {
       const own = ctx.owners();
-      html = gView === "box" ? [0, 1].map(i => boxTable(b, i, i ? g.a : g.h, own)).join("")
-           : [1, 0].map(i => courtHalf(b, i, i ? g.a : g.h, own)).join("")
-             + `<div class="note">${b.live ? "Live: the five on court for each team, with their PIR." : "Game over: the starting fives, with their final PIR."} Orange = on a fantasy roster.</div>`;
+      html = courtHalf(b, gView, own) + boxTable(b, gView, own);      // the chosen team: its court, then its box score
     }
     if (body._html !== html){                           // live updates: redraw only on change, keep where you've scrolled
       body.innerHTML = body._html = html;
@@ -169,14 +169,13 @@ border:2px solid #FFFFFF33}
       body.scrollTop = y;
     }
   }
-  function boxTable(b, i, t, own){
+  function boxTable(b, i, own){
     const T = b.teams[i];
     const val = (l, k) => k === "min" ? l.mins : k === "fg2" ? l.fg2m : k === "fg3" ? l.fg3m : k === "ft" ? l.ftm : l[k];
     const rows = Object.entries(T.pl).map(([code, l]) => ({code, l, dnp: l.min === "DNP" || !l.mins}))
       .sort((x, y) => (x.dnp - y.dnp) || gSort.dir * (val(x.l, gSort.k) - val(y.l, gSort.k)) || y.l.mins - x.l.mins);
     const cell = (l, k) => k === "min" ? esc(l.min) : k === "fg2" ? `${l.fg2m}/${l.fg2a}` : k === "fg3" ? `${l.fg3m}/${l.fg3a}` : k === "ft" ? `${l.ftm}/${l.fta}` : k === "pm" ? sign(l.pm) : l[k];
-    return `<div class="bx"><h3>${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}${esc(t.n || t.tv)}<span>${T.pts}</span></h3>
-      <div class="tmw"><table class="tmt"><thead><tr><th>Player</th>
+    return `<div class="bx"><div class="tmw"><table class="tmt"><thead><tr><th>Player</th>
         ${TM_COLS.map(([k, lab]) => `<th data-sort="${k}" class="${gSort.k === k ? "on" + (gSort.dir > 0 ? " asc" : "") : ""}">${lab}</th>`).join("")}</tr></thead><tbody>
       ${rows.map(({code, l, dnp}) => { const o = own.get(code); return `<tr class="${o ? "fan" : ""}${dnp ? " dnp" : ""}">
         <td><span class="no">${esc(l.no)}</span>${esc(shortName(l.name))}${b.live && l.on ? '<i class="oc" title="On court"></i>' : ""}${o ? `<small>${esc(o.join(", "))}</small>` : ""}</td>
@@ -186,7 +185,7 @@ border:2px solid #FFFFFF33}
   // spots on the half court (basket at the top), two rows so the chips never overlap
   const SPOTS = [[50, 27], [17, 33], [83, 33], [31, 76], [69, 76]];
   const POS_RANK = {C: 0, F: 1, G: 2};
-  function courtHalf(b, i, t, own){
+  function courtHalf(b, i, own){
     const T = b.teams[i], pp = code => peopleMap?.get(code) || {};
     const five = Object.entries(T.pl).filter(([, l]) => b.live ? l.on : l.starter)
       .sort(([a], [c]) => (POS_RANK[pp(a).pos] ?? 1) - (POS_RANK[pp(c).pos] ?? 1)).slice(0, 5);
@@ -198,8 +197,7 @@ border:2px solid #FFFFFF33}
         ${o ? `<span class="own">${esc(o[0])}${o.length > 1 ? " +" + (o.length - 1) : ""}</span>` : ""}
         <b>${esc(shortName(l.name))}</b><span class="v">${l.pir} PIR</span></div>`;
     }).join("");
-    return `<div class="court"><h3>${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}${esc(t.n || t.tv)}<small>${b.live ? "on court" : "starting five"}</small></h3>
-      <div class="floor">${chips}</div>${five.length ? "" : `<div class="note">No line-up yet.</div>`}</div>`;
+    return `<div class="court"><div class="floor">${chips}</div>${five.length ? "" : `<div class="note">No line-up yet.</div>`}</div>`;
   }
 
   window.GameSheet = {
