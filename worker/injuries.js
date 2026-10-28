@@ -11,7 +11,7 @@ import { feeds, fold, ltForms, parse, search, UA } from "./news.js";
 const REPORT = "https://basketnews.com/news-212393-euroleague-injury-report-updated.html";
 const GAMES = "https://api-live.euroleague.net/v2/competitions/E/seasons/";
 const EVERY = 3 * 3600e3, CLOSE = 3 * 3600e3, CLOSE_EVERY = 10 * 60e3;
-const NEWS_VERSION = 2;                         // bump to re-check every entry with a new search method
+const NEWS_VERSION = 3;                         // bump to re-check every entry with a new search method
 const RESEARCH_EVERY = 12 * 3600e3, RESEARCH_CLOSE = 60 * 60e3, RESEARCH_PER_RUN = 10;
 const NEWS_AGE = 21 * 86400e3;
 // more sources than the News tab: international basketball sites' own feeds (read once per run, shared)
@@ -136,10 +136,12 @@ async function newsFor(e, shared) {
     search(`"${e.name}"`, "en-US", "en"),
     search(`(${forms.map(f => `"${f}"`).join(" OR ")}) krepšinis`, "lt-LT", "lt"),
   ]);
-  const f = fold(last).replace(/[^a-z]/g, ""), stem = f.slice(0, Math.max(4, f.length - 2));
-  const first = fold(parts[0]).replace(/[^a-z]/g, "");
-  const full = new RegExp(`(^|[^a-z])(${first}|${first[0]}\\.?)[a-z]*\\s+${stem}`);      // "Mike James", "M. James", Lithuanian "Mike'as Jamesas"
-  const sur = new RegExp(`(^|[^a-z])${stem}`);
+  // the surname as a whole word: English spelling or one of its Lithuanian forms ("Warren" never matches "Warriors")
+  const alts = [...new Set([last, ...forms].map(x => fold(x).replace(/[^a-z'-]/g, "")).filter(Boolean))].map(x => x.replace(/[-']/g, "[-' ]?")).join("|");
+  const sur = new RegExp(`(^|[^a-z])(${alts})(?![a-z])`);
+  const firstRaw = fold(parts[0]), first = firstRaw.replace(/[^a-z]/g, "");
+  const initial = firstRaw.replace(/[^a-z.]/g, "").replace(/\./g, "\\.?");             // "T.J." → t\.?j\.?
+  const full = new RegExp(`(^|[^a-z])(${first}[a-z']*|${initial}|${first[0]}\\.)\\s+(${alts})(?![a-z])`);   // "Mike James", "M. James", "TJ Warren", "Mike'as Jamesas"
   const club = toks(e.team).filter(w => w.length >= 4).map(w => w.slice(0, 5));         // "Barcelona" also matches "Barcelonos"
   const isHim = i => { const t = fold(i.title + " " + i.about); return full.test(t) || (sur.test(t) && club.some(c => t.includes(c))); };
   const now = Date.now(), seen = new Set();
