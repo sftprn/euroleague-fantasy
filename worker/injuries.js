@@ -245,6 +245,12 @@ async function readReport(cur, now) {
 
 export async function getInjuries(request, env, ctx) {
   if (!env.DB) return json({ error: "D1 database not bound as DB" }, 500);
+  const dbg = new URL(request.url).searchParams.get("probe");            // temporary: what do the news searches return for one name?
+  if (dbg && /^[\p{L}' .-]{3,40}$/u.test(dbg)) {
+    const qs = [`"${dbg}" (injury OR injured OR out OR return)`, `"${dbg}" injury`, `"${dbg}"`, `${dbg} injury`];
+    const res = await Promise.all(qs.map(q => search(q, "en-US", "en").then(l => ({ q, n: l.length, top: l.slice(0, 4).map(i => i.source + " | " + i.title.slice(0, 70)) })).catch(e => ({ q, err: String(e.message) }))));
+    return json(res);
+  }
   let cur = await load(env.DB);
   if (!cur) { await injuryCheck(env); cur = await load(env.DB); }      // very first time: wait for it
   else ctx.waitUntil(injuryCheck(env));                                  // otherwise refresh in the background when due
