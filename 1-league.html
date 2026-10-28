@@ -92,6 +92,8 @@
   /* live games */
   .lg{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
   .lg:first-child{border-top:0}
+  .day-h{font-size:13px;font-weight:700;color:var(--muted);margin:22px 6px 8px}      /* Games tab: one list per day when the round spans several */
+  .day-h:first-child{margin-top:2px}
   .lg:active{background:#1F1F23}
   .lg .teams{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
   .lg .tm{display:flex;align-items:center;gap:9px}
@@ -171,7 +173,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 
   <!-- Games: this round's games (Game Center); tap one to open it -->
   <div id="vGames" hidden>
-    <div class="list" id="gamesList"><div class="nolive">Loading…</div></div>
+    <div id="gamesList"><div class="list"><div class="nolive">Loading…</div></div></div>
   </div>
 
   <!-- Players: top 10 of the round among everyone's rosters -->
@@ -354,9 +356,9 @@ function renderGames(){
     return {k: 2}; };
   const rg = games.filter(g => g.r === round).map(g => ({g, s: stOf(g)}))
                   .sort((x, y) => x.s.k - y.s.k || Date.parse(x.g.u) - Date.parse(y.g.u));   // live, starting, upcoming, finished
-  if (!rg.length){ $("#gamesList").innerHTML = `<div class="nolive">No games this round.</div>`; return; }
+  if (!rg.length){ $("#gamesList").innerHTML = `<div class="list"><div class="nolive">No games this round.</div></div>`; $("#gamesList")._html = null; return; }
   const fans = g => new Set(COACHES.flatMap(c => rosterOf(c.name)).filter(p => p.club === g.h.c || p.club === g.a.c).map(p => p.code)).size;
-  $("#gamesList").innerHTML = rg.map(({g, s}) => {
+  const row = ({g, s}) => {
     const has = !!s.b, hp = has ? s.b.teams[0].pts : "", ap = has ? s.b.teams[1].pts : "";
     const tm = (t, pts, behind) => `<div class="tm${behind ? " behind" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}<b>${esc(t.n || t.tv)}</b>${has ? `<span class="pts">${pts}</span>` : ""}</div>`;
     const st = s.live ? `<span class="s"><i></i>${esc(clockOf(s.b))}</span>` : s.k === 3 ? "FINAL" : s.k === 1 ? "STARTING" : esc(when(g.u));
@@ -364,7 +366,14 @@ function renderGames(){
     return `<div class="lg${s.live ? " live" : ""}" data-game="${g.c}" role="button" tabindex="0">
       <div class="teams">${tm(g.h, hp, has && hp < ap)}${tm(g.a, ap, has && ap < hp)}</div>
       <div class="st">${st}${f ? `<span class="fan">${f} fantasy</span>` : ""}</div></div>`;
-  }).join("");
+  };
+  // games on several days → a list per day (in date order) under a headline like "27 October 2026"
+  const dayKey = u => { const d = new Date(u); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const days = [...new Set(rg.map(x => dayKey(x.g.u)))].sort();
+  const html = days.length < 2 ? `<div class="list">${rg.map(row).join("")}</div>`
+    : days.map(k => { const list = rg.filter(x => dayKey(x.g.u) === k);
+        return `<div class="day-h">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}))}</div><div class="list">${list.map(row).join("")}</div>`; }).join("");
+  if ($("#gamesList")._html !== html) $("#gamesList").innerHTML = $("#gamesList")._html = html;
 }
 const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
 
