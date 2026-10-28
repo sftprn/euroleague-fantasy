@@ -182,7 +182,8 @@ async function run(env, force) {
   const cur = await load(DB);
   // the report: every 3 h, or every 10 min while a listed player's game is less than 3 h away
   const close = (cur?.entries || []).some(e => e.next && e.next.u - now < CLOSE && e.next.u > now - 30 * 60e3);
-  const reportDue = force || !cur || now - (cur.fetchedAt || 0) >= (close ? CLOSE_EVERY : EVERY);
+  const unmatched = (cur?.entries || []).some(e => !e.club);               // a team we couldn't place: try again sooner
+  const reportDue = force || !cur || now - (cur.fetchedAt || 0) >= (close ? CLOSE_EVERY : unmatched ? 30 * 60e3 : EVERY);
   let doc = cur || { entries: [] };
   if (reportDue) doc = await readReport(cur, now);
   // news research: a few entries per run (the server may only make ~50 requests per run), most urgent first
@@ -217,7 +218,8 @@ function quick(e) {                                          // status-based ans
 async function readReport(cur, now) {
   const games = await fetch(`${GAMES}${season()}/games`, { headers: { accept: "application/json" } }).then(r => r.json()).then(d => d.data || []).catch(() => []);
   const clubs = new Map();
-  games.forEach(g => [g.local, g.road].forEach(s => s?.club?.code && clubs.set(s.club.code, { c: s.club.code, tv: s.club.tvCode || s.club.code, n: s.club.editorialName || s.club.name || s.club.code })));
+  games.forEach(g => [g.local, g.road].forEach(s => s?.club?.code && clubs.set(s.club.code, { c: s.club.code, tv: s.club.tvCode || s.club.code,
+    n: [s.club.name, s.club.editorialName, s.club.abbreviatedName, s.club.alias, s.club.city].filter(Boolean).join(" ") })));   // every name variant (e.g. "Barça" vs "FC Barcelona")
   const nextOf = code => {                                   // the club's next game not yet finished
     const g = games.filter(g => (g.local.club.code === code || g.road.club.code === code) && !g.played && Date.parse(g.utcDate) > now - 3 * 3600e3)
                    .sort((a, b) => Date.parse(a.utcDate) - Date.parse(b.utcDate))[0];
