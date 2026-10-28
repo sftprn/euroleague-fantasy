@@ -30,7 +30,7 @@ height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s 
 #gWrap .board .mid small.lv{color:var(--orange)}
 
 /* box score tables */
-#gWrap .bx{margin:4px -16px 0;border-top:1px solid var(--line)}          /* box score: full sheet width, on the sheet's own background */
+#gWrap .bx{position:relative;z-index:1;margin:-5px -16px 0;background:var(--bg);border-top:1px solid var(--line)}   /* box score: full sheet width, on the sheet's background, right on the court (hides its last few px) */
 #gWrap .bx h3{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;padding:12px 14px 4px}
 #gWrap .bx h3 img{width:20px;height:20px;object-fit:contain}
 #gWrap .bx h3 span{margin-left:auto;font-size:16px}
@@ -54,7 +54,7 @@ overflow:hidden;text-overflow:ellipsis;box-shadow:6px 0 8px -6px #00000099}
 #gWrap .tmt .oc{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--win);margin-left:5px;vertical-align:middle}
 
 /* court view */
-#gWrap .court{position:relative;margin:0 0 14px}
+#gWrap .court{position:relative;margin:0}
 #gWrap .court h3{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;margin:4px 2px 8px}
 #gWrap .court h3 img{width:20px;height:20px;object-fit:contain}
 #gWrap .court h3 small{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600}
@@ -71,9 +71,9 @@ border:2px solid #FFFFFF33}
 #gWrap .note{font-size:11.5px;color:var(--dim);padding:6px 2px 0}
 #gWrap .sh-body .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
 
-#gWrap .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
-#gWrap .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
-#gWrap .seg button.on{background:var(--orange);color:#fff}
+#gWrap .seg{display:flex;gap:4px;margin:0 -16px;padding:8px 16px;background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}   /* team tabs: same look as the player sheet's tabs */
+#gWrap .seg button{flex:1;min-width:0;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
+#gWrap .seg button.on{background:var(--card-2);color:#fff}
 #gWrap .scrim{z-index:14}
 #gWrap .sheet{z-index:15}
 #gWrap h3{margin:0}
