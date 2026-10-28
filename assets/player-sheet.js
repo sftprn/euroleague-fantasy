@@ -1,6 +1,6 @@
 /* Player sheet — the bottom sheet that opens when you tap a player (team pages, League page → Players).
-   Header (name, details, PIR + calculation, cut-out photo) and tabs: Game · Season · News.
-   Game = score board, minutes (tap for each stint), stat grid and a Team stats button (second sheet on top).
+   Header (name, details, PIR + calculation, cut-out photo) and tabs: Game · Season.
+   Game = score board, minutes (tap for each stint), stat grid, and Team stats + News buttons (each opens a second sheet on top).
    The sheet always opens at full height.
    Usage (each page passes what it knows):
      PlayerSheet.init({games: () => games, round: () => round, fantasy: () => Set of player codes on fantasy rosters});
@@ -69,7 +69,8 @@
 #psWrap .mn .tl .q{background:var(--card-2)}
 #psWrap .mn .stint:first-of-type{border-top:1px solid var(--line)}
 #psWrap .mn .tl-lab{margin-bottom:8px}
-#psWrap .tsb{display:block;width:100%;height:46px;margin-top:12px;border:0;border-radius:14px;background:var(--card-2);color:#fff;font:700 14.5px Inter,system-ui,sans-serif;cursor:pointer}
+#psWrap .btns{display:flex;gap:8px;margin-top:12px}
+#psWrap .tsb{display:block;flex:1;min-width:0;height:46px;border:0;border-radius:14px;background:var(--card-2);color:#fff;font:700 14.5px Inter,system-ui,sans-serif;cursor:pointer}
 #psWrap .tsb:active{background:#2E2E33}
 #psWrap .lc{display:block;margin:4px 0 14px;overflow:visible}
 #psWrap .lc text{font:600 10.5px Inter,system-ui,sans-serif;fill:var(--dim)}
@@ -158,7 +159,6 @@
       <div class="tabs" data-ps="tabs" id="shTabs" role="tablist">
         <button data-tab="game" role="tab">Game</button>
         <button data-tab="season" role="tab">Season</button>
-        <button data-tab="news" role="tab">News</button>
       </div>
       <div class="pane" data-ps="pane" id="shPane"></div>
     </div>
@@ -171,7 +171,7 @@
   </div>`;
 
   let ctx = {games: () => [], round: () => null, fantasy: () => new Set()};
-  let wrap, el = {}, cur = null, info = {state: {kind: "none"}, meta: ""}, tab = "game", seq = 0, tmSort = {k: "pir", dir: -1}, minsOpen = false, tsOpen = false, tsSeq = 0;
+  let wrap, el = {}, cur = null, info = {state: {kind: "none"}, meta: ""}, tab = "game", seq = 0, tmSort = {k: "pir", dir: -1}, minsOpen = false, tsOpen = false, tsSeq = 0, topMode = "team";
   const newsCache = {};
 
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -210,11 +210,11 @@
     el.tabs.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b){ tab = b.dataset.tab; renderTab(); } });
     el.pane.addEventListener("click", e => {
       if (e.target.closest(".mn")){ minsOpen = !minsOpen; renderTab(); return; }     // minutes: tap to show / hide each stint
-      if (e.target.closest(".tsb")) openTeam();
+      const tb = e.target.closest(".tsb"); if (tb) openTeam(tb.dataset.top);     // Team stats / News → a sheet on top
       const bd = e.target.closest(".bd[data-game]"); if (bd) GameSheet.open(+bd.dataset.game);   // score box → the game sheet on top
     });
     el.tsbody.addEventListener("click", e => {           // team stats: tap a column to sort
-      const th = e.target.closest(".tmt th[data-sort]"); if (!th || th.dataset.sort === "name") return;
+      const th = e.target.closest(".tmt th[data-sort]"); if (!th || th.dataset.sort === "name" || topMode !== "team") return;
       const k = th.dataset.sort; tmSort = tmSort.k === k ? {k, dir: -tmSort.dir} : {k, dir: -1};
       renderTeam();
     });
@@ -281,8 +281,7 @@
     if (pane.dataset.tab !== tab + p.code) paneSet(`<div class="loading">Loading…</div>`);
     pane.dataset.tab = tab + p.code;
     try{
-      const html = tab === "game" ? await gamePane(p) : tab === "news" ? await newsPane(p)
-                 : await seasonPane(p, h => { if (!stale()) paneSet(h); });
+      const html = tab === "game" ? await gamePane(p) : await seasonPane(p, h => { if (!stale()) paneSet(h); });
       if (!stale()) paneSet(html);
     }catch{ if (!stale()) paneSet(`<div class="empty">Couldn't load this right now. Try again in a moment.</div>`); }
   }
@@ -293,15 +292,15 @@
     const status = b?.live ? `<small class="lv">${esc(liveTxt(b.q ? b : info.state || {}))}</small>` : has ? `<small>FINAL</small>` : `<small>${started ? "STARTING" : esc(when(g.u))}</small>`;
     return `<div class="bd"${window.GameSheet ? ` data-game="${g.c}" role="button" tabindex="0" aria-label="Open the game"` : ""}>${side(g.h)}<div class="mid"><div class="sc">${has ? `${b.teams[0].pts} – ${b.teams[1].pts}` : "vs"}</div>${status}</div>${side(g.a)}</div>`;
   }
-  const teamBtn = `<button class="tsb" type="button">Team stats</button>`;
+  const btns = (team = true) => `<div class="btns">${team ? `<button class="tsb" type="button" data-top="team">Team stats</button>` : ""}<button class="tsb" type="button" data-top="news">News</button></div>`;
   async function gamePane(p){
     const g = gameOf(p);
-    if (!g) return `<div class="empty">No game this round.</div>`;
-    if (Date.parse(g.u) > Date.now()) return board(g, null, p) + `<div class="empty">Stats show up once the game starts.</div>`;
+    if (!g) return `<div class="empty">No game this round.</div>` + btns(false);
+    if (Date.parse(g.u) > Date.now()) return board(g, null, p) + `<div class="empty">Stats show up once the game starts.</div>` + btns(false);
     const [b, st] = await Promise.all([ElData.box(g.c), ElData.stretches(g.c).catch(() => null)]);
-    if (b.pending) return board(g, b, p) + `<div class="empty">Waiting for the first stats…</div>`;
+    if (b.pending) return board(g, b, p) + `<div class="empty">Waiting for the first stats…</div>` + btns(false);
     const l = await ElData.line(g.c, p.code);
-    if (!l || l.min === "DNP" || !l.mins) return board(g, b, p) + `<div class="empty">Did not play${b.live ? " yet" : ""}.</div>` + teamBtn;
+    if (!l || l.min === "DNP" || !l.mins) return board(g, b, p) + `<div class="empty">Did not play${b.live ? " yet" : ""}.</div>` + btns();
     const pf = Math.min(5, l.pf || 0);
     const cell = (v, lab, extra = "") => `<div><b>${v}</b><small>${lab}</small>${extra}</div>`;
     return board(g, b, p) + minsBlock(st, l, p, b) + `<div class="grid">
@@ -310,7 +309,7 @@
       ${cell(`${l.ftm}/${l.fta}`, "FT", `<em>${pct(l.ftm, l.fta)}</em>`)}${cell(l.stl, "STL")}
       ${cell(l.to, "TO")}${cell(l.blk, "BLK", `<em>${l.blka} against</em>`)}${cell(l.fd, "DRAWN", `<em>fouls on him</em>`)}
       <div><b>${l.pf}</b><small>FOULS</small><div class="fouls${pf >= 4 ? " warn" : ""}">${[1,2,3,4,5].map(i => `<i class="${i <= pf ? "on" : ""}"></i>`).join("")}</div></div>
-    </div>` + teamBtn;
+    </div>` + btns();
   }
   function minsBlock(st, l, p, b){                        // boxed: minutes, stints and the on-court bar; tap to list each stint
     const mine = st && !st.pending ? st.pl[p.code] || [] : [];
@@ -358,6 +357,13 @@
   async function renderTeam(){
     const p = cur; if (!p || !tsOpen) return;
     const s = ++tsSeq, body = el.tsbody;
+    if (topMode === "news"){
+      el.tshead.innerHTML = `<div><b>News</b><small>Latest stories about ${esc(p.name)}</small></div>`;
+      let html;
+      try{ html = await newsPane(p); }catch{ html = `<div class="empty">Couldn't load news right now. Try again in a moment.</div>`; }
+      if (s === tsSeq && tsOpen && body._html !== html) body.innerHTML = body._html = html;
+      return;
+    }
     const g = gameOf(p), t = g ? (g.h.c === p.club ? g.h : g.a) : null;
     el.tshead.innerHTML = `${t?.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}<div><b>${esc(t?.n || p.clubName || p.tv || "")}</b><small>Team stats${g ? ` · vs ${esc((g.h.c === p.club ? g.a : g.h).n || (g.h.c === p.club ? g.a : g.h).tv)}` : ""}</small></div>`;
     let html;
@@ -368,7 +374,8 @@
     const w = body.querySelector(".tmw"); if (w) w.scrollLeft = x;
     body.scrollTop = y;
   }
-  function openTeam(){
+  function openTeam(mode = "team"){
+    topMode = mode; el.tshead.innerHTML = "";
     tsOpen = true; el.tsbody._html = null; el.tsbody.innerHTML = `<div class="loading">Loading…</div>`; el.tsbody.scrollTop = 0;
     wrap.classList.add("ts-open"); renderTeam();
   }
@@ -464,7 +471,7 @@
     info = {...info, ...inf};
     fillHead(false);
     if (tab === "game") renderTab();
-    if (tsOpen) renderTeam();
+    if (tsOpen && topMode === "team") renderTeam();
   }
   function close(){ closeTeam(); if (wrap) wrap.classList.remove("open"); }
   window.PlayerSheet = {
