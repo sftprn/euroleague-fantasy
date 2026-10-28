@@ -255,6 +255,20 @@ async function readReport(cur, now) {
 
 export async function getInjuries(request, env, ctx) {
   if (!env.DB) return json({ error: "D1 database not bound as DB" }, 500);
+  if (new URL(request.url).searchParams.get("feedprobe") === "1") {        // temporary: which feeds can the server read?
+    const C = ["https://www.eurohoops.net/en/feed/", "https://sportando.basketball/en/feed/", "https://www.talkbasket.net/feed", "https://basketnews.com/rss/news.xml",
+      "https://basketnews.com/rss.xml", "https://basketnews.com/rss/", "https://www.eurohoops.net/en/category/euroleague/feed/",
+      "https://e00-marca.uecdn.es/rss/baloncesto.xml", "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/baloncesto/portada/", "https://www.mundodeportivo.com/rss/baloncesto",
+      "https://www.gazzetta.it/rss/basket.xml", "https://www.sportando.basketball/feed/", "https://www.sdna.gr/rss.xml", "https://www.gazzetta.gr/rss", "https://www.sport24.gr/rss",
+      "https://www.fanatik.com.tr/rss/basketbol", "https://www.ntvspor.net/rss/basketbol", "https://www.sportal.rs/rss/kosarka", "https://www.mozzartsport.com/rss",
+      "https://www.sport5.co.il/rss.aspx", "https://dwh.lequipe.fr/api/edito/rss?path=/Basket/", "https://www.basketinside.com/feed/", "https://www.euroleaguebasketball.net/rss",
+      "https://www.eurohoops.net/gr/feed/", "https://www.eurohoops.net/es/feed/", "https://www.eurohoops.net/tr/feed/", "https://www.sportklub.rs/rss", "https://www.b92.net/info/rss/sport.xml",
+      "https://www.15min.lt/rss/sportas", "https://www.delfi.lt/rss/feeds/sport.xml", "https://www.lrt.lt/tema/krepsinis?rss", "https://www.krepsinis.net/rss"];
+    const out = await Promise.all(C.map(async u => { const t0 = Date.now(); try { const r = await fetch(u, { headers: UA, redirect: "follow" }); const x = await r.text();
+      const items = parse(x, "en", "").length; const first = (/<item[\s>][\s\S]*?<title[^>]*>([\s\S]*?)<\/title>/.exec(x) || [])[1] || "";
+      return { u, status: r.status, items, ms: Date.now() - t0, first: first.replace(/<!\[CDATA\[|\]\]>/g, "").slice(0, 60) }; } catch (e) { return { u, err: String(e.message).slice(0, 60) }; } }));
+    return json(out);
+  }
   let cur = await load(env.DB);
   if (!cur) { await injuryCheck(env); cur = await load(env.DB); }      // very first time: wait for it
   else ctx.waitUntil(injuryCheck(env));                                  // otherwise refresh in the background when due
