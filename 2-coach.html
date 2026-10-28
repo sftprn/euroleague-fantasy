@@ -428,10 +428,12 @@ const loadGames = () => cached(`elf.games2.${SEASON}`, 10 * 60e3, async () => {
 });
 
 async function loadBox(g){
-  const key = `elf.box.${SEASON}.${g.c}`;
+  const key = `elf.box2.${SEASON}.${g.c}`;
   const c = store.get(key);
-  if (c && c.final && !DEMO) return c;                       // finished games never change
-  const d = await getJSON(`${LIVE_API}/Boxscore?gamecode=${g.c}&seasoncode=${SEASON}`);
+  if (c && c.final && !DEMO && ElData.keep(c)) return c;        // finished: re-checked hourly (Euroleague corrects box scores), kept for good after ~2 days
+  let d;
+  try{ d = await getJSON(`${LIVE_API}/Boxscore?gamecode=${g.c}&seasoncode=${SEASON}`); }
+  catch(e){ if (c && c.final) return c; throw e; }
   if (!d || !d.Stats || d.Stats.length < 2) return {pending:true};
   const teams = d.Stats.map(s => {                           // Stats[0] = home, Stats[1] = away
     const pl = {};
@@ -444,7 +446,7 @@ async function loadBox(g){
   else if (b.live){
     try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${g.c}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = h?.RemainingPartialTime; }catch{}
   }
-  if (b.final) store.set(key, b);
+  if (b.final){ const v = ElData.stamp(c, b); store.set(key, v); return v; }
   return b;
 }
 

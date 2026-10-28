@@ -7,20 +7,27 @@
      stretches(gameCode)      → {len, now, live, pl:{personCode: [[fromMin, toMin], …]}}   (game minutes, 0 … 40 + 5 per OT)
      history(code, club, games, onRow) → rows [{r, c, u, home, opp, pts, oppPts, win, live, played, min, mins, pir, adj}]
                                  games = the page's schedule list ({c, r, u, p, h:{c}, a:{c}}); onRow fires as each game arrives
-   Finished games are cached on this phone for good (compact form); live games are re-read at most every 15 s. */
+   Finished games are kept on this phone (compact form) and re-checked once an hour, because Euroleague sometimes corrects
+   a box score after the game (e.g. a foul added → PIR −1); about two days after a game ends its copy is kept for good.
+   Live games are re-read at most every 15 s. */
 (function(){
   const today = new Date();
   const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1);
   const DIRECT = location.protocol === "file:";
   const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
   const LIVE_TTL = 15e3;
+  const RECHECK = 3600e3, SETTLE = 48 * 3600e3;            // finished game: re-check hourly; settled 2 days after we first saw it final
+  // a stored finished copy is still good if the game has settled or we checked it within the hour
+  const keep = c => !!c && (Date.now() - (c.ff || 0) > SETTLE || Date.now() - (c.ck || 0) < RECHECK);
+  const stamp = (c, v) => ({...v, ff: c?.ff || Date.now(), ck: Date.now()});      // ff = first seen final, ck = last checked
+  try{ Object.keys(localStorage).filter(k => /^elf\.(fbox|stints|box)\.E\d{4}\./.test(k)).forEach(k => localStorage.removeItem(k)); }catch{}   // old copies that never re-checked
 
   const store = {
     get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch{ return null; } },
     set(k, v){
       try{ localStorage.setItem(k, JSON.stringify(v)); }
       catch{                                   // phone storage full: drop old cached games and try once more
-        try{ Object.keys(localStorage).filter(x => /^elf(demo\.[a-z]+)?\.(fbox|stints)\./.test(x)).slice(0, 80).forEach(x => localStorage.removeItem(x));
+        try{ Object.keys(localStorage).filter(x => /^elf(demo\.[a-z]+)?\.(fbox|stints|box)2?\./.test(x)).slice(0, 80).forEach(x => localStorage.removeItem(x));
              localStorage.setItem(k, JSON.stringify(v)); }catch{}
       }
     }
@@ -37,7 +44,7 @@
   function once(key, ttl, load){
     const m = mem[key];
     if (m && m.p) return m.p;
-    if (m && m.v && (m.v.final || Date.now() - m.t < ttl)) return Promise.resolve(m.v);
+    if (m && m.v && Date.now() - m.t < (m.v.final ? RECHECK : ttl)) return Promise.resolve(m.v);
     const p = load().then(v => { mem[key] = {t: Date.now(), v}; return v; }, e => { delete mem[key]; throw e; });
     mem[key] = {...(m || {}), p};
     return p;
@@ -56,11 +63,13 @@
   const niceName = s => String(s || "").split(",").map(x => x.trim()).reverse().join(" ").toLowerCase().replace(/(^|[\s'-])\p{L}/gu, c => c.toUpperCase());
 
   function box(gc){
-    const key = `elf.fbox.${SEASON}.${gc}`;
+    const key = `elf.fbox2.${SEASON}.${gc}`;
     const c = store.get(key);
-    if (c) return Promise.resolve(unpack(c));
+    if (keep(c)) return Promise.resolve(unpack(c));
     return once("box" + gc, LIVE_TTL, async () => {
-      const d = await getJSON(`${LIVE_API}/Boxscore?gamecode=${gc}&seasoncode=${SEASON}`);
+      let d;
+      try{ d = await getJSON(`${LIVE_API}/Boxscore?gamecode=${gc}&seasoncode=${SEASON}`); }
+      catch(e){ if (c) return unpack(c); throw e; }                    // can't re-check right now: keep the copy we have
       if (!d || !d.Stats || d.Stats.length < 2) return {pending: true, teams: []};
       const teams = d.Stats.map(s => {
         const pl = {};
@@ -79,7 +88,7 @@
       if (b.live){
         try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${gc}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = h?.RemainingPartialTime; }catch{}
       }
-      if (b.final) store.set(key, pack(b));
+      if (b.final) store.set(key, stamp(c, pack(b)));
       return b;
     });
   }
@@ -124,14 +133,16 @@
     return {len, now: pbp?.Live ? last : len, live: !!pbp?.Live, pl};
   }
   function stretches(gc){
-    const key = `elf.stints.${SEASON}.${gc}`;
+    const key = `elf.stints2.${SEASON}.${gc}`;
     const c = store.get(key);
-    if (c) return Promise.resolve(c);
+    if (keep(c)) return Promise.resolve(c);
     return once("pbp" + gc, LIVE_TTL, async () => {
-      const [pbp, b] = await Promise.all([getJSON(`${LIVE_API}/PlayByPlay?gamecode=${gc}&seasoncode=${SEASON}`), box(gc)]);
+      let pbp, b;
+      try{ [pbp, b] = await Promise.all([getJSON(`${LIVE_API}/PlayByPlay?gamecode=${gc}&seasoncode=${SEASON}`), box(gc)]); }
+      catch(e){ if (c) return c; throw e; }
       if (!pbp) return {len: 40, now: 0, live: false, pl: {}, pending: true};
       const s = buildStretches(pbp, b);
-      if (!pbp.Live && b.final) store.set(key, s);
+      if (!pbp.Live && b.final) store.set(key, stamp(c, s));
       return s;
     });
   }
@@ -164,5 +175,5 @@
     return rows;
   }
 
-  window.ElData = {SEASON, box, line, stretches, history, buildStretches};
+  window.ElData = {SEASON, box, line, stretches, history, buildStretches, keep, stamp};
 })();

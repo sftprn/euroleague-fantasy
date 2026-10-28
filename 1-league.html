@@ -329,10 +329,12 @@ const loadGames = () => cached(`elf.lgames.${SEASON}`, 10 * 60e3, async () => {
   return d.map(x => ({c:x.gameCode, r:x.round, u:x.utcDate, p:x.played, h:side(x.local), a:side(x.road)}));
 });
 async function loadBox(g){
-  const key = `elf.box.${SEASON}.${g.c}`;
+  const key = `elf.box2.${SEASON}.${g.c}`;
   const c = store.get(key);
-  if (c && c.final) return c;
-  const d = await getJSON(`${LIVE_API}/Boxscore?gamecode=${g.c}&seasoncode=${SEASON}`);
+  if (c && c.final && ElData.keep(c)) return c;        // finished: re-checked hourly (Euroleague corrects box scores), kept for good after ~2 days
+  let d;
+  try{ d = await getJSON(`${LIVE_API}/Boxscore?gamecode=${g.c}&seasoncode=${SEASON}`); }
+  catch(e){ if (c && c.final) return c; throw e; }
   if (!d || !d.Stats || d.Stats.length < 2) return {pending:true};
   const teams = d.Stats.map(s => {
     const pl = {};
@@ -342,7 +344,7 @@ async function loadBox(g){
   const tot = teams[0].pts + teams[1].pts;
   const b = {live: !!d.Live, final: !d.Live && tot > 0, pending: !d.Live && tot === 0, teams};
   if (b.live){ try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${g.c}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = h?.RemainingPartialTime; }catch{} }
-  if (b.final) store.set(key, b);
+  if (b.final){ const v = ElData.stamp(c, b); store.set(key, v); return v; }
   return b;
 }
 
@@ -581,7 +583,7 @@ function relevantGames(){
 async function refresh(){
   if (!games.length) return;
   // every started game of the round (not just ours): the Start button waits for all of them
-  const need = games.filter(g => g.r === round && new Date(g.u) <= new Date() && !(box[g.c] && box[g.c].final));
+  const need = games.filter(g => g.r === round && new Date(g.u) <= new Date() && !(box[g.c] && box[g.c].final && ElData.keep(box[g.c])));
   const res = await Promise.all(need.map(g => loadBox(g).then(b => [g.c, b]).catch(() => [g.c, box[g.c]])));
   res.forEach(([c, b]) => { if (b) box[c] = b; });
   render();
