@@ -51,7 +51,9 @@ overflow:hidden;text-overflow:ellipsis;box-shadow:6px 0 8px -6px #00000099}
 #gWrap .tmt tr.fan td{background:#1E1712}
 #gWrap .tmt tr.fan td:first-child{background:#1E1712}
 #gWrap .tmt tr.dnp td{color:var(--dim)}
-#gWrap .tmt .oc{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--win);margin-left:5px;vertical-align:middle}
+#gWrap .tmt .oc{position:static;display:inline-block;width:6px;height:6px;border:0;border-radius:50%;background:var(--win);margin-left:5px;vertical-align:middle}   /* every property set: the team pages have their own .oc */
+#gWrap .tmt tfoot td{font-weight:800;border-top:1px solid var(--line);border-bottom:0;background:var(--bg)}
+#gWrap .tmt tfoot td:first-child{color:var(--muted);font-size:11px;letter-spacing:.06em}
 
 /* court view */
 #gWrap .court{position:relative;margin:0}
@@ -220,6 +222,15 @@ border:2px solid #FFFFFF33}
       body.scrollTop = y;
     }
   }
+  function total(T, k){                                  // team totals: the players' lines added up
+    const ls = Object.values(T.pl).filter(l => l.min !== "DNP"), sum = f => ls.reduce((a, l) => a + (+l[f] || 0), 0);
+    if (k === "min"){ const m = Math.round(ls.reduce((a, l) => a + (l.mins || 0), 0)); return `${m}:00`; }
+    if (k === "fg2") return `${sum("fg2m")}/${sum("fg2a")}`;
+    if (k === "fg3") return `${sum("fg3m")}/${sum("fg3a")}`;
+    if (k === "ft") return `${sum("ftm")}/${sum("fta")}`;
+    if (k === "pm") return "";                              // +/− doesn't add up
+    return sum(k);
+  }
   function boxTable(b, i, own){
     const T = b.teams[i];
     const val = (l, k) => k === "min" ? l.mins : k === "fg2" ? l.fg2m : k === "fg3" ? l.fg3m : k === "ft" ? l.ftm : l[k];
@@ -231,7 +242,7 @@ border:2px solid #FFFFFF33}
       ${rows.map(({code, l, dnp}) => { const o = own.get(code); return `<tr class="${o ? "fan" : ""}${dnp ? " dnp" : ""}">
         <td><span class="no">${esc(l.no)}</span>${esc(shortName(l.name))}${b.live && l.on ? '<i class="oc" title="On court"></i>' : ""}${o ? `<small>${esc(o.join(", "))}</small>` : ""}</td>
         ${dnp ? `<td colspan="${TM_COLS.length}" style="text-align:left">DNP</td>` : TM_COLS.map(([k]) => `<td class="${k}">${cell(l, k)}</td>`).join("")}</tr>`; }).join("")}
-      </tbody></table></div></div>`;
+      </tbody><tfoot><tr><td>TOTALS</td>${TM_COLS.map(([k]) => `<td class="${k}">${total(T, k)}</td>`).join("")}</tr></tfoot></table></div></div>`;
   }
   // spots on the half court (basket at the top), two rows so the chips never overlap
   const SPOTS = [[50, 27], [17, 33], [83, 33], [31, 76], [69, 76]];
