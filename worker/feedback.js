@@ -2,6 +2,7 @@
 //   GET  /api/feedback                 → {items: [{id, text, at, done, doneAt}]}   newest first
 //   POST /api/feedback        {text}   → add one (1–1000 characters)
 //   POST /api/feedback/done   {id, done}   header x-admin: <password>   → mark complete / reopen
+//   POST /api/feedback/delete {id}   header x-admin: <password>   → remove it for good
 //   POST /api/feedback/login           header x-admin: <password>   → {ok} (the admin page checks the password)
 //   POST /api/feedback/setup  {password}   → sets the admin password, only while none is set yet
 // The admin password is never stored: only a random salt and a PBKDF2 hash of it, in the D1 kv table (not in the repo).
@@ -67,6 +68,12 @@ export async function handleFeedback(request, env, path) {
     const id = Number(body.id), done = !!body.done;
     if (!Number.isInteger(id)) return json({ error: "bad id" }, 400);
     await DB.prepare("UPDATE feedback SET done = ?, done_at = ? WHERE id = ?").bind(done ? 1 : 0, done ? Date.now() : null, id).run();
+    return json({ ok: true });
+  }
+  if (path === "/api/feedback/delete") {
+    const id = Number(body.id);
+    if (!Number.isInteger(id)) return json({ error: "bad id" }, 400);
+    await DB.prepare("DELETE FROM feedback WHERE id = ?").bind(id).run();
     return json({ ok: true });
   }
   return json({ error: "not found" }, 404);

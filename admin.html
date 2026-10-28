@@ -35,6 +35,9 @@
   .fb button{flex:none;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--card-2);color:#fff;font:700 13px Inter,system-ui,sans-serif;cursor:pointer}
   .fb button.mark{background:var(--win);border-color:var(--win);color:#06240F}
   .fb button:disabled{opacity:.5}
+  .fb .acts{flex:none;width:118px;display:flex;flex-direction:column;gap:6px;align-items:stretch}
+  .fb button.rm{background:none;border-color:transparent;color:var(--dim);font-weight:600}
+  .fb button.rm.sure{background:#3D1715;border-color:#FF5A4E;color:#FF5A4E}
   .empty{padding:30px 16px;text-align:center;color:var(--muted)}
   .login{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 16px}
   .login p{color:var(--muted);font-size:13.5px;margin-bottom:12px}
@@ -84,7 +87,8 @@ function render(){
   const list = items.filter(f => filter === "all" || (filter === "done") === f.done);
   $("#list").innerHTML = list.length ? list.map(f => `<div class="fb${f.done ? " done" : ""}">
       <div class="t"><p>${esc(f.text)}</p><small>${esc(when(f.at))}${f.done && f.doneAt ? ` · completed ${esc(when(f.doneAt))}` : ""}</small></div>
-      <button data-id="${f.id}" data-done="${f.done ? 0 : 1}" class="${f.done ? "" : "mark"}">${f.done ? "Reopen" : "Complete"}</button></div>`).join("")
+      <div class="acts"><button data-id="${f.id}" data-done="${f.done ? 0 : 1}" class="${f.done ? "" : "mark"}">${f.done ? "Reopen" : "Complete"}</button>
+      <button data-rm="${f.id}" class="rm">Remove</button></div></div>`).join("")
     : `<div class="empty">${filter === "open" ? "Nothing open — all done." : filter === "done" ? "Nothing completed yet." : "No feedback yet."}</div>`;
 }
 function show(ok){
@@ -101,6 +105,20 @@ $("#login").addEventListener("submit", async e => {
 $("#out").onclick = () => { pw = ""; setPw(""); show(false); };
 $("#seg").addEventListener("click", e => { const b = e.target.closest("[data-f]"); if (b){ filter = b.dataset.f; render(); } });
 $("#list").addEventListener("click", async e => {
+  const rm = e.target.closest("button[data-rm]");
+  if (rm){                                            // first tap asks, second tap removes
+    if (!rm.classList.contains("sure")){
+      document.querySelectorAll("button.rm.sure").forEach(x => { x.classList.remove("sure"); x.textContent = "Remove"; });
+      rm.classList.add("sure"); rm.textContent = "Tap to remove";
+      clearTimeout(rm._t); rm._t = setTimeout(() => { rm.classList.remove("sure"); rm.textContent = "Remove"; }, 4000);
+      return;
+    }
+    rm.disabled = true;
+    const r = await fetch("/api/feedback/delete", {method: "POST", headers: {"content-type": "application/json", "x-admin": pw}, body: JSON.stringify({id: +rm.dataset.rm})});
+    if (r.status === 401){ pw = ""; setPw(""); show(false); $("#err").textContent = "Please log in again."; return; }
+    if (r.ok){ items = items.filter(x => x.id !== +rm.dataset.rm); render(); } else rm.disabled = false;
+    return;
+  }
   const b = e.target.closest("button[data-id]"); if (!b) return;
   b.disabled = true;
   const r = await fetch("/api/feedback/done", {method: "POST", headers: {"content-type": "application/json", "x-admin": pw}, body: JSON.stringify({id: +b.dataset.id, done: b.dataset.done === "1"})});
