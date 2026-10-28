@@ -11,6 +11,7 @@ import { feeds, fold, ltForms, parse, search, UA } from "./news.js";
 const REPORT = "https://basketnews.com/news-212393-euroleague-injury-report-updated.html";
 const GAMES = "https://api-live.euroleague.net/v2/competitions/E/seasons/";
 const EVERY = 3 * 3600e3, CLOSE = 3 * 3600e3, CLOSE_EVERY = 10 * 60e3;
+const NEWS_VERSION = 2;                         // bump to re-check every entry with a new search method
 const RESEARCH_EVERY = 12 * 3600e3, RESEARCH_CLOSE = 60 * 60e3, RESEARCH_PER_RUN = 10;
 const NEWS_AGE = 21 * 86400e3;
 // more sources than the News tab: international basketball sites' own feeds (read once per run, shared)
@@ -128,17 +129,22 @@ function chanceOf(e, nextRound, signals) {
 
 /* ── news about one player: Bing News (EN + LT forms) + the portals' feeds ── */
 async function newsFor(e, shared) {
+  // From Cloudflare's servers Bing returns little once extra words are added, so search the exact name and filter here
   const parts = e.name.split(" "), last = parts[parts.length - 1];
   const forms = ltForms(last);
   const [en, lt] = await Promise.allSettled([
-    search(`"${e.name}" (injury OR injured OR out OR return)`, "en-US", "en"),
-    search(`(${forms.map(f => `"${f}"`).join(" OR ")}) trauma`, "lt-LT", "lt"),
+    search(`"${e.name}"`, "en-US", "en"),
+    search(`(${forms.map(f => `"${f}"`).join(" OR ")}) krepšinis`, "lt-LT", "lt"),
   ]);
-  const stem = fold(last).replace(/[^a-z]/g, "").slice(0, Math.max(4, fold(last).length - 2));
-  const hit = new RegExp(`(^|[^a-z])${stem}`);
+  const f = fold(last).replace(/[^a-z]/g, ""), stem = f.slice(0, Math.max(4, f.length - 2));
+  const first = fold(parts[0]).replace(/[^a-z]/g, "");
+  const full = new RegExp(`(^|[^a-z])(${first}|${first[0]}\\.?)[a-z]*\\s+${stem}`);      // "Mike James", "M. James", Lithuanian "Mike'as Jamesas"
+  const sur = new RegExp(`(^|[^a-z])${stem}`);
+  const club = toks(e.team).filter(w => w.length >= 4).map(w => w.slice(0, 5));         // "Barcelona" also matches "Barcelonos"
+  const isHim = i => { const t = fold(i.title + " " + i.about); return full.test(t) || (sur.test(t) && club.some(c => t.includes(c))); };
   const now = Date.now(), seen = new Set();
   return [...(en.value || []), ...(lt.value || []), ...shared]
-    .filter(i => i.title && (hit.test(fold(i.title)) || hit.test(fold(i.about))))
+    .filter(i => i.title && isHim(i))
     .filter(i => !i.at || now - i.at < NEWS_AGE)
     .filter(i => !/basketnews\.com\/news-212393/.test(i.link))
     .sort((a, b) => b.at - a.at)
@@ -147,7 +153,8 @@ async function newsFor(e, shared) {
 async function research(e, nextRound, shared) {
   let items = [];
   try { items = await newsFor(e, shared); } catch {}
-  const injuryWords = /injur|hurt|trauma|out\b|miss|return|sideline|doubtful|questionable|status|surgery|sprain|strain|pain|game-time|ruled|traum|praleis|grįž|serga|sveikat/;
+  // injury words in the languages these stories come in (EN, LT, IT, ES, FR, TR, EL, DE, SR/HR)
+  const injuryWords = /injur|hurt|out\b|miss|return|sideline|doubtful|questionable|status|surgery|sprain|strain|pain|game-time|ruled|traum|praleis|grįž|serga|sveikat|nežais|infortun|in dubbio|stop\b|rientr|lesion|baja\b|duda|blessur|forfait|sakat|τραυμα|τραυματ|verletz|ausfall|povred|ozled/;
   const about = items.filter(i => injuryWords.test(fold(i.title + " " + i.about)));
   const recent = about.filter(i => !i.at || Date.now() - i.at < 7 * 86400e3);
   const text = recent.map(i => i.title + " " + i.about).join(" ");
@@ -162,7 +169,7 @@ async function research(e, nextRound, shared) {
   const { chance, why } = chanceOf(e, nextRound, signals);
   const sources = [{ title: "BasketNews EuroLeague injury report", link: REPORT, source: "basketnews.com", at: null },
                    ...about.slice(0, 6).map(i => ({ title: i.title, link: i.link, source: i.source || i.site, at: i.at || null }))];
-  return { severity, verdict, signals, chance, why, sources, researchedAt: Date.now() };
+  return { severity, verdict, signals, chance, why, sources, researchedAt: Date.now(), nv: NEWS_VERSION };
 }
 
 /* ── the scheduled job ── */
@@ -196,9 +203,10 @@ async function run(env, force) {
       if (!x.ok) throw new Error(x.status);
       return parse(await x.text(), "en", site).map(i => ({ ...i, site: i.site || site }));
     }));
-    let lt = [];
+    let lt = [], elr = [];
     try { lt = await feeds(); } catch {}
-    const shared = [...extra.flatMap(x => x.status === "fulfilled" ? x.value : []), ...lt];
+    try { elr = await search(`"injury report" site:euroleaguebasketball.net`, "en-US", "en"); } catch {}   // Euroleague's own weekly injury report
+    const shared = [...extra.flatMap(x => x.status === "fulfilled" ? x.value : []), ...lt, ...elr];
     for (const e of queue) Object.assign(e, await research(e, e.next?.r, shared));
   }
   for (const e of entries) if (e.chance == null || (!needsNews(e) && !e.researchedAt)) Object.assign(e, quick(e));
@@ -206,7 +214,7 @@ async function run(env, force) {
 }
 // Ready players and not-an-injury entries (coach's decision, roster) don't need a news check
 const needsNews = e => e.statusId !== 1 && kindOf(e.comment)?.level !== 0;
-const due = (e, now) => !e.researchedAt ? 0 : e.next && e.next.u - now < CLOSE && now - e.researchedAt > RESEARCH_CLOSE ? 1 : now - e.researchedAt > RESEARCH_EVERY ? 2 : 9;
+const due = (e, now) => !e.researchedAt || e.nv !== NEWS_VERSION ? 0 : e.next && e.next.u - now < CLOSE && now - e.researchedAt > RESEARCH_CLOSE ? 1 : now - e.researchedAt > RESEARCH_EVERY ? 2 : 9;
 function quick(e) {                                          // status-based answer until (or instead of) the news check
   const k = kindOf(e.comment);
   return { ...chanceOf(e, e.next?.r, { pos: false, neg: false }),
@@ -238,19 +246,13 @@ async function readReport(cur, now) {
     const old = prev.get(nameKey(e.name) + "|" + e.team);
     const same = old && old.status === e.status && old.round === e.round && old.comment === e.comment && old.next?.r === next?.r;
     return { ...e, key: nameKey(e.name), club: club?.c || null, next, ...(same ? { severity: old.severity, verdict: old.verdict, signals: old.signals,
-             chance: old.chance, why: old.why, sources: old.sources, researchedAt: old.researchedAt } : {}) };
+             chance: old.chance, why: old.why, sources: old.sources, researchedAt: old.researchedAt, nv: old.nv } : {}) };
   });
   return { fetchedAt: now, updated: rep.updated, entries };
 }
 
 export async function getInjuries(request, env, ctx) {
   if (!env.DB) return json({ error: "D1 database not bound as DB" }, 500);
-  const dbg = new URL(request.url).searchParams.get("probe");            // temporary: what do the news searches return for one name?
-  if (dbg && /^[\p{L}' .-]{3,40}$/u.test(dbg)) {
-    const qs = [`"${dbg}" (injury OR injured OR out OR return)`, `"${dbg}" injury`, `"${dbg}"`, `${dbg} injury`];
-    const res = await Promise.all(qs.map(q => search(q, "en-US", "en").then(l => ({ q, n: l.length, top: l.slice(0, 4).map(i => i.source + " | " + i.title.slice(0, 70)) })).catch(e => ({ q, err: String(e.message) }))));
-    return json(res);
-  }
   let cur = await load(env.DB);
   if (!cur) { await injuryCheck(env); cur = await load(env.DB); }      // very first time: wait for it
   else ctx.waitUntil(injuryCheck(env));                                  // otherwise refresh in the background when due
