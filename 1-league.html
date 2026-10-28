@@ -468,7 +468,7 @@ function openPlayer(code){
   const r = topRows.find(x => x.p.code === code); if (!r) return;
   PlayerSheet.open(r.p, {state: sheetState(r.p), meta: sheetMeta(r.p, r.teams)});
 }
-$("#topTeam").addEventListener("change", e => { store.set("elf.topClub", e.target.value); renderTop(); });
+$("#topTeam").addEventListener("change", e => { store.set("elf.topClub", e.target.value); e.target.blur(); renderTop(); });   // let go of focus so the next tap opens it again (iPhone)
 $("#topList").addEventListener("click", e => { const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code); });
 $("#topList").addEventListener("keydown", e => { const r = e.target.closest("[data-code]"); if (r && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openPlayer(r.dataset.code); } });
 
