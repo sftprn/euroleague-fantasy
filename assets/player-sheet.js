@@ -70,6 +70,7 @@
 #psWrap .mn .stint:first-of-type{border-top:1px solid var(--line)}
 #psWrap .mn .tl-lab{margin-bottom:8px}
 #psWrap .btns{display:flex;gap:8px;margin-top:12px}
+#psWrap .pane > .btns:first-child{margin-top:0}
 #psWrap .tsb{display:block;flex:1;min-width:0;height:46px;border:0;border-radius:14px;background:var(--card-2);color:#fff;font:700 14.5px Inter,system-ui,sans-serif;cursor:pointer}
 #psWrap .tsb:active{background:#2E2E33}
 #psWrap .lc{display:block;margin:4px 0 14px;overflow:visible}
@@ -295,12 +296,12 @@
   const btns = (team = true) => `<div class="btns">${team ? `<button class="tsb" type="button" data-top="team">Team stats</button>` : ""}<button class="tsb" type="button" data-top="news">News</button></div>`;
   async function gamePane(p){
     const g = gameOf(p);
-    if (!g) return `<div class="empty">No game this round.</div>` + btns(false);
-    if (Date.parse(g.u) > Date.now()) return board(g, null, p) + `<div class="empty">Stats show up once the game starts.</div>` + btns(false);
+    if (!g) return btns(false) + `<div class="empty">No game this round.</div>`;
+    if (Date.parse(g.u) > Date.now()) return board(g, null, p) + btns(false) + `<div class="empty">Stats show up once the game starts.</div>`;
     const [b, st] = await Promise.all([ElData.box(g.c), ElData.stretches(g.c).catch(() => null)]);
-    if (b.pending) return board(g, b, p) + `<div class="empty">Waiting for the first stats…</div>` + btns(false);
+    if (b.pending) return board(g, b, p) + btns(false) + `<div class="empty">Waiting for the first stats…</div>`;
     const l = await ElData.line(g.c, p.code);
-    if (!l || l.min === "DNP" || !l.mins) return board(g, b, p) + `<div class="empty">Did not play${b.live ? " yet" : ""}.</div>` + btns();
+    if (!l || l.min === "DNP" || !l.mins) return board(g, b, p) + btns() + `<div class="empty">Did not play${b.live ? " yet" : ""}.</div>`;
     const pf = Math.min(5, l.pf || 0);
     const cell = (v, lab, extra = "") => `<div><b>${v}</b><small>${lab}</small>${extra}</div>`;
     return board(g, b, p) + minsBlock(st, l, p, b) + `<div class="grid">
