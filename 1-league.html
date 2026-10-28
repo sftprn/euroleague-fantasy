@@ -430,7 +430,8 @@ function renderGames(){
   };
   // games on several days → a list per day (in date order) under a headline like "27 October 2026"
   const dayKey = u => { const d = new Date(u); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-  const days = [...new Set(rg.map(x => dayKey(x.g.u)))].sort();
+  const dayDone = k => rg.filter(x => dayKey(x.g.u) === k).every(x => x.s.k === 3);     // every game that day final
+  const days = [...new Set(rg.map(x => dayKey(x.g.u)))].sort((a, b) => dayDone(a) - dayDone(b) || a.localeCompare(b));   // finished days go to the bottom
   const html = days.length < 2 ? `<div class="list">${rg.map(row).join("")}</div>`
     : days.map(k => { const list = rg.filter(x => dayKey(x.g.u) === k);
         return `<div class="list"><div class="day-h">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}))}<span>${list.length} game${list.length === 1 ? "" : "s"}</span></div>${list.map(row).join("")}</div>`; }).join("");
