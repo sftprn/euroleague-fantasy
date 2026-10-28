@@ -71,7 +71,9 @@ border:2px solid #FFFFFF33}
 #gWrap .note{font-size:11.5px;color:var(--dim);padding:6px 2px 0}
 #gWrap .sh-body .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
 
-#gWrap .seg{display:flex;gap:4px;margin:0 -16px;padding:8px 16px;background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}   /* team tabs: same look as the player sheet's tabs */
+#gWrap .seg{display:flex;gap:4px;margin:0 -16px;padding:8px 16px;background:var(--bg);border:0;border-top:1px solid var(--line);border-radius:0}   /* team tabs: like the player sheet's tabs; they scroll with the content */
+#gWrap #gContent{will-change:transform}
+#gWrap #gContent.sliding{transition:transform .18s ease,opacity .18s ease}
 #gWrap .seg button{flex:1;min-width:0;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 #gWrap .seg button.on{background:var(--card-2);color:#fff}
 #gWrap .scrim{z-index:14}
@@ -84,9 +86,11 @@ border:2px solid #FFFFFF33}
     <div class="grab" aria-hidden="true"></div>
     <div class="sh-head">
       <div class="board" id="board"></div>
-      <div class="seg" id="gSeg"></div>
     </div>
-    <div class="sh-body" id="gBody"></div>
+    <div class="sh-body" id="gBody">
+      <div class="seg" id="gSeg"></div>
+      <div id="gContent"></div>
+    </div>
   </div>`;
 
   let ctx = {games: () => [], owners: () => new Map(), people: async () => []};
@@ -106,7 +110,38 @@ border:2px solid #FFFFFF33}
     wrap = document.createElement("div"); wrap.id = "gWrap"; wrap.innerHTML = HTML; document.body.appendChild(wrap);
     wrap.querySelectorAll("[data-gclose]").forEach(x => x.onclick = close);
     document.addEventListener("keydown", e => { if (e.key === "Escape" && gOpen){ e.stopImmediatePropagation(); close(); } }, true);
-    $("#gSeg").addEventListener("click", e => { const x = e.target.closest("[data-v]"); if (!x || +x.dataset.v === gView) return; gView = +x.dataset.v; $("#gBody").scrollTop = 0; render(); });
+    $("#gSeg").addEventListener("click", e => { const x = e.target.closest("[data-v]"); if (x && +x.dataset.v !== gView) switchTeam(+x.dataset.v); });
+    // swipe left / right on the team tabs or the court to switch teams (the content follows your finger)
+    const body = $("#gBody"), content = $("#gContent");
+    let hs = null;
+    body.addEventListener("touchstart", e => {
+      const ok = e.touches.length === 1 && e.target.closest("#gSeg, .court");
+      hs = ok ? {x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: e.timeStamp, mode: null, dx: 0} : null;
+    }, {passive: true});
+    body.addEventListener("touchmove", e => {
+      if (!hs) return;
+      const t = e.touches[0], dx = t.clientX - hs.x0, dy = t.clientY - hs.y0;
+      if (!hs.mode){
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        hs.mode = Math.abs(dx) > Math.abs(dy) * 1.2 ? "h" : "v";
+        if (hs.mode === "h") content.classList.remove("sliding");
+      }
+      if (hs.mode !== "h") return;
+      if (e.cancelable) e.preventDefault();
+      const to = gView + (dx < 0 ? 1 : -1);
+      hs.dx = to === 0 || to === 1 ? dx : dx * 0.25;         // no team that way: just a little give
+      content.style.transform = `translateX(${hs.dx}px)`;
+    }, {passive: false});
+    const hend = e => {
+      const h = hs; hs = null;
+      if (!h || h.mode !== "h") return;
+      const to = gView + (h.dx < 0 ? 1 : -1);
+      const fast = Math.abs(h.dx) > 30 && Math.abs(h.dx) / Math.max(1, e.timeStamp - h.t0) > 0.4;
+      if ((to === 0 || to === 1) && (Math.abs(h.dx) > body.clientWidth * 0.25 || fast)) switchTeam(to);
+      else { content.classList.add("sliding"); content.style.transform = ""; }
+    };
+    body.addEventListener("touchend", hend);
+    body.addEventListener("touchcancel", hend);
     $("#gBody").addEventListener("click", e => {
       const th = e.target.closest(".tmt th[data-sort]"); if (!th) return;
       const k = th.dataset.sort; gSort = gSort.k === k ? {k, dir: -gSort.dir} : {k, dir: -1};
@@ -136,9 +171,23 @@ border:2px solid #FFFFFF33}
     gOpen = ctx.games().find(g => g.c === gc); if (!gOpen) return;
     gView = opt.club && opt.club === gOpen.a.c ? 1 : 0;   // 0 = home team, 1 = away team
     wrap.classList.add("open");
-    const body = $("#gBody"); body.scrollTop = 0; body._html = null; body.innerHTML = "";
+    const body = $("#gBody"), content = $("#gContent"); body.scrollTop = 0; content._html = null; content.innerHTML = "";
+    content.classList.remove("sliding"); content.style.transform = content.style.opacity = "";
     if (!peopleMap) Promise.resolve(ctx.people()).then(l => { if (l?.length){ peopleMap = new Map(l.map(p => [p.code, p])); if (gOpen) render(); } }).catch(() => {});
     render();
+  }
+  function switchTeam(v){                               // slide the current team out, the other in
+    const content = $("#gContent"), w = $("#gBody").clientWidth, dir = v > gView ? 1 : -1;
+    content.classList.add("sliding");
+    content.style.transform = `translateX(${-dir * w}px)`; content.style.opacity = "0";
+    setTimeout(() => {
+      gView = v;
+      content.classList.remove("sliding");
+      content.style.transform = `translateX(${dir * w * 0.4}px)`;
+      render();
+      void content.offsetWidth;
+      content.classList.add("sliding"); content.style.transform = ""; content.style.opacity = "";
+    }, 170);
   }
   function close(){ if (wrap) wrap.classList.remove("open"); gOpen = null; }
 
@@ -163,9 +212,11 @@ border:2px solid #FFFFFF33}
       const own = ctx.owners();
       html = courtHalf(b, gView, own) + boxTable(b, gView, own);      // the chosen team: its court, then its box score
     }
-    if (body._html !== html){                           // live updates: redraw only on change, keep where you've scrolled
-      body.innerHTML = body._html = html;
-      body.querySelectorAll(".tmw").forEach((w, i) => w.scrollLeft = xs[i] || 0);
+    const content = $("#gContent");
+    if (content._html !== html){                        // live updates: redraw only on change, keep where you've scrolled
+      const same = content._view === gView; content._view = gView;     // another team → its table starts at the left
+      content.innerHTML = content._html = html;
+      if (same) body.querySelectorAll(".tmw").forEach((w, i) => w.scrollLeft = xs[i] || 0);
       body.scrollTop = y;
     }
   }
