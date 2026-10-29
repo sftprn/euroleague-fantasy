@@ -24,7 +24,7 @@
   [hidden]{display:none!important}
   html{background:var(--bg)}
   body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
-  .app{max-width:480px;margin:0 auto;min-height:100vh;padding:calc(18px + env(safe-area-inset-top)) 16px 40px}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding:calc(18px + env(safe-area-inset-top)) 16px calc(var(--navH, 0px) + 28px)}
 
   /* header */
   header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
@@ -122,34 +122,6 @@
   .watch .rank{color:var(--muted);display:grid;place-items:center}
   .watch .score{font-size:18px;color:var(--muted)}
   .fb-btn{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0;border-style:solid}
-  /* feedback sheet */
-  #fbWrap .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
-  #fbWrap .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
-         border-radius:24px 24px 0 0;display:flex;flex-direction:column;height:calc(100vh - env(safe-area-inset-top) - 16px);height:calc(100dvh - env(safe-area-inset-top) - 16px);
-         transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
-  #fbWrap.open .scrim{opacity:1;pointer-events:auto}
-  #fbWrap.open .sheet{transform:translate(-50%,0);visibility:visible;transition:transform .25s ease,visibility 0s}   /* visible at once so the field can take focus in the same tap */
-  #fbWrap .sheet.dragging{transition:none}
-  #fbWrap .grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab;touch-action:none}
-  #fbWrap .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
-  #fbWrap .sh-head{flex:none;padding:0 16px 14px;border-bottom:1px solid var(--line);touch-action:none}
-  #fbWrap .sh-head b{display:block;font-size:20px;font-weight:800}
-  #fbWrap .sh-head small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
-  #fbWrap .fb-form{margin-top:12px}
-  #fbWrap textarea{display:block;width:100%;min-height:96px;max-height:200px;resize:none;border:1.5px solid var(--line);border-radius:14px;background:var(--card);color:#fff;
-         font:400 16px/1.4 Inter,system-ui,sans-serif;padding:12px 14px;outline:none}
-  #fbWrap textarea:focus{border-color:var(--orange)}
-  #fbWrap .fb-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
-  #fbWrap .fb-row small{margin:0;color:var(--dim)}
-  #fbWrap .fb-send{height:40px;padding:0 18px;border:0;border-radius:12px;background:var(--orange);color:#fff;font:700 14.5px Inter,system-ui,sans-serif;cursor:pointer}
-  #fbWrap .fb-send:disabled{opacity:.4;cursor:default}
-  #fbWrap .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 16px calc(24px + env(safe-area-inset-bottom))}
-  #fbWrap .fb{padding:13px 2px;border-bottom:1px solid var(--line)}
-  #fbWrap .fb p{font-size:14.5px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
-  #fbWrap .fb small{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;color:var(--dim)}
-  #fbWrap .fb .ok{font-weight:800;font-size:10.5px;letter-spacing:.06em;color:var(--win);background:#123B2A;border-radius:6px;padding:2px 6px}
-  #fbWrap .fb.done p{color:var(--muted);text-decoration:line-through;text-decoration-color:#FFFFFF40}
-  #fbWrap .fb-empty{color:var(--muted);text-align:center;padding:36px 10px;font-size:14px}
   .sec-t{font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--muted);margin:26px 4px 10px}
   .base-input{width:104px;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;
               font:800 18px Inter,system-ui,sans-serif;padding:0 12px;text-align:right;flex:none}
@@ -180,42 +152,9 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
   <header>
     <img class="logo" src="assets/euroleague.svg" alt="">
     <div class="titles"><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
-    <button class="icon-btn" id="editBtn" aria-label="Edit team names and custom PIR">✎</button>
   </header>
 
-  <div class="start" id="startWrap" hidden>
-    <button class="start-btn" id="startBtn"></button>
-    <div class="start-note" id="startNote"></div>
-  </div>
-
-  <div class="seg" role="tablist" id="seg">
-    <button role="tab" data-view="teams">Teams</button>
-    <button role="tab" data-view="games">Games</button>
-    <button role="tab" data-view="players">Players</button>
-  </div>
-
-  <!-- Teams: round PIR | season total, as a small table (tap a column title to sort by it) -->
-  <div id="vTeams">
-    <div class="list tbl" id="list"></div>
-  <!-- private watch team: stored only on this phone, never counted; opens as the last page of the team pages -->
-    <a class="list watch" id="watchRow" href="/2-coach?coach=watch">
-    <div class="row">
-      <div class="rank"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
-      <div class="who"><b>Watch team</b><small id="watchSub">Only on this phone · follow any players</small></div>
-      <div class="score" id="watchVal"><span class="chev">›</span></div>
-    </div>
-  </a>
-  <!-- feedback: anonymous notes from everyone; the admin marks them complete on /admin -->
-  <button class="list watch fb-btn" id="fbBtn" type="button">
-    <div class="row">
-      <div class="rank"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-      <div class="who"><b>Give Feedback</b><small id="fbSub">Ideas, bugs, wishes · seen by everyone</small></div>
-      <div class="score"><span class="chev">›</span></div>
-    </div>
-  </button>
-  </div>
-
-  <!-- Games: this round's games (Game Center); tap one to open it -->
+  <!-- Games: this round's games (tap one to open it) — Teams is the team pages' first slide; the bottom bar switches -->
   <div id="vGames" hidden>
     <div id="gamesList"><div class="list"><div class="nolive">Loading…</div></div></div>
   </div>
@@ -225,38 +164,17 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
     <label class="pick"><select id="topTeam" aria-label="Show top players from"></select></label>
     <div class="list" id="topList"></div>
   </div>
-
-
-  <!-- demos for testing (shown in edit mode); they run in a pretend league, nothing reaches the real one -->
-  <div id="demoLinks" hidden>
-    <div class="sec-t">DEMOS</div>
-    <div class="list">
-      <a class="row" href="/1-league?demo=live&new"><div class="who"><b>Live games</b><small>Games tipping off, live PIR climbing</small></div><div class="score"><span class="chev">›</span></div></a>
-      <a class="row" href="/1-league?demo=round&new"><div class="who"><b>Start new round</b><small>Round finished, try the Start Round button</small></div><div class="score"><span class="chev">›</span></div></a>
-    </div>
-  </div>
 </div>
 
-<div id="fbWrap">
-  <div class="scrim" data-fbclose></div>
-  <div class="sheet" role="dialog" aria-label="Give feedback">
-    <div class="grab" aria-hidden="true"></div>
-    <div class="sh-head">
-      <b>Feedback</b><small>Anonymous · everyone sees the list</small>
-      <form class="fb-form" id="fbForm">
-        <textarea id="fbText" maxlength="1000" placeholder="What should be better, fixed or added?" aria-label="Your feedback"></textarea>
-        <div class="fb-row"><small id="fbNote"></small><button class="fb-send" id="fbSend" type="submit" disabled>Send</button></div>
-      </form>
-    </div>
-    <div class="sh-body" id="fbList"></div>
-  </div>
-</div>
+
+
 <script src="assets/demo.js"></script>
 <script src="assets/sync.js"></script>
 <script src="assets/data.js"></script>
 <script src="assets/sheet-drag.js"></script>
 <script src="assets/player-sheet.js"></script>
 <script src="assets/game-sheet.js"></script>
+<script src="assets/nav.js"></script>
 <script>
 /* ───────── league (hardcoded) ───────── */
 const DEFAULT_COACHES = [
@@ -374,31 +292,7 @@ function coachTotal(c){
 
 function render(){
   $("#roundTxt").textContent = `${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} · ROUND ${round ?? "–"}`;
-  // Teams: round PIR | season total (custom PIR + this round); sorted by the column picked (remembered on this phone)
-  const rows = COACHES.map(c => { const r = coachTotal(c), base = baseOf(c); return {...c, team: teamOf(c), ...r, base, sum: r1(base + r.total)}; })
-                      .sort((a, b) => sortBy === "total" ? b.sum - a.sum || b.total - a.total : b.total - a.total || b.sum - a.sum);
-  if (!editing || !$("#list .team-input")){
-    const th = `<div class="th"><div class="rank">#</div><div class="who">TEAM</div>
-      <div class="c-rd"><button data-sort="round" class="${sortBy === "round" ? "on" : ""}">ROUND</button></div>
-      <div class="c-tot"><button data-sort="total" class="${sortBy === "total" ? "on" : ""}">TOTAL</button></div></div>`;
-    $("#list").innerHTML = th + rows.map((c, i) => editing ? `
-      <div class="row editing${i === 0 ? " lead" : ""}">
-        <div class="rank">${i + 1}</div>
-        <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name">
-          <span class="plus-rd">+ ${fmtShort(c.total)} this round</span></div>
-        <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Total for ${esc(c.team)} before this round">
-      </div>` : `
-      <a class="row${i === 0 ? " lead" : ""}" href="${COACH_PAGE}?coach=${encodeURIComponent(c.name)}">
-        <div class="rank">${i + 1}</div>
-        <div class="who"><b>${esc(c.team)}</b></div>
-        <div class="c-rd">${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.total)}</div>
-        <div class="c-tot">${fmtShort(c.sum)}</div>
-      </a>`).join("");
-  }
-
   renderTop();
-  renderStart();
-  renderWatch();
   renderGames();
   GameSheet.update();
   if (PlayerSheet.isOpen()){ const p = PlayerSheet.current(), r = topRows.find(x => x.p.code === p?.code);
@@ -457,15 +351,6 @@ GameSheet.init({games: () => games, owners, people: loadPeople});
 $("#gamesList").addEventListener("click", e => { const c = e.target.closest("[data-game]"); if (c) GameSheet.open(+c.dataset.game); });
 $("#gamesList").addEventListener("keydown", e => { const c = e.target.closest("[data-game]"); if (c && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); GameSheet.open(+c.dataset.game); } });
 
-/* private watch team summary (players are only on this phone; not part of the standings) */
-function renderWatch(){
-  $("#watchRow").href = `${COACH_PAGE}?coach=watch`;
-  const w = store.get("elf.watch", []);
-  let t = 0, n = 0, live = false;
-  if (games.length) w.forEach(p => { const s = playerPir(p); if (s && s.played){ t += s.f; n++; live ||= s.live; } });
-  $("#watchSub").textContent = w.length ? `Only on this phone · ${w.length} player${w.length === 1 ? "" : "s"}${n ? ` · ${n} played` : ""}` : "Only on this phone · follow any players";
-  $("#watchVal").innerHTML = (n ? `${live ? '<i class="live-dot"></i>' : ""}${fmtShort(t)}` : "") + `<span class="chev">›</span>`;
-}
 /* top 10 players of the round among everyone's rosters (hidden until someone has played) */
 function renderTop(){
   const seen = new Map();
@@ -526,55 +411,6 @@ $("#topTeam").addEventListener("change", e => { store.set("elf.topClub", e.targe
 $("#topList").addEventListener("click", e => { const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code); });
 $("#topList").addEventListener("keydown", e => { const r = e.target.closest("[data-code]"); if (r && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openPlayer(r.dataset.code); } });
 
-/* ───────── feedback sheet: write at the top (keyboard opens right away), everyone's past feedback below ───────── */
-const fbWrap = $("#fbWrap"), fbText = $("#fbText"), fbSend = $("#fbSend");
-let fbItems = null;
-const fbAgo = t => { const m = Math.round((Date.now() - t) / 60e3); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : new Date(t).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"}); };
-function renderFb(){
-  const l = $("#fbList");
-  if (!fbItems){ l.innerHTML = `<div class="fb-empty">Loading…</div>`; return; }
-  l.innerHTML = fbItems.length ? fbItems.map(f => `<div class="fb${f.done ? " done" : ""}"><p>${esc(f.text)}</p>
-      <small>${f.done ? `<span class="ok">COMPLETED</span>` : ""}${esc(fbAgo(f.at))}</small></div>`).join("")
-    : `<div class="fb-empty">No feedback yet — be the first.</div>`;
-}
-async function loadFb(){
-  try{ const r = await fetch("/api/feedback", {cache: "no-store"}); if (r.ok){ fbItems = (await r.json()).items || []; renderFb(); return; } }catch{}
-  if (!fbItems) $("#fbList").innerHTML = `<div class="fb-empty">Couldn't load feedback right now.</div>`;
-}
-function openFb(){
-  fbWrap.classList.add("open");
-  void fbWrap.offsetHeight;                         // apply "open" now…
-  fbText.focus({preventScroll: true});              // in the same tap, so the iPhone keyboard comes up
-  $("#fbList").scrollTop = 0; renderFb(); loadFb();
-}
-function closeFb(){ fbText.blur(); fbWrap.classList.remove("open"); }
-$("#fbBtn").addEventListener("click", openFb);
-fbWrap.querySelector("[data-fbclose]").onclick = closeFb;
-document.addEventListener("keydown", e => { if (e.key === "Escape" && fbWrap.classList.contains("open")) closeFb(); });
-fbText.addEventListener("input", () => { fbSend.disabled = !fbText.value.trim(); $("#fbNote").textContent = fbText.value.length > 800 ? `${1000 - fbText.value.length} left` : ""; });
-$("#fbForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  const text = fbText.value.trim(); if (!text) return;
-  fbSend.disabled = true; $("#fbNote").textContent = "Sending…";
-  try{
-    const r = await fetch("/api/feedback", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({text})});
-    if (!r.ok) throw 0;
-    const {item} = await r.json();
-    fbItems = [item, ...(fbItems || [])]; renderFb();
-    fbText.value = ""; $("#fbNote").textContent = "Thanks! Sent."; fbText.blur();
-  }catch{ $("#fbNote").textContent = "Couldn't send — try again."; fbSend.disabled = false; }
-});
-(function(){                                         // drag the grab bar down to close; swipe down on the list once it's at the top
-  const sh = fbWrap.querySelector(".sheet"), h = fbWrap.querySelector(".grab");
-  let y0 = 0, dy = 0, t0 = 0, id = null;
-  const end = () => { if (id == null) return; id = null; sh.classList.remove("dragging");
-    const fast = dy > 30 && dy / Math.max(1, Date.now() - t0) > 0.5; sh.style.transform = "";
-    if (dy > Math.min(140, sh.offsetHeight * 0.25) || fast) closeFb(); };
-  h.addEventListener("pointerdown", e => { id = e.pointerId; y0 = e.clientY; dy = 0; t0 = Date.now(); sh.classList.add("dragging"); h.setPointerCapture(id); });
-  h.addEventListener("pointermove", e => { if (e.pointerId !== id) return; dy = Math.max(0, e.clientY - y0); sh.style.transform = `translate(-50%, ${dy}px)`; });
-  h.addEventListener("pointerup", end); h.addEventListener("pointercancel", end);
-  SheetDrag.attach(sh, closeFb);
-})();
 
 /* ───────── refresh loop ───────── */
 function relevantGames(){
@@ -597,105 +433,26 @@ async function refresh(){
 }
 document.addEventListener("visibilitychange", () => document.hidden ? clearTimeout(timer) : refresh());
 
-/* edit team names */
-$("#editBtn").onclick = () => {
-  editing = !editing;
-  const b = $("#editBtn");
-  b.classList.toggle("on", editing);
-  b.textContent = editing ? "✓" : "✎";
-  b.setAttribute("aria-label", editing ? "Save changes" : "Edit team names and custom PIR");
-  $("#list").innerHTML = "";
-  if (editing && view !== "teams"){ view = "teams"; showView(); }
-  $("#demoLinks").hidden = !editing;
-  render();
-  if (editing) $("#list .team-input")?.focus();
-};
-$("#list").addEventListener("input", e => {
-  const inp = e.target.closest(".team-input"); if (!inp) return;
-  const names = store.get("elf.teams", {});
-  const v = inp.value.trim();
-  const def = DEFAULT_COACHES.find(c => c.name === inp.dataset.coach)?.team;
-  if (v && v !== def) names[inp.dataset.coach] = v; else delete names[inp.dataset.coach];
-  store.set("elf.teams", names);
-  clearTimeout(inp._t);                 // save for everyone shortly after typing stops
-  inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {team: v && v !== def ? v : ""}), 400);
-});
 
-$("#list").addEventListener("input", e => {
-  const inp = e.target.closest(".base-input"); if (!inp) return;
-  const raw = inp.value.replace(",", ".").trim();
-  const v = raw === "" ? 0 : Number(raw);
-  if (!Number.isFinite(v)) return;
-  const all = store.get("elf.base", {}); all[inp.dataset.coach] = v; store.set("elf.base", all);
-  clearTimeout(inp._t);
-  inp._t = setTimeout(() => Shared.push(inp.dataset.coach, {base: v}), 400);
-});
-$("#list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".base-input")) e.target.blur(); });
-$("#list").addEventListener("click", e => {             // tap ROUND / TOTAL to sort by it
-  const b = e.target.closest("[data-sort]"); if (!b) return;
-  e.preventDefault(); sortBy = b.dataset.sort;
-  try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{}
-  render();
-});
 
-/* Teams / Games / Players tabs (remembered on this phone) */
-const VIEWS = ["teams", "games", "players"];
-let view = "teams", sortBy = "round";
-try{ const v = localStorage.getItem("elf.leagueTab"); if (VIEWS.includes(v)) view = v; sortBy = localStorage.getItem("elf.teamsSort") === "total" ? "total" : "round"; }catch{}
+/* Games / Players (bottom bar; Teams is the team pages) — ?view=games|players, else the last one used on this phone */
+const VIEWS = ["games", "players"];
+let view = "games";
+try{ const v = new URLSearchParams(location.search).get("view") || localStorage.getItem("elf.leagueView"); if (VIEWS.includes(v)) view = v; }catch{}
 function showView(){
-  $("#vTeams").hidden = view !== "teams";
   $("#vGames").hidden = view !== "games";
   $("#vPlayers").hidden = view !== "players";
-  document.querySelectorAll("#seg [data-view]").forEach(b => { b.classList.toggle("on", b.dataset.view === view); b.setAttribute("aria-selected", b.dataset.view === view); });
+  document.title = `${view === "games" ? "Games" : "Players"} · EL Fantasy`;
+  try{ localStorage.setItem("elf.leagueView", view); }catch{}
+  const u = new URL(location.href); u.searchParams.set("view", view); history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
 }
-$("#seg").addEventListener("click", e => {
-  const b = e.target.closest("[data-view]"); if (!b) return;
-  view = b.dataset.view;
-  try{ localStorage.setItem("elf.leagueTab", view); }catch{}
-  showView();
-});
+Nav.init({active: view, onTap: k => {
+  if (k === "teams") return false;                    // Teams: the team pages
+  if (k !== view){ view = k; showView(); scrollTo({top: 0}); }
+  else scrollTo({top: 0, behavior: "smooth"});       // same tab again: back to the top
+  return true;
+}});
 showView();
-
-
-/* ───────── Start Round X ─────────
-   Shows once every game of the league's round is over. Any 2 phones tapping it start the next round:
-   the server adds each team's round PIR to its Total, rosters stay, and the round number moves on.
-   Tapping again takes the vote back. If nobody taps, the server starts it 3 h before the next round tips off. */
-const DEVICE = (() => {
-  let id = store.get("elf.device");
-  if (!/^[a-z0-9]{8,40}$/.test(id || "")){ id = Array.from(crypto.getRandomValues(new Uint8Array(10)), b => b.toString(36).padStart(2, "0")).join("").slice(0, 16); store.set("elf.device", id); }
-  return id;
-})();
-let voting = false;
-const roundOver = () => {
-  const rg = games.filter(g => g.r === round);
-  return rg.length > 0 && rg.every(g => g.p || (box[g.c] && box[g.c].final));
-};
-function renderStart(){
-  const L = Shared.enabled && Shared.ready ? Shared.league : null;
-  const show = !!L && L.round === round && roundOver();
-  $("#startWrap").hidden = !show;
-  if (!show) return;
-  const votes = L.votes || [], mine = votes.includes(DEVICE), b = $("#startBtn");
-  b.classList.toggle("voted", mine);
-  b.disabled = voting;
-  b.textContent = mine ? "✓ Ready" : `Start Round ${round + 1}`;
-  $("#startNote").textContent = (votes.length ? `${votes.length} ready, ` : "") + `${Math.max(0, 2 - votes.length)} more to start` + (mine ? ". Tap to undo" : "");
-}
-$("#startBtn").onclick = async () => {
-  const L = Shared.league; if (!L || voting) return;
-  const vote = !(L.votes || []).includes(DEVICE);
-  voting = true;
-  L.votes = vote ? [...(L.votes || []), DEVICE] : (L.votes || []).filter(d => d !== DEVICE);   // show it right away
-  renderStart();
-  try{
-    const r = await fetch("/api/round", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({device:DEVICE, round:L.round, vote})});
-    if (!r.ok) throw new Error(r.status);
-  }catch{ alertNote("Couldn't reach the server — try again"); }
-  voting = false;
-  Shared.refresh();
-};
-function alertNote(t){ $("#startNote").textContent = t; }
 
 /* edits from anyone arrive here */
 Shared.on(first => {
@@ -706,7 +463,6 @@ Shared.on(first => {
   if (Shared.league?.round && games.length && round !== Shared.league.round) round = Shared.league.round;   // next round started
   render(); refresh();
 });
-$("#list").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".team-input")) e.target.blur(); });
 
 async function boot(){
   render();

@@ -1,7 +1,7 @@
 {
   "name": "Euroleague Fantasy",
   "short_name": "EL Fantasy",
-  "start_url": "/1-league",
+  "start_url": "/2-coach?coach=league",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0A0A0B",

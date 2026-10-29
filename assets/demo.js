@@ -294,10 +294,10 @@
   }
   function mountBar(){
     const css = document.createElement("style");
-    css.textContent = `.demo-bar{position:fixed;left:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:9;display:flex;align-items:center;gap:6px;
+    css.textContent = `.demo-bar{position:fixed;left:12px;bottom:calc(var(--navH, env(safe-area-inset-bottom)) + 12px);   /* above the bottom bar */z-index:9;display:flex;align-items:center;gap:6px;
       padding:6px 6px 6px 12px;border-radius:999px;background:#FFFFFF;color:#000;font:600 12px Inter,system-ui,sans-serif;box-shadow:0 6px 20px #00000080;max-width:calc(100% - 24px)}
-      .demo-bar.up{bottom:calc(58px + env(safe-area-inset-bottom))}
-      .app{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important}
+      .demo-bar.up{bottom:calc(var(--navH, env(safe-area-inset-bottom)) + 56px)}
+      .app{padding-bottom:calc(var(--navH, env(safe-area-inset-bottom)) + 70px)!important}
       .demo-bar b{font-weight:800;letter-spacing:.08em;font-size:11px}
       .demo-bar span{color:#555;white-space:nowrap}
       .demo-bar button,.demo-bar a{border:0;background:#EDEDED;color:#000;font:700 12px Inter,system-ui,sans-serif;height:28px;padding:0 10px;border-radius:999px;cursor:pointer;

@@ -63,10 +63,75 @@
   .track{position:fixed;inset:0;z-index:1;display:flex;   /* pinned to all screen edges, incl. behind the iPhone home indicator */overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
   .track::-webkit-scrollbar{display:none}
   .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
-  .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(64px + env(safe-area-inset-bottom))}
+  .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(var(--navH, 0px) + 64px)}
+  /* first slide: the league table (Start Round, standings, feedback) — tap a team to slide to it */
+  .lgs .list{background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
+  .lgs .row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
+  .lgs .row:first-child{border-top:0}
+  .lgs .row:active{background:#1F1F23}
+  .lgs .rank{width:24px;font-weight:800;font-size:18px;color:var(--dim);text-align:center;flex:none}
+  /* 1st place: hero row with the background art */
+  .lgs .row.lead{position:relative;align-items:center;min-height:72px;padding:14px 16px; background:url("assets/bg.jpg") center 35%/cover}
+  .lgs .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0A0A0B1A 0%,#0A0A0B80 55%,#0A0A0BE6 100%)}
+  .lgs .row.lead > *{position:relative;z-index:1}
+  .lgs .row.lead .rank{color:var(--orange)}
+  .lgs .row.lead .lbl{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-bottom:4px}
+  .lgs .row.lead .chev{color:#FFFFFF99}
+  .lgs .row.lead .live-dot{vertical-align:middle;margin-right:4px}
+  .lgs .row.lead.editing{min-height:0;align-items:center}
+  .lgs .row.editing .who b{font-size:16px}
+  .lgs .who{flex:1;min-width:0}
+  .lgs .who b{display:block;font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lgs .who small{color:var(--muted);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .lgs .score{font-size:21px;font-weight:800;text-align:right;flex:none;display:flex;align-items:center;gap:8px}
+  .lgs .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite}
+  .lgs .chev{color:var(--dim);font-size:20px;margin-left:2px}
+  .lgs .team-input{width:100%;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff; font:700 16px Inter,system-ui,sans-serif;padding:0 12px}
+  .lgs .team-input:focus{outline:none;border-color:var(--orange)}
+  /* Start Round X — appears when every game of the round is over; 2 phones start the next round */
+  .lgs .start{margin:-2px 0 14px}
+  .lgs .start-btn{width:100%;height:48px;border:0;border-radius:14px;background:var(--orange);color:#fff;font:800 16px Inter,system-ui,sans-serif; letter-spacing:.3px;cursor:pointer;box-shadow:0 6px 20px #FF6B1A33;display:flex;align-items:center;justify-content:center;gap:10px; transition:transform .1s,background .15s,box-shadow .15s}
+  .lgs .start-btn:active{transform:scale(.98)}
+  .lgs .start-btn.voted{background:var(--card);border:2px solid var(--orange);color:var(--orange);box-shadow:none}
+  .lgs .start-btn:disabled{opacity:.6}
+  .lgs .start-note{text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin-top:8px}
+  .lgs .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+  .lgs .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .lgs .seg button.on{background:var(--orange);color:#fff}
+  /* Teams table: rank · team · ROUND │ TOTAL */
+  .lgs .tbl .th{display:flex;align-items:center;gap:14px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--dim);border-bottom:1px solid var(--line)}
+  .lgs .tbl .th .who{font-size:10.5px}
+  .lgs .tbl .th button{all:unset;cursor:pointer;color:var(--dim);white-space:nowrap}
+  .lgs .tbl .th button.on{color:#fff}
+  .lgs .tbl .th button.on::after{content:" ▾"}
+  .lgs .tbl .th + .row{border-top:0}
+  .lgs .tbl .row,.lgs .tbl .th{gap:10px}
+  .lgs .tbl .who b{font-size:15.5px}
+  .lgs .c-rd{width:52px;text-align:right;flex:none;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:flex-end;position:relative}
+  .lgs .c-rd .live-dot{position:absolute;left:-6px;top:50%;margin-top:-3.5px}
+  .lgs .c-tot{width:70px;text-align:right;flex:none;font-size:15px;font-weight:700;color:#C9C9CF;align-self:stretch;display:flex;align-items:center;justify-content:flex-end; border-left:1px solid var(--line);margin:-15px 0;padding:15px 0}
+  .lgs .th .c-rd,.lgs .th .c-tot{font-size:10.5px;font-weight:800;color:var(--dim);margin:-10px 0 -8px;padding:10px 0 8px}
+  .lgs .row.lead .c-tot{border-left-color:#FFFFFF33;color:#FFFFFFD9;margin:-14px 0;padding:14px 0}
+  .lgs .tbl .row.editing .base-input{width:92px}
+  .lgs .watch{display:block;margin-top:10px;border-style:dashed;color:inherit;text-decoration:none}
+  .lgs .watch .rank{color:var(--muted);display:grid;place-items:center}
+  .lgs .watch .score{font-size:18px;color:var(--muted)}
+  .lgs .fb-btn{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0;border-style:solid}
+  .lgs .sec-t{font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--muted);margin:26px 4px 10px}
+  .lgs .base-input{width:104px;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff; font:800 18px Inter,system-ui,sans-serif;padding:0 12px;text-align:right;flex:none}
+  .lgs .base-input:focus{outline:none;border-color:var(--orange)}
+  .lgs .start{margin:0 0 14px}
+  .lgs .row{cursor:pointer}
+  .lgs #demoLinks .row{cursor:pointer}
+  .dots button.l{border-radius:2px;width:9px}
+  .dots button.l.on{width:20px;border-radius:999px}
+  .hd-side{width:44px;height:44px;flex:none;display:grid;place-items:center}
+  .hd-side img{width:36px;height:36px;display:block;opacity:0;transition:opacity .16s}
+  .hd-side.on img{opacity:1}
+  .title.lg h1{font-size:20px;letter-spacing:.01em}            /* league table slide: EUROLEAGUE FANTASY fits */
 
   /* dots */
-  .dots{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:7px;align-items:center;
+  .dots{position:fixed;left:50%;bottom:calc(var(--navH, env(safe-area-inset-bottom)) + 10px);transform:translateX(-50%);display:flex;gap:7px;align-items:center;
         padding:8px 12px;border-radius:999px;background:#0A0A0BB3;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #FFFFFF14;z-index:5}
   .dots button.w{background:transparent;box-shadow:inset 0 0 0 1.5px #FFFFFF80}
   .dots button.w.on{background:var(--orange);box-shadow:none}
@@ -208,7 +273,7 @@
   .r .owner{flex:none;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--card-2);padding:5px 8px;border-radius:8px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .r-hint{padding:40px 10px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5}
 
-  .toast{position:fixed;left:50%;bottom:calc(60px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#fff;color:#000;font-size:13px;font-weight:600;padding:10px 14px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;z-index:40}
+  .toast{position:fixed;left:50%;bottom:calc(var(--navH, env(safe-area-inset-bottom)) + 56px);transform:translate(-50%,20px);background:#fff;color:#000;font-size:13px;font-weight:600;padding:10px 14px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;z-index:40}
   .toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 <style>html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
@@ -221,7 +286,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <div class="art" aria-hidden="true"></div>
 <header class="top" id="top">
   <div class="bar">
-    <a class="icon-btn" id="backBtn" href="/1-league" aria-label="Back">‹</a>
+    <div class="hd-side" id="hdLogo" aria-hidden="true"><img src="assets/euroleague.svg" alt=""></div>
     <div class="title" id="title"><h1 id="coachName">&nbsp;</h1><div class="meta" id="meta">Loading…</div></div>
     <button class="icon-btn" id="editBtn" aria-label="Edit players">✎</button>
   </div>
@@ -275,6 +340,8 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <script src="assets/sync.js"></script>
 <script src="assets/data.js"></script>
 <script src="assets/sheet-drag.js"></script>
+<script src="assets/feedback.js"></script>
+<script src="assets/nav.js"></script>
 <script src="assets/player-sheet.js"></script>
 <script src="assets/game-sheet.js"></script>
 <script>
@@ -296,7 +363,6 @@ const SEASON = "E" + (today.getMonth() >= 6 ? today.getFullYear() : today.getFul
 // On the website, API calls go through Netlify's proxy (see _redirects) — Euroleague's
 // servers don't reliably allow browser calls from other sites. Opened as a local file → call directly.
 const DIRECT = location.protocol === "file:";
-if (DIRECT) document.getElementById("backBtn").href = "1-league.html";   // local file: no server-side clean addresses
 const V2 = `${DIRECT ? "https://api-live.euroleague.net" : "/el-api"}/v2/competitions/E/seasons/${SEASON}`;
 const LIVE_API = DIRECT ? "https://live.euroleague.net/api" : "/el-live";
 const ORDER = ["full", "half", "zero"];
@@ -358,14 +424,15 @@ function applyShared(first){
 }
 Shared.on(applyShared);
 // team name shown everywhere (same as the League page): shared rename → this phone's rename → default
-const teamOf = n => n === WATCH ? "Watch team" : ((Shared.enabled && Shared.ready) ? Shared.coaches[n]?.team : store.get("elf.teams", {})[n])
+const teamOf = n => n === LEAGUE ? "League table" : n === WATCH ? "Watch team" : ((Shared.enabled && Shared.ready) ? Shared.coaches[n]?.team : store.get("elf.teams", {})[n])
                     || COACHES.find(c => c.name === n)?.team || n;
 const sharedReady = new Promise(res => { if (Shared.ready) res(); else { Shared.on(() => res()); setTimeout(res, 4000); } });
 
 /* ───────── state ───────── */
 let people = [], games = [], round = null, box = {}, timer = null, busy = false;
-let order = [...COACHES.map(c => c.name), WATCH];   // carousel order (most → least PIR, set once data loads; watch team always last)
-let cur = COACHES.some(c => c.name === qs.get("coach")) || qs.get("coach") === WATCH ? qs.get("coach") : COACHES[0].name;
+const LEAGUE = "league";                              // first slide: the league table
+let order = [LEAGUE, ...COACHES.map(c => c.name), WATCH];   // carousel order (league table, then most → least PIR, set once data loads; watch team always last)
+let cur = COACHES.some(c => c.name === qs.get("coach")) || qs.get("coach") === WATCH ? qs.get("coach") : LEAGUE;
 let built = false, sel = null, target = null, drag = null, suppressClick = false;
 const $ = s => document.querySelector(s);
 const r1 = v => Math.round(v * 100) / 100;          // values are kept to 2 decimals; only display rounds further
@@ -543,16 +610,35 @@ const slideOf = n => track.querySelector(`.slide[data-coach="${CSS.escape(n)}"]`
 const WC_NAMES = {tc:"Triple Captain", bb:"Bench Boost"};
 
 function buildSlides(){
-  track.innerHTML = order.map(n => `
+  track.innerHTML = order.map(n => n === LEAGUE ? `
+    <section class="slide" data-coach="${LEAGUE}"><div class="page lgs">
+      <div class="start" id="startWrap" hidden><button class="start-btn" id="startBtn"></button><div class="start-note" id="startNote"></div></div>
+      <div class="list tbl" id="lgList"></div>
+      <button class="list watch fb-btn" id="fbBtn" type="button"><div class="row">
+        <div class="rank"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="who"><b>Give Feedback</b><small>Ideas, bugs, wishes · seen by everyone</small></div>
+        <div class="score"><span class="chev">›</span></div></div></button>
+      <div id="demoLinks" hidden>
+        <div class="sec-t">DEMOS</div>
+        <div class="list">
+          <a class="row" href="${DIRECT ? "2-coach.html" : "/2-coach"}?coach=league&demo=live&new"><div class="who"><b>Live games</b><small>Games tipping off, live PIR climbing</small></div><div class="score"><span class="chev">›</span></div></a>
+          <a class="row" href="${DIRECT ? "1-league.html" : "/1-league"}?demo=round&new"><div class="who"><b>Start new round</b><small>Round finished, try the Start Round button</small></div><div class="score"><span class="chev">›</span></div></a>
+        </div>
+      </div>
+    </div></section>` : `
     <section class="slide" data-coach="${esc(n)}"><div class="page">
       <div class="list"></div>
     </div></section>`).join("");
-  $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" class="${n === WATCH ? "w" : ""}" aria-label="${esc(teamOf(n))}"></button>`).join("");
+  $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" class="${n === WATCH ? "w" : n === LEAGUE ? "l" : ""}" aria-label="${esc(teamOf(n))}"></button>`).join("");
+  $("#fbBtn").addEventListener("click", () => Feedback.open());
+  $("#startBtn").onclick = startVote;
+  wireLeagueList();
   built = true;
   render();
   goTo(cur, false);
 }
 function renderSlide(n){
+  if (n === LEAGUE) return renderLeague();
   const el = slideOf(n); if (!el) return;
   const rows = rosters[n].map((p, i) => ({p, i, s: games.length ? stateOf(p, n) : {kind:"none"}}));
   if (n === WATCH){
@@ -577,6 +663,19 @@ function renderSlide(n){
   }).join("");
 }
 function renderHeader(){
+  const lg = cur === LEAGUE;
+  $("#hdLogo").classList.toggle("on", lg);
+  const eb = $("#editBtn"), on = lg ? lgEditing : editing;
+  eb.classList.toggle("on", on); eb.textContent = on ? "✓" : "✎";
+  eb.setAttribute("aria-label", on ? "Done editing" : lg ? "Edit team names and totals" : "Edit players");
+  $("#title").classList.toggle("lg", lg);
+  if (lg){
+    $("#coachName").textContent = "EUROLEAGUE FANTASY";
+    document.title = "Teams · EL Fantasy";
+    const live = COACHES.some(c => coachTotal(c.name).live);
+    $("#meta").innerHTML = round ? `${live ? '<i class="dot"></i>' : ""}${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} · Round ${round}${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}` : "Loading…";
+    return;
+  }
   $("#coachName").textContent = teamOf(cur);
   document.title = `${teamOf(cur)} · EL Fantasy`;
   const {total, live} = coachTotal(cur);
@@ -592,6 +691,108 @@ function render(){
   renderHeader();
   updateDots();
 }
+
+/* ───────── league table slide (was the League page's Teams tab) ───────── */
+let lgEditing = false, sortBy = "round";
+try{ sortBy = localStorage.getItem("elf.teamsSort") === "total" ? "total" : "round"; }catch{}
+// custom PIR (set by hand in edit mode): Total = custom PIR + this round's PIR
+const baseOf = n => +((Shared.enabled && Shared.ready) ? Shared.coaches[n]?.base : store.get("elf.base", {})[n]) || 0;
+function renderLeague(){
+  const list = $("#lgList"); if (!list) return;
+  const rows = COACHES.map(c => { const r = coachTotal(c.name), base = baseOf(c.name); return {name: c.name, team: teamOf(c.name), ...r, base, sum: r1(base + r.total)}; })
+                      .sort((a, b) => sortBy === "total" ? b.sum - a.sum || b.total - a.total : b.total - a.total || b.sum - a.sum);
+  $("#demoLinks").hidden = !lgEditing;
+  renderStart();
+  if (lgEditing && list.querySelector(".team-input")) return;          // don't redraw under the keyboard
+  const th = `<div class="th"><div class="rank">#</div><div class="who">TEAM</div>
+    <div class="c-rd"><button data-sort="round" class="${sortBy === "round" ? "on" : ""}">ROUND</button></div>
+    <div class="c-tot"><button data-sort="total" class="${sortBy === "total" ? "on" : ""}">TOTAL</button></div></div>`;
+  list.innerHTML = th + rows.map((c, i) => lgEditing ? `
+    <div class="row editing${i === 0 ? " lead" : ""}">
+      <div class="rank">${i + 1}</div>
+      <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name">
+        <span class="plus-rd">+ ${fmtShort(c.total)} this round</span></div>
+      <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Total for ${esc(c.team)} before this round">
+    </div>` : `
+    <div class="row${i === 0 ? " lead" : ""}" data-team="${esc(c.name)}" role="button" tabindex="0">
+      <div class="rank">${i + 1}</div>
+      <div class="who"><b>${esc(c.team)}</b></div>
+      <div class="c-rd">${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.total)}</div>
+      <div class="c-tot">${fmtShort(c.sum)}</div>
+    </div>`).join("");
+}
+function wireLeagueList(){
+  const list = $("#lgList");
+  list.addEventListener("click", e => {
+    const s = e.target.closest("[data-sort]");
+    if (s){ sortBy = s.dataset.sort; try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{} renderLeague(); return; }
+    const t = e.target.closest("[data-team]"); if (t) goTo(t.dataset.team);          // tap a team → its page
+  });
+  list.addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.matches(".team-input, .base-input")) { e.target.blur(); return; }
+    const t = e.target.closest("[data-team]"); if (t && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); goTo(t.dataset.team); }
+  });
+  list.addEventListener("input", e => {
+    const ti = e.target.closest(".team-input");
+    if (ti){
+      const names = store.get("elf.teams", {}), v = ti.value.trim(), def = COACHES.find(c => c.name === ti.dataset.coach)?.team;
+      if (v && v !== def) names[ti.dataset.coach] = v; else delete names[ti.dataset.coach];
+      store.set("elf.teams", names);
+      clearTimeout(ti._t);                 // save for everyone shortly after typing stops
+      ti._t = setTimeout(() => Shared.push(ti.dataset.coach, {team: v && v !== def ? v : ""}), 400);
+      return;
+    }
+    const bi = e.target.closest(".base-input"); if (!bi) return;
+    const raw = bi.value.replace(",", ".").trim(), v = raw === "" ? 0 : Number(raw);
+    if (!Number.isFinite(v)) return;
+    const all = store.get("elf.base", {}); all[bi.dataset.coach] = v; store.set("elf.base", all);
+    clearTimeout(bi._t);
+    bi._t = setTimeout(() => Shared.push(bi.dataset.coach, {base: v}), 400);
+  });
+}
+/* Start Round X — shows once every game of the league's round is over. Any 2 phones tapping it start the next round:
+   the server adds each team's round PIR to its Total, rosters stay, and the round number moves on.
+   Tapping again takes the vote back. If nobody taps, the server starts it 3 h before the next round tips off. */
+const DEVICE = (() => {
+  let id = store.get("elf.device");
+  if (!/^[a-z0-9]{8,40}$/.test(id || "")){ id = Array.from(crypto.getRandomValues(new Uint8Array(10)), b => b.toString(36).padStart(2, "0")).join("").slice(0, 16); store.set("elf.device", id); }
+  return id;
+})();
+let voting = false;
+const roundOver = () => { const rg = games.filter(g => g.r === round); return rg.length > 0 && rg.every(g => g.p || (box[g.c] && box[g.c].final)); };
+function renderStart(){
+  const w = $("#startWrap"); if (!w) return;
+  const L = Shared.enabled && Shared.ready ? Shared.league : null;
+  const show = !DEMO && !!L && L.round === round && roundOver();
+  w.hidden = !show;
+  if (!show) return;
+  const votes = L.votes || [], mine = votes.includes(DEVICE), b = $("#startBtn");
+  b.classList.toggle("voted", mine);
+  b.disabled = voting;
+  b.textContent = mine ? "✓ Ready" : `Start Round ${round + 1}`;
+  $("#startNote").textContent = (votes.length ? `${votes.length} ready, ` : "") + `${Math.max(0, 2 - votes.length)} more to start` + (mine ? ". Tap to undo" : "");
+}
+async function startVote(){
+  const L = Shared.league; if (!L || voting) return;
+  const vote = !(L.votes || []).includes(DEVICE);
+  voting = true;
+  L.votes = vote ? [...(L.votes || []), DEVICE] : (L.votes || []).filter(d => d !== DEVICE);   // show it right away
+  renderStart();
+  try{
+    const r = await fetch("/api/round", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({device:DEVICE, round:L.round, vote})});
+    if (!r.ok) throw new Error(r.status);
+  }catch{ $("#startNote").textContent = "Couldn't reach the server — try again"; }
+  voting = false;
+  Shared.refresh();
+}
+
+/* ───────── bottom navigation: Teams (this page) · Games · Players (league page) ───────── */
+Nav.init({active: "teams", onTap: k => {
+  if (k !== "teams") return false;                    // Games / Players: go to the league page
+  if (cur !== LEAGUE) goTo(LEAGUE);                   // Teams while on Teams: back to the league table…
+  const sl = slideOf(LEAGUE); if (sl) sl.scrollTo({top: 0, behavior: "smooth"});   // …at its top
+  return true;
+}});
 
 /* ───────── carousel ───────── */
 function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height + 8) + "px"); }
@@ -651,7 +852,7 @@ async function refresh(){
   }catch{ $("#banner").classList.add("show"); }
   busy = false;
   if (!built){       // first load: order coaches by this round's PIR, most → least
-    order = [...COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n), WATCH];
+    order = [LEAGUE, ...COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n), WATCH];
     buildSlides();
   } else render();
   if (PlayerSheet.isOpen() && selected()) PlayerSheet.update(sheetInfo(selected(), sel.n));
@@ -775,11 +976,15 @@ GameSheet.init({games: () => games, people: () => people, owners(){             
 /* ───────── edit mode: ✕ removes a player, ⋯ opens captain / wild card options ───────── */
 let editing = false, opt = null;               // opt: {n, code} of the player whose options are open
 $("#editBtn").onclick = () => {
+  if (cur === LEAGUE){
+    lgEditing = !lgEditing;
+    $("#lgList").innerHTML = "";
+    renderLeague(); renderHeader();
+    if (lgEditing) $("#lgList .team-input")?.focus();
+    return;
+  }
   editing = !editing;
-  const b = $("#editBtn");
-  b.classList.toggle("on", editing);
-  b.textContent = editing ? "✓" : "✎";
-  b.setAttribute("aria-label", editing ? "Done editing" : "Edit players");
+  renderHeader();
   render();
 };
 function removePlayer(n, code){
