@@ -34,7 +34,13 @@
   };
   const wait = ms => new Promise(r => setTimeout(r, ms));
   async function getJSON(url, tries = 4){
-    const r = await fetch(url, {cache: "no-store"});
+    let r = await fetch(url, {cache: "no-store"}).catch(() => null);
+    // Euroleague sometimes rate-limits our server (error 1015 / 429): then the phone asks Euroleague's live server itself
+    if ((!r || !r.ok) && url.startsWith("/el-live/")){
+      const d = await fetch("https://live.euroleague.net/api/" + url.slice(9), {cache: "no-store"}).catch(() => null);
+      if (d && d.ok) r = d;
+    }
+    if (!r) throw new Error("network");
     if ((r.status === 429 || r.status >= 500) && tries > 1){ await wait((5 - tries) * 1500 + 800); return getJSON(url, tries - 1); }   // busy: back off and retry
     if (!r.ok) throw new Error(r.status);
     const t = await r.text();

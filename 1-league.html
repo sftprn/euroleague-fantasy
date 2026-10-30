@@ -230,8 +230,10 @@ function shareOf(p, wc){
 let games = [], round = null, box = {}, timer = null;
 
 async function getJSON(url){
-  const r = await fetch(url, {cache:"no-store"});
-  if (!r.ok) throw new Error(r.status);
+  let r = await fetch(url, {cache:"no-store"}).catch(() => null);
+  // Euroleague sometimes rate-limits our server (error 1015 / 429): then the phone asks Euroleague's live server itself
+  if ((!r || !r.ok) && url.startsWith("/el-live/")) r = await fetch("https://live.euroleague.net/api/" + url.slice(9), {cache:"no-store"}).catch(() => r);
+  if (!r || !r.ok) throw new Error(r ? r.status : "network");
   const t = await r.text();
   return t ? JSON.parse(t) : null;
 }
