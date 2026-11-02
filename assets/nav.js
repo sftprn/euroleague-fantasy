@@ -17,18 +17,15 @@
     players: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
   };
   const LABEL = {teams: "Teams", games: "Games", players: "Players"};
-  // "Liquid glass" (iOS 26 style): a floating frosted capsule with a bright rim and a glass pill behind the current tab
+  // "Liquid glass" (iOS 26 style): a floating see-through frosted capsule and a clear glass pill behind the current tab
   const CSS = `:root{--navH:calc(84px + env(safe-area-inset-bottom))}
 #elfNav{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;
   width:min(calc(100% - 28px), 380px);height:64px;border-radius:32px;isolation:isolate;
-  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.05) 55%,rgba(255,255,255,.07));      /* see-through glass */
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03) 55%,rgba(255,255,255,.04));      /* see-through glass */
   backdrop-filter:blur(16px) saturate(1.8);-webkit-backdrop-filter:blur(16px) saturate(1.8);
-  box-shadow:0 10px 30px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.1)}
+  box-shadow:0 10px 30px rgba(0,0,0,.18)}
 #elfNav::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;      /* specular sheen along the top */
-  background:radial-gradient(120% 90% at 22% -20%,rgba(255,255,255,.12),transparent 55%),radial-gradient(90% 80% at 85% 130%,rgba(255,255,255,.05),transparent 60%)}
-#elfNav::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;   /* rim: brighter at the top edge */
-  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.03) 45%,rgba(255,255,255,.05));   /* faint rim */
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  background:radial-gradient(120% 90% at 22% -20%,rgba(255,255,255,.06),transparent 55%)}
 #elfNav .in{position:relative;height:100%;display:flex;padding:5px}
 #elfNav .pill{position:absolute;top:5px;bottom:5px;left:5px;width:calc((100% - 10px) / 3);border-radius:27px;z-index:0;
   background:rgba(255,255,255,.16);                                 /* clear white, no rim or shadow */
