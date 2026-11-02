@@ -21,13 +21,13 @@
   const CSS = `:root{--navH:calc(84px + env(safe-area-inset-bottom))}
 #elfNav{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;
   width:min(calc(100% - 28px), 380px);height:64px;border-radius:32px;isolation:isolate;
-  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.14) 55%,rgba(255,255,255,.17));      /* lighter glass */
-  backdrop-filter:blur(22px) saturate(1.9) brightness(1.08);-webkit-backdrop-filter:blur(22px) saturate(1.9) brightness(1.08);
-  box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.18)}
+  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.05) 55%,rgba(255,255,255,.07));      /* see-through glass */
+  backdrop-filter:blur(16px) saturate(1.8);-webkit-backdrop-filter:blur(16px) saturate(1.8);
+  box-shadow:0 10px 30px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.1)}
 #elfNav::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;      /* specular sheen along the top */
-  background:radial-gradient(120% 90% at 22% -20%,rgba(255,255,255,.28),transparent 55%),radial-gradient(90% 80% at 85% 130%,rgba(255,255,255,.10),transparent 60%)}
+  background:radial-gradient(120% 90% at 22% -20%,rgba(255,255,255,.12),transparent 55%),radial-gradient(90% 80% at 85% 130%,rgba(255,255,255,.05),transparent 60%)}
 #elfNav::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;   /* rim: brighter at the top edge */
-  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.05) 45%,rgba(255,255,255,.09));   /* faint rim */
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.03) 45%,rgba(255,255,255,.05));   /* faint rim */
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 #elfNav .in{position:relative;height:100%;display:flex;padding:5px}
 #elfNav .pill{position:absolute;top:5px;bottom:5px;left:5px;width:calc((100% - 10px) / 3);border-radius:27px;z-index:0;
