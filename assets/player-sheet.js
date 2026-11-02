@@ -11,10 +11,10 @@
 (function(){
   const CSS = `#psWrap{--win:#3DDC84;--loss:#FF5A4E;--loss-soft:#3D1715;--orange-soft:#FF6B1A22}
 #psWrap .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
-#psWrap .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0; border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - env(safe-area-inset-top) - 16px);max-height:calc(100dvh - env(safe-area-inset-top) - 16px); transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
+#psWrap .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0; border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - var(--sat, env(safe-area-inset-top)) - 16px);max-height:calc(100dvh - var(--sat, env(safe-area-inset-top)) - 16px); transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
 #psWrap.open .scrim.pm{opacity:1;pointer-events:auto}
 #psWrap.open .sheet.pm{transform:translate(-50%,0);visibility:visible}
-#psWrap .sheet.pm{height:calc(100vh - env(safe-area-inset-top) - 16px);height:calc(100dvh - env(safe-area-inset-top) - 16px)}
+#psWrap .sheet.pm{height:calc(100vh - var(--sat, env(safe-area-inset-top)) - 16px);height:calc(100dvh - var(--sat, env(safe-area-inset-top)) - 16px)}
 #psWrap .scrim.ts{z-index:12}
 #psWrap .sheet.ts{z-index:13}
 #psWrap.ts-open .scrim.ts{opacity:1;pointer-events:auto}
@@ -30,7 +30,7 @@
 #psWrap .sh-head{flex:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 20px 14px;border-bottom:1px solid var(--line);touch-action:none}
 #psWrap .sh-head b{font-size:20px;font-weight:800;display:block}
 #psWrap .sh-head small{color:var(--muted);font-size:12.5px}
-#psWrap .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:8px 16px calc(22px + env(safe-area-inset-bottom))}
+#psWrap .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:8px 16px calc(22px + var(--sab, env(safe-area-inset-bottom)))}
 #psWrap .ph-head{align-items:flex-end;padding:0 0 0 20px;min-height:0;gap:8px}
 #psWrap .ph-txt{flex:1;min-width:0;padding:2px 0 14px}
 #psWrap .ph-txt .big{display:block;font-size:21px;font-weight:800;line-height:1.2;letter-spacing:-.01em;color:#fff}

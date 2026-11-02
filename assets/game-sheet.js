@@ -10,8 +10,8 @@
   const CSS = `/* game sheet (tap a game in the Games tab): score, Box score / Court */
 #gWrap .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
 #gWrap .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
-border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - env(safe-area-inset-top) - 16px);max-height:calc(100dvh - env(safe-area-inset-top) - 16px);
-height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
+border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - var(--sat, env(safe-area-inset-top)) - 16px);max-height:calc(100dvh - var(--sat, env(safe-area-inset-top)) - 16px);
+height:calc(100dvh - var(--sat, env(safe-area-inset-top)) - 16px);transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
 #gWrap.open .scrim{opacity:1;pointer-events:auto}
 #gWrap.open .sheet{transform:translate(-50%,0);visibility:visible}
 #gWrap .sheet.dragging{transition:none}
@@ -19,7 +19,7 @@ height:calc(100dvh - env(safe-area-inset-top) - 16px);transition:transform .25s 
 #gWrap .grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab;touch-action:none}
 #gWrap .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
 #gWrap .sh-head{flex:none;display:block;padding:4px 16px 0;border:0;border-bottom:1px solid var(--line);touch-action:none}   /* the line under the score stays put while the content scrolls */
-#gWrap .sh-body{overflow-x:hidden;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+#gWrap .sh-body{overflow-x:hidden;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + var(--sab, env(safe-area-inset-bottom)))}
 #gWrap .board{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 14px;margin-bottom:12px}
 #gWrap .board .side{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
 #gWrap .board .side img{width:44px;height:44px;object-fit:contain}

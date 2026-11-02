@@ -1,8 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Euroleague Fantasy</title>
-<!-- served by the "fantasy" Worker: https://fantasy.eurolyga.workers.dev -->
+<title>EL Fantasy</title>
+<!-- App shell (served by the "fantasy" Worker: https://fantasy.eurolyga.workers.dev).
+     Keeps the bottom bar on screen and shows Teams (2-coach) and Games / Players (1-league) in frames underneath it,
+     so switching never reloads the bar. Both sections stay loaded; the hidden one pauses its live updates. -->
 <meta name="theme-color" content="#0A0A0B">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
@@ -10,5 +12,74 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="EL Fantasy">
 <link rel="apple-touch-icon" href="/assets/icon-180.png">
-<script>location.replace(location.protocol === "file:" ? "2-coach.html?coach=league" : "/2-coach?coach=league");</script>
-</head><body style="background:#0A0A0B"><a href="/2-coach?coach=league" style="color:#FF6B1A;font-family:system-ui">Open Euroleague Fantasy</a></body></html>
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0A0A0B;touch-action:manipulation;-webkit-text-size-adjust:100%}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;background:#0A0A0B;z-index:1}
+  iframe.off{visibility:hidden;pointer-events:none;z-index:0}           /* kept loaded (and scrolled where you left it), just not shown */
+  #probe{position:fixed;left:0;top:0;width:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none}
+</style>
+<script>document.addEventListener("gesturestart", e => e.preventDefault(), {passive: false});</script>
+</head>
+<body>
+<div id="probe"></div>
+<script src="/assets/nav.js"></script>
+<script>
+(function(){
+  if (location.protocol === "file:"){ location.replace("2-coach.html?coach=league"); return; }
+  const TABS = ["teams", "games", "players"];
+  const q = new URLSearchParams(location.search);
+  const demo = q.has("demo") ? "&demo" + (q.get("demo") ? "=" + q.get("demo") : "") : "";
+  let tab = TABS.includes(q.get("tab")) ? q.get("tab") : "teams";
+  let fresh = q.has("new");                               // demo "start over": only the first section loaded wipes the pretend league
+  const frames = {};
+  function frame(sec){                                    // sec: "teams" | "league"
+    if (frames[sec]) return frames[sec];
+    const f = document.createElement("iframe");
+    f.title = sec === "teams" ? "Teams" : "Games and players";
+    const extra = demo + (fresh ? "&new" : ""); fresh = false;
+    f.src = sec === "teams" ? `/2-coach?coach=${encodeURIComponent(q.get("coach") || "league")}&embed${extra}`
+                            : `/1-league?view=${tab === "players" ? "players" : "games"}&embed${extra}`;
+    f.className = "off";
+    document.body.insertBefore(f, document.getElementById("probe"));
+    return frames[sec] = f;
+  }
+  const secOf = t => t === "teams" ? "teams" : "league";
+  const post = (sec, msg) => { try{ frames[sec]?.contentWindow?.postMessage(msg, location.origin); }catch{} };
+  function insets(){
+    const p = getComputedStyle(document.getElementById("probe"));
+    const m = {elf: "insets", top: parseFloat(p.paddingTop) || 0, bottom: parseFloat(p.paddingBottom) || 0};
+    post("teams", m); post("league", m);
+  }
+  function show(t){
+    tab = t;
+    const sec = secOf(t);
+    frame(sec);
+    for (const k in frames){ frames[k].classList.toggle("off", k !== sec); post(k, {elf: "show", on: k === sec}); }
+    if (sec === "league") post("league", {elf: "view", view: t});
+    document.title = t === "teams" ? "Teams · EL Fantasy" : t === "games" ? "Games · EL Fantasy" : "Players · EL Fantasy";
+    const u = new URL(location.href); u.searchParams.set("tab", t); u.searchParams.delete("new"); u.searchParams.delete("coach");
+    history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
+  }
+  addEventListener("message", e => {                      // a section finished loading: give it the safe areas and tell it if it's shown
+    if (e.origin !== location.origin || e.data?.elf !== "ready") return;
+    insets();
+    for (const k in frames) if (frames[k].contentWindow === e.source){
+      post(k, {elf: "show", on: k === secOf(tab)});
+      if (k === "league" && tab !== "teams") post("league", {elf: "view", view: tab});
+    }
+  });
+  addEventListener("resize", insets);
+  Nav.init({active: tab, onTap: k => {
+    if (k === tab){ k === "teams" ? post("teams", {elf: "teams-top"}) : post("league", {elf: "view", view: k}); return true; }   // same tab: back to its top
+    show(k);
+    return true;
+  }});
+  show(tab);
+  // load the other section in the background, so the first switch is instant too
+  setTimeout(() => { frame(secOf(tab) === "teams" ? "league" : "teams"); for (const k in frames) frames[k].classList.toggle("off", k !== secOf(tab)); }, 2500);
+})();
+</script>
+</body></html>

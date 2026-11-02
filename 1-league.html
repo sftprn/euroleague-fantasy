@@ -24,16 +24,24 @@
   [hidden]{display:none!important}
   html{background:var(--bg)}
   body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
-  .app{max-width:480px;margin:0 auto;min-height:100vh;padding:calc(18px + env(safe-area-inset-top)) 16px calc(var(--navH, 0px) + 28px)}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding:var(--headH, 90px) 16px calc(var(--navH, 0px) + 28px);position:relative;z-index:1}
+  /* header: the same as on Teams — art backdrop, title + subtitle on the left; content scrolls under it */
+  .art, .top{background-color:var(--bg);
+       background-image:linear-gradient(180deg,#0A0A0B26 0px,#0A0A0B8C 140px,#0A0A0BE6 230px,#0A0A0B 300px), url("assets/bg.jpg");
+       background-size:100% 300px, max(100vw, 520px) auto;background-position:center top, center -30px;background-repeat:no-repeat}
+  .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}
+  .top{position:fixed;left:0;right:0;top:0;z-index:4;padding:calc(14px + var(--sat, env(safe-area-inset-top))) 16px 14px;margin:0;
+       -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent)}
+  .top .bar{max-width:480px;margin:0 auto;display:flex;align-items:center;min-height:44px}
+  .top .title{text-align:left;min-width:0;flex:1;padding:0 12px 0 2px}
+  .top .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:normal}
+  .top .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;align-items:center;gap:6px;white-space:nowrap}
 
   /* header */
-  header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
   .logo{width:40px;height:40px;flex:none;display:block}
   .titles{flex:1;min-width:0}
   .icon-btn{width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:#fff;font-size:18px;display:grid;place-items:center;cursor:pointer;flex:none;font-family:inherit}
   .icon-btn.on{background:var(--orange);border-color:var(--orange);font-size:20px;font-weight:800}
-  header h1{font-weight:800;font-size:19px;letter-spacing:.02em;line-height:1}
-  header small{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;letter-spacing:.04em}
 
   /* standings */
   .list{background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
@@ -148,11 +156,9 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 </script>
 </head>
 <body>
+<div class="art" aria-hidden="true"></div>
 <div class="app">
-  <header>
-    <img class="logo" src="assets/euroleague.svg" alt="">
-    <div class="titles"><h1>EUROLEAGUE FANTASY</h1><small id="roundTxt">2026–27 · ROUND –</small></div>
-  </header>
+  <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt">Loading…</div></div></div></header>
 
   <!-- Games: this round's games (tap one to open it) — Teams is the team pages' first slide; the bottom bar switches -->
   <div id="vGames" hidden>
@@ -169,6 +175,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 
 
 <script src="assets/demo.js"></script>
+<script src="assets/embed.js"></script>
 <script src="assets/sync.js"></script>
 <script src="assets/data.js"></script>
 <script src="assets/sheet-drag.js"></script>
@@ -293,7 +300,7 @@ function coachTotal(c){
 }
 
 function render(){
-  $("#roundTxt").textContent = `${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} · ROUND ${round ?? "–"}`;
+  $("#roundTxt").textContent = round ? `${SEASON.slice(1)}–${(+SEASON.slice(3) + 1) % 100} · Round ${round}` : "Loading…";
   renderTop();
   renderGames();
   GameSheet.update();
@@ -427,13 +434,14 @@ async function refresh(){
   res.forEach(([c, b]) => { if (b) box[c] = b; });
   render();
   clearTimeout(timer);
-  if (document.hidden) return;
+  if (elfHidden()) return;
   const now = Date.now(), rel = relevantGames();
   const inPlay = games.some(g => g.r === round && new Date(g.u) <= now && !(box[g.c] && box[g.c].final));
   const next = rel.map(g => +new Date(g.u)).filter(t => t > now).sort((a, b) => a - b)[0];
   timer = setTimeout(refresh, inPlay ? LIVE_POLL : next ? Math.min(IDLE_POLL, Math.max(10_000, next - now + 5_000)) : IDLE_POLL);
 }
 document.addEventListener("visibilitychange", () => document.hidden ? clearTimeout(timer) : refresh());
+addEventListener("elf-show", () => refresh());          // the shell switched back to this section
 
 
 
@@ -441,7 +449,14 @@ document.addEventListener("visibilitychange", () => document.hidden ? clearTimeo
 const VIEWS = ["games", "players"];
 let view = "games";
 try{ const v = new URLSearchParams(location.search).get("view") || localStorage.getItem("elf.leagueView"); if (VIEWS.includes(v)) view = v; }catch{}
+function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height + 12) + "px"); }
+sizeHeader(); addEventListener("resize", sizeHeader);
+addEventListener("elf-msg", e => {                    // inside the app shell: Games / Players picked in the bar
+  const d = e.detail;
+  if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); scrollTo({top: 0}); } else scrollTo({top: 0, behavior: "smooth"}); }
+});
 function showView(){
+  $("#pageTitle").textContent = view === "games" ? "Games" : "Players";
   $("#vGames").hidden = view !== "games";
   $("#vPlayers").hidden = view !== "players";
   document.title = `${view === "games" ? "Games" : "Players"} · EL Fantasy`;

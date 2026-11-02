@@ -32,7 +32,7 @@
 
   async function poll(){
     clearTimeout(timer);
-    if (!enabled || document.hidden || polling) return;
+    if (!enabled || (window.elfHidden ? elfHidden() : document.hidden) || polling) return;
     polling = true;
     await flush();
     const seq = editSeq;
@@ -63,5 +63,6 @@
     flush();
   };
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+  addEventListener("elf-show", () => poll());               // app shell: this section shown again
   window.Shared = S;
 })();

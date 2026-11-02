@@ -6,10 +6,10 @@
   const DIRECT = location.protocol === "file:";
   const q = new URLSearchParams(location.search);
   const demo = q.has("demo") ? "&demo" + (q.get("demo") ? "=" + q.get("demo") : "") : "";      // stay in the demo league when switching
-  const HREF = {
-    teams: (DIRECT ? "2-coach.html" : "/2-coach") + "?coach=league" + demo,
-    games: (DIRECT ? "1-league.html" : "/1-league") + "?view=games" + demo,
-    players: (DIRECT ? "1-league.html" : "/1-league") + "?view=players" + demo,
+  const HREF = DIRECT ? {                                                   // opened as files: no shell, plain pages
+    teams: "2-coach.html?coach=league" + demo, games: "1-league.html?view=games" + demo, players: "1-league.html?view=players" + demo,
+  } : {                                                                      // otherwise into the app shell (/), which keeps the bar
+    teams: "/?tab=teams" + demo, games: "/?tab=games" + demo, players: "/?tab=players" + demo,
   };
   const ICON = {
     teams: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>`,
@@ -18,8 +18,8 @@
   };
   const LABEL = {teams: "Teams", games: "Games", players: "Players"};
   // "Liquid glass" (iOS 26 style): a floating see-through frosted capsule and a clear glass pill behind the current tab
-  const CSS = `:root{--navH:calc(84px + env(safe-area-inset-bottom))}
-#elfNav{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;
+  const CSS = `:root{--navH:calc(84px + var(--sab, env(safe-area-inset-bottom)))}
+#elfNav{position:fixed;left:50%;bottom:calc(10px + var(--sab, env(safe-area-inset-bottom)));transform:translateX(-50%);z-index:8;
   width:min(calc(100% - 28px), 380px);height:64px;border-radius:32px;isolation:isolate;
   background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03) 55%,rgba(255,255,255,.04));      /* see-through glass */
   backdrop-filter:blur(16px) saturate(1.8);-webkit-backdrop-filter:blur(16px) saturate(1.8);
@@ -42,6 +42,10 @@
   let opts = {active: "teams", onTap: null};
   function init(o){
     opts = {...opts, ...o};
+    if (window.ELF_EMBED){                                  // inside the app shell: the shell draws the bar; just keep room for it
+      if (!document.getElementById("elfNavSpace")){ const st = document.createElement("style"); st.id = "elfNavSpace"; st.textContent = CSS.split("\n")[0]; document.head.appendChild(st); }
+      return;
+    }
     if (!document.getElementById("elfNav")){
       const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
       const n = document.createElement("nav"); n.id = "elfNav"; n.setAttribute("aria-label", "Sections");
