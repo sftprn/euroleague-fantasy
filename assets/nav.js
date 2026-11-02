@@ -21,19 +21,17 @@
   const CSS = `:root{--navH:calc(84px + env(safe-area-inset-bottom))}
 #elfNav{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;
   width:min(calc(100% - 28px), 380px);height:64px;border-radius:32px;isolation:isolate;
-  background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.05) 55%,rgba(255,255,255,.08));
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.14) 55%,rgba(255,255,255,.17));      /* lighter glass */
   backdrop-filter:blur(22px) saturate(1.9) brightness(1.08);-webkit-backdrop-filter:blur(22px) saturate(1.9) brightness(1.08);
-  box-shadow:0 12px 34px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.25),
-    inset 0 1px 0 rgba(255,255,255,.38),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 0 1px rgba(255,255,255,.12)}
+  box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.18)}
 #elfNav::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;      /* specular sheen along the top */
   background:radial-gradient(120% 90% at 22% -20%,rgba(255,255,255,.28),transparent 55%),radial-gradient(90% 80% at 85% 130%,rgba(255,255,255,.10),transparent 60%)}
 #elfNav::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;   /* rim: brighter at the top edge */
-  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.08) 40%,rgba(255,255,255,.18));
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.05) 45%,rgba(255,255,255,.09));   /* faint rim */
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 #elfNav .in{position:relative;height:100%;display:flex;padding:5px}
 #elfNav .pill{position:absolute;top:5px;bottom:5px;left:5px;width:calc((100% - 10px) / 3);border-radius:27px;z-index:0;
-  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.08));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(255,255,255,.06),0 2px 8px rgba(0,0,0,.22);
+  background:rgba(255,255,255,.16);                                 /* clear white, no rim or shadow */
   transition:transform .42s cubic-bezier(.3,1.35,.5,1),scale .18s ease}
 #elfNav .pill.press{scale:1.06}
 #elfNav a{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:rgba(255,255,255,.72);
