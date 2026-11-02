@@ -420,7 +420,7 @@ function renderTop(){
   const sel = $("#topTeam"), clubs = new Map();
   games.forEach(g => [g.h, g.a].forEach(t => { if (t?.c && !clubs.has(t.c)) clubs.set(t.c, t.n || t.tv || t.c); }));
   const list = [...clubs].sort((a, b) => a[1].localeCompare(b[1]));
-  const saved = store.get("elf.topClub", ""), pick = clubs.has(saved) || saved === WATCH ? saved : "";
+  const pick = clubs.has(topPick) || topPick === WATCH ? topPick : "";
   const opts = `<option value="${WATCH}">Watchlist</option><option value="">All teams</option>` + list.map(([c, n]) => `<option value="${esc(c)}">${esc(n)}</option>`).join("");
   if (sel._opts !== opts){ sel.innerHTML = sel._opts = opts; }
   sel.value = pick;
@@ -446,6 +446,7 @@ function renderTop(){
 
 /* Watchlist: any players, followed privately — saved only on this phone (elf.watch, the old Watch team), never shared or counted */
 const WATCH = "__watch", WATCH_MAX = 20;
+var topPick = WATCH;                                  // Players always opens on the Watchlist; another pick lasts until you leave the tab
 const watchList = () => store.get("elf.watch", []);
 function renderWatch(){
   const own = owners(), list = watchList();
@@ -525,7 +526,7 @@ function openPlayer(code){
   const r = topRows.find(x => x.p.code === code); if (!r) return;
   PlayerSheet.open(r.p, {state: sheetState(r.p), meta: sheetMeta(r.p, r.teams)});
 }
-$("#topTeam").addEventListener("change", e => { store.set("elf.topClub", e.target.value); e.target.blur(); renderTop(); });   // let go of focus so the next tap opens it again (iPhone)
+$("#topTeam").addEventListener("change", e => { topPick = e.target.value; e.target.blur(); renderTop(); });   // let go of focus so the next tap opens it again (iPhone)
 $("#topList").addEventListener("click", e => { const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code); });
 $("#topList").addEventListener("keydown", e => { const r = e.target.closest("[data-code]"); if (r && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openPlayer(r.dataset.code); } });
 
@@ -562,9 +563,12 @@ function sizeHeader(){ document.documentElement.style.setProperty("--headH", Mat
 sizeHeader(); addEventListener("resize", sizeHeader);
 addEventListener("elf-msg", e => {                    // inside the app shell: Games / Players picked in the bar
   const d = e.detail;
+  if (d.elf === "view" && d.view === "players") playersDefault();
   if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); scrollTo({top: 0}); } else scrollTo({top: 0, behavior: "smooth"}); }
 });
+function playersDefault(){ topPick = WATCH; try{ renderTop(); }catch{} }
 function showView(){
+  if (view === "players") playersDefault();
   $("#pageTitle").textContent = view === "games" ? "Games" : "Players";
   $("#vGames").hidden = view !== "games";
   $("#vPlayers").hidden = view !== "players";
@@ -574,6 +578,7 @@ function showView(){
 }
 Nav.init({active: view, onTap: k => {
   if (k === "teams") return false;                    // Teams: the team pages
+  if (k === "players") playersDefault();
   if (k !== view){ view = k; showView(); scrollTo({top: 0}); }
   else scrollTo({top: 0, behavior: "smooth"});       // same tab again: back to the top
   return true;
