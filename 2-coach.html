@@ -64,7 +64,7 @@
   .track::-webkit-scrollbar{display:none}
   .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
   .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(var(--navH, 0px) + 64px)}
-  /* first slide: the league table (Start Round, standings, feedback) — tap a team to slide to it */
+  /* first slide: the league table (Start Round, standings) — tap a team to slide to it */
   .lgs .list{background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
   .lgs .row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
   .lgs .row:first-child{border-top:0}
@@ -340,7 +340,6 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <script src="assets/sync.js"></script>
 <script src="assets/data.js"></script>
 <script src="assets/sheet-drag.js"></script>
-<script src="assets/feedback.js"></script>
 <script src="assets/nav.js"></script>
 <script src="assets/player-sheet.js"></script>
 <script src="assets/game-sheet.js"></script>
@@ -616,10 +615,6 @@ function buildSlides(){
     <section class="slide" data-coach="${LEAGUE}"><div class="page lgs">
       <div class="start" id="startWrap" hidden><button class="start-btn" id="startBtn"></button><div class="start-note" id="startNote"></div></div>
       <div class="list tbl" id="lgList"></div>
-      <button class="list watch fb-btn" id="fbBtn" type="button"><div class="row">
-        <div class="rank"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-        <div class="who"><b>Give Feedback</b><small>Ideas, bugs, wishes · seen by everyone</small></div>
-        <div class="score"><span class="chev">›</span></div></div></button>
       <div id="demoLinks" hidden>
         <div class="sec-t">DEMOS</div>
         <div class="list">
@@ -632,7 +627,6 @@ function buildSlides(){
       <div class="list"></div>
     </div></section>`).join("");
   $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" class="${n === WATCH ? "w" : n === LEAGUE ? "l" : ""}" aria-label="${esc(teamOf(n))}"></button>`).join("");
-  $("#fbBtn").addEventListener("click", () => Feedback.open());
   $("#startBtn").onclick = startVote;
   wireLeagueList();
   built = true;
