@@ -113,6 +113,8 @@
   .lgs .th .c-rd,.lgs .th .c-tot{font-size:10.5px;font-weight:800;color:var(--dim);margin:-10px 0 -8px;padding:10px 0 8px}
   .lgs .row.lead .c-tot{border-left-color:#FFFFFF33;color:#FFFFFFD9;margin:-14px 0;padding:14px 0}
   .lgs .tbl .row.editing .base-input{width:92px}
+  .lgs #lgList > .sec-t:first-child{margin-top:2px}
+  .lgs .c-pts{flex:none;min-width:56px;text-align:right;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:flex-end;gap:8px}
   .lgs .watch{display:block;margin-top:10px;border-style:dashed;color:inherit;text-decoration:none}
   .lgs .watch .rank{color:var(--muted);display:grid;place-items:center}
   .lgs .watch .score{font-size:18px;color:var(--muted)}
@@ -430,8 +432,8 @@ const sharedReady = new Promise(res => { if (Shared.ready) res(); else { Shared.
 /* ───────── state ───────── */
 let people = [], games = [], round = null, box = {}, timer = null, busy = false;
 const LEAGUE = "league";                              // first slide: the league table
-let order = [LEAGUE, ...COACHES.map(c => c.name), WATCH];   // carousel order (league table, then most → least PIR, set once data loads; watch team always last)
-let cur = COACHES.some(c => c.name === qs.get("coach")) || qs.get("coach") === WATCH ? qs.get("coach") : LEAGUE;
+let order = [LEAGUE, ...COACHES.map(c => c.name)];   // carousel order (league table, then most → least PIR, set once data loads). The watch team moved to Players → Watchlist
+let cur = COACHES.some(c => c.name === qs.get("coach")) ? qs.get("coach") : LEAGUE;
 let built = false, sel = null, target = null, drag = null, suppressClick = false;
 const $ = s => document.querySelector(s);
 const r1 = v => Math.round(v * 100) / 100;          // values are kept to 2 decimals; only display rounds further
@@ -614,7 +616,7 @@ function buildSlides(){
   track.innerHTML = order.map(n => n === LEAGUE ? `
     <section class="slide" data-coach="${LEAGUE}"><div class="page lgs">
       <div class="start" id="startWrap" hidden><button class="start-btn" id="startBtn"></button><div class="start-note" id="startNote"></div></div>
-      <div class="list tbl" id="lgList"></div>
+      <div id="lgList"></div>
       <div id="demoLinks" hidden>
         <div class="sec-t">DEMOS</div>
         <div class="list">
@@ -698,28 +700,30 @@ function renderLeague(){
   $("#demoLinks").hidden = !lgEditing;
   renderStart();
   if (lgEditing && list.querySelector(".team-input")) return;          // don't redraw under the keyboard
-  const th = `<div class="th"><div class="rank">#</div><div class="who">TEAM</div>
-    <div class="c-rd"><button data-sort="round" class="${sortBy === "round" ? "on" : ""}">ROUND</button></div>
-    <div class="c-tot"><button data-sort="total" class="${sortBy === "total" ? "on" : ""}">TOTAL</button></div></div>`;
-  list.innerHTML = th + rows.map((c, i) => lgEditing ? `
+  if (lgEditing){                                                      // edit names and totals-before-this-round in one list
+    list.innerHTML = `<div class="list tbl">` + rows.map((c, i) => `
     <div class="row editing${i === 0 ? " lead" : ""}">
       <div class="rank">${i + 1}</div>
       <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name">
         <span class="plus-rd">+ ${fmtShort(c.total)} this round</span></div>
       <input class="base-input" data-coach="${esc(c.name)}" value="${c.base || ""}" placeholder="0" inputmode="decimal" autocomplete="off" aria-label="Total for ${esc(c.team)} before this round">
-    </div>` : `
+    </div>`).join("") + `</div>`;
+    return;
+  }
+  // two lists: this round's points, then the season total
+  const byRound = [...rows].sort((a, b) => b.total - a.total || b.sum - a.sum), byTotal = [...rows].sort((a, b) => b.sum - a.sum || b.total - a.total);
+  const row = (c, i, v, live) => `
     <div class="row${i === 0 ? " lead" : ""}" data-team="${esc(c.name)}" role="button" tabindex="0">
       <div class="rank">${i + 1}</div>
       <div class="who"><b>${esc(c.team)}</b></div>
-      <div class="c-rd">${c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(c.total)}</div>
-      <div class="c-tot">${fmtShort(c.sum)}</div>
-    </div>`).join("");
+      <div class="c-pts">${live ? '<i class="live-dot"></i>' : ""}${fmtShort(v)}</div>
+    </div>`;
+  list.innerHTML = `<div class="sec-t">${round ? `ROUND ${round}` : "THIS ROUND"}</div><div class="list tbl">${byRound.map((c, i) => row(c, i, c.total, c.live)).join("")}</div>
+    <div class="sec-t">TOTAL</div><div class="list tbl">${byTotal.map((c, i) => row(c, i, c.sum)).join("")}</div>`;
 }
 function wireLeagueList(){
   const list = $("#lgList");
   list.addEventListener("click", e => {
-    const s = e.target.closest("[data-sort]");
-    if (s){ sortBy = s.dataset.sort; try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{} renderLeague(); return; }
     const t = e.target.closest("[data-team]"); if (t) goTo(t.dataset.team);          // tap a team → its page
   });
   list.addEventListener("keydown", e => {
@@ -851,7 +855,7 @@ async function refresh(){
   }catch{ $("#banner").classList.add("show"); }
   busy = false;
   if (!built){       // first load: order coaches by this round's PIR, most → least
-    order = [LEAGUE, ...COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n), WATCH];
+    order = [LEAGUE, ...COACHES.map((c, k) => ({n:c.name, k, t:coachTotal(c.name).total})).sort((a, b) => b.t - a.t || a.k - b.k).map(x => x.n)];
     buildSlides();
   } else render();
   if (PlayerSheet.isOpen() && selected()) PlayerSheet.update(sheetInfo(selected(), sel.n));
