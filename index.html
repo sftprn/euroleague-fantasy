@@ -17,7 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#0A0A0B;touch-action:manipulation;-webkit-text-size-adjust:100%}
-  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;background:#0A0A0B;z-index:1}
+  iframe{position:fixed;top:0;left:0;width:100%;height:calc(100% + var(--gap, 0px));border:0;display:block;background:#0A0A0B;z-index:1}
   iframe.off{visibility:hidden;pointer-events:none;z-index:0}           /* kept loaded (and scrolled where you left it), just not shown */
   #probe{position:fixed;left:0;top:0;width:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none}
 </style>
@@ -29,6 +29,15 @@
 <script>
 (function(){
   if (location.protocol === "file:"){ location.replace("2-coach.html?coach=league"); return; }
+  // iPhone home-screen app: some iOS versions lay the page out shorter than the screen, leaving an empty strip under the
+  // bottom bar. Measure the real screen and stretch the sections and the bar down over that strip (--gap; 0 in the browser).
+  function fitScreen(){
+    const app = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+    const full = matchMedia("(orientation: portrait)").matches ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    const gap = app ? Math.round(full - innerHeight) : 0;
+    document.documentElement.style.setProperty("--gap", (gap > 0 && gap < 160 ? gap : 0) + "px");
+  }
+  fitScreen(); addEventListener("resize", fitScreen); addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
   const TABS = ["teams", "games", "players"];
   const q = new URLSearchParams(location.search);
   const demo = q.has("demo") ? "&demo" + (q.get("demo") ? "=" + q.get("demo") : "") : "";
