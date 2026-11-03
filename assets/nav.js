@@ -1,4 +1,4 @@
-/* Bottom navigation (Material 3 navigation bar): Teams · Games · Players.
+/* Bottom navigation (floating rounded bar): Teams · Games · Players.
    Teams = the team pages (2-coach, first slide = the league table); Games and Players = the league page (1-league).
    Nav.init({active: "teams" | "games" | "players", onTap(tab) → true if the page handled it itself (no page change)})
    Sets --navH on <html> so pages can keep their content above the bar. */
@@ -17,14 +17,17 @@
     players: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
   };
   const LABEL = {teams: "Teams", games: "Games", players: "Players"};
-  // Material 3 navigation bar: full-width, attached to the bottom, 80px tall; the current tab gets a 64×32 indicator pill behind its icon
-  const CSS = `:root{--navH:calc(80px + var(--sab, env(safe-area-inset-bottom)))}
-#elfNav{position:fixed;left:0;right:0;bottom:0;z-index:8;height:var(--navH);padding-bottom:var(--sab, env(safe-area-inset-bottom));box-sizing:border-box;
-  background:#18181B;box-shadow:0 -1px 0 rgba(255,255,255,.04)}
-#elfNav .in{height:80px;max-width:480px;margin:0 auto;display:flex}
-#elfNav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:12px;gap:4px;text-decoration:none;color:#CAC4D0;
-  font:500 12px/16px Inter,system-ui,sans-serif;letter-spacing:.5px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-#elfNav .ind{position:relative;width:64px;height:32px;border-radius:16px;display:grid;place-items:center;overflow:hidden}
+  // Floating bar: rounded, dark, lightly see-through and blurred; the current tab gets an indicator pill behind its icon
+  const CSS = `:root{--navH:calc(86px + var(--sab, env(safe-area-inset-bottom)))}
+#elfNav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--sab, env(safe-area-inset-bottom)));z-index:8;
+  width:min(calc(100% - 32px), 448px);height:66px;border-radius:33px;box-sizing:border-box;
+  background:rgba(22,22,26,.72);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.07);box-shadow:0 12px 32px rgba(0,0,0,.45)}
+#elfNav .in{height:100%;display:flex;padding:0 6px}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#elfNav{background:rgba(22,22,26,.95)}}
+#elfNav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:#CAC4D0;
+  font:500 11.5px/14px Inter,system-ui,sans-serif;letter-spacing:.5px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#elfNav .ind{position:relative;width:60px;height:30px;border-radius:15px;display:grid;place-items:center;overflow:hidden}
 #elfNav .ind::before{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,122,46,.24);transform:scaleX(0);opacity:0;
   transition:transform .3s cubic-bezier(.2,0,0,1),opacity .15s linear}                                   /* the indicator grows out from the centre */
 #elfNav .ind::after{content:"";position:absolute;inset:0;border-radius:inherit;background:#E6E0E9;opacity:0;transition:opacity .15s}   /* state layer */
