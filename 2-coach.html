@@ -710,20 +710,21 @@ function renderLeague(){
     </div>`).join("") + `</div>`;
     return;
   }
-  // two lists: this round's points, then the season total
-  const byRound = [...rows].sort((a, b) => b.total - a.total || b.sum - a.sum), byTotal = [...rows].sort((a, b) => b.sum - a.sum || b.total - a.total);
-  const row = (c, i, v, live) => `
+  // Round / Total tabs over one list (the choice is remembered on this phone)
+  const tot = sortBy === "total";
+  list.innerHTML = `<div class="seg" role="tablist"><button data-sort="round" class="${tot ? "" : "on"}" role="tab">Round${round ? " " + round : ""}</button><button data-sort="total" class="${tot ? "on" : ""}" role="tab">Total</button></div>
+    <div class="list tbl">${rows.map((c, i) => `
     <div class="row${i === 0 ? " lead" : ""}" data-team="${esc(c.name)}" role="button" tabindex="0">
       <div class="rank">${i + 1}</div>
       <div class="who"><b>${esc(c.team)}</b></div>
-      <div class="c-pts">${live ? '<i class="live-dot"></i>' : ""}${fmtShort(v)}</div>
-    </div>`;
-  list.innerHTML = `<div class="sec-t">${round ? `ROUND ${round}` : "THIS ROUND"}</div><div class="list tbl">${byRound.map((c, i) => row(c, i, c.total, c.live)).join("")}</div>
-    <div class="sec-t">TOTAL</div><div class="list tbl">${byTotal.map((c, i) => row(c, i, c.sum)).join("")}</div>`;
+      <div class="c-pts">${!tot && c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(tot ? c.sum : c.total)}</div>
+    </div>`).join("")}</div>`;
 }
 function wireLeagueList(){
   const list = $("#lgList");
   list.addEventListener("click", e => {
+    const s = e.target.closest("[data-sort]");
+    if (s){ sortBy = s.dataset.sort; try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{} renderLeague(); return; }
     const t = e.target.closest("[data-team]"); if (t) goTo(t.dataset.team);          // tap a team → its page
   });
   list.addEventListener("keydown", e => {

@@ -144,6 +144,40 @@
     color:#fff;font:700 16px Inter,system-ui,sans-serif;padding:0 44px 0 16px;cursor:pointer}
   .pick::after{content:"";position:absolute;right:18px;top:50%;width:8px;height:8px;border:solid var(--muted);border-width:0 2px 2px 0;transform:translateY(-70%) rotate(45deg);pointer-events:none}
   #topList .row.pl:active{background:#1F1F23}
+  /* Games: round arrows in the header */
+  .rnav{display:flex;align-items:center;gap:8px;flex:none}
+  .rnav button{height:44px;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;
+    font:700 14px Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+  .rnav .rn{width:44px;font-size:24px;line-height:1;padding:0 0 3px}
+  .rnav .rn:disabled{opacity:.35;cursor:default}
+  .rnav .rn-now{padding:0 14px;background:var(--orange);border-color:var(--orange)}
+  /* Players: Watchlist / Top Performers tabs (same switch as Round / Total on Teams) */
+  .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+  .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .seg button.on{background:var(--orange);color:#fff}
+  /* Watchlist rows look like a team's player list on Teams; "Empty slot" adds a player */
+  .wl .gh{display:flex;justify-content:center;align-items:center;gap:6px;padding:11px 14px;background:var(--card-2);font-weight:800;font-size:15px;letter-spacing:.02em}
+  .wl .gh span{color:var(--muted);font-weight:700}
+  .wl .p{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);cursor:pointer;position:relative;user-select:none;-webkit-user-select:none}
+  .wl .gh + .p{border-top:0}
+  .wl .p:active{background:#1F1F23}
+  .wl .ph{width:46px;height:46px;border-radius:50%;background:var(--card-2);flex:none;overflow:hidden;position:relative;display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--muted)}
+  .wl .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+  .wl .who b{font-size:15px}
+  .wl .who small{margin-top:3px;display:flex;align-items:center;gap:6px}
+  .wl .tv{font-weight:700;color:#C9C9CF}
+  .wl .val{min-width:56px;text-align:right;font-size:20px;font-weight:800;flex:none}
+  .wl .p.up .val,.wl .p.soon .val,.wl .p.none .val{color:var(--dim);font-weight:700}
+  .wl .p.live{background:linear-gradient(90deg,#FF6B1A1F,transparent 75%)}
+  .wl .p.live::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--orange)}
+  .wl .p.live .val{color:var(--orange)}
+  .wl .p.empty .ph{background:transparent;border:1.5px dashed #46464D;color:var(--orange);font-size:22px;font-weight:500}
+  .wl .p.empty .who b{color:var(--dim);font-weight:600}
+  .wl .sc{font-weight:700;color:#fff} .wl .sc.ahead{color:var(--win)} .wl .sc.behind{color:var(--loss)} .wl .sc.fin{font-weight:600}
+  .wl .lchip{display:inline-flex;align-items:center;gap:4px;background:var(--orange);color:#fff;font-size:10.5px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.03em}
+  .wl .lchip i{width:5px;height:5px;border-radius:50%;background:#fff;animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .wl .res{font-size:10.5px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.03em;background:var(--card-2);color:var(--muted)}
   /* Watchlist (Players → first option): any players, followed privately, saved only on this phone (elf.watch) */
   .w-note{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:600;color:var(--muted);margin:0 4px 10px}
   .w-add{width:100%;margin-top:12px;height:50px;border:1.5px dashed var(--line);border-radius:16px;background:transparent;color:#fff;font:700 15px Inter,system-ui,sans-serif;cursor:pointer}
@@ -189,7 +223,9 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <body>
 <div class="art" aria-hidden="true"></div>
 <div class="app">
-  <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt">Loading…</div></div></div></header>
+  <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt">Loading…</div></div>
+    <div class="rnav" id="rnav" hidden><button class="rn-now" id="rNow" hidden>Current</button><button class="rn" id="rPrev" aria-label="Previous round">‹</button><button class="rn" id="rNext" aria-label="Next round">›</button></div>
+  </div></header>
 
   <!-- Games: this round's games (tap one to open it) — Teams is the team pages' first slide; the bottom bar switches -->
   <div id="vGames" hidden>
@@ -198,10 +234,12 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 
   <!-- Players: top 10 of the round among everyone's rosters -->
   <div id="vPlayers" hidden>
-    <label class="pick"><select id="topTeam" aria-label="Show top players from"></select></label>
-    <div id="wNote" class="w-note" hidden></div>
-    <div class="list" id="topList"></div>
-    <button class="w-add" id="wAdd" hidden>+ Add players</button>
+    <div class="seg" id="pSeg" role="tablist"><button data-pt="watch" class="on" role="tab">Watchlist</button><button data-pt="top" role="tab">Top Performers</button></div>
+    <div id="pWatch"><div class="list wl" id="wList"></div></div>
+    <div id="pTop" hidden>
+      <label class="pick"><select id="topTeam" aria-label="Show top players from"></select></label>
+      <div class="list" id="topList"></div>
+    </div>
   </div>
 </div>
 <div class="finder" id="finder" role="dialog" aria-label="Add players to your watchlist">
@@ -347,16 +385,40 @@ function coachTotal(c){
 }
 
 function render(){
-  $("#roundTxt").textContent = round ? `Round ${round}` : "Loading…";
+  $("#roundTxt").textContent = round ? `Round ${view === "games" ? shownRound() : round}` : "Loading…";
   renderTop();
   renderGames();
   GameSheet.update();
-  if (PlayerSheet.isOpen()){ const p = PlayerSheet.current(), r = topRows.find(x => x.p.code === p?.code);
+  renderRnav();
+  if (PlayerSheet.isOpen()){ const p = PlayerSheet.current(), r = [...watchRows, ...topRows].find(x => x.p.code === p?.code);
     if (p) PlayerSheet.update({state: sheetState(p), meta: r ? sheetMeta(p, r.teams) : undefined}); }
 }
 
 /* live games of the round: score + clock; tap → the game's court view in the Game Center */
 const clockOf = b => { const q = String(b.q || "").replace(/\D/g, ""); return (q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE") + (b.t && b.t !== "00:00" ? " " + b.t.replace(/^0/, "") : ""); };
+/* Games: browse other rounds with ‹ › in the header; "Current" jumps back */
+let gRound = null;                                   // null = follow the current round
+const shownRound = () => gRound ?? round;
+const roundSpan = () => games.length ? [Math.min(...games.map(g => g.r)), Math.max(...games.map(g => g.r))] : [1, 1];
+function renderRnav(){
+  const nav = $("#rnav"); nav.hidden = view !== "games" || !round;
+  if (nav.hidden) return;
+  const [lo, hi] = roundSpan(), r = shownRound();
+  $("#rPrev").disabled = r <= lo; $("#rNext").disabled = r >= hi; $("#rNow").hidden = r === round;
+}
+async function goRound(r){
+  const [lo, hi] = roundSpan(); r = Math.max(lo, Math.min(hi, r));
+  gRound = r === round ? null : r;
+  scrollTo({top: 0}); render();
+  if (gRound == null) return;
+  const need = games.filter(g => g.r === r && Date.parse(g.u) <= Date.now() && !(box[g.c] && (box[g.c].final || box[g.c].live)));   // scores for that round's games
+  const res = await Promise.all(need.map(g => loadBox(g).then(b => [g.c, b]).catch(() => [g.c, null])));
+  res.forEach(([c, b]) => { if (b) box[c] = b; });
+  if (shownRound() === r) render();
+}
+$("#rPrev").addEventListener("click", () => goRound(shownRound() - 1));
+$("#rNext").addEventListener("click", () => goRound(shownRound() + 1));
+$("#rNow").addEventListener("click", () => goRound(round));
 function renderGames(){
   if (!games.length) return;
   const now = Date.now();
@@ -365,7 +427,7 @@ function renderGames(){
     if (b?.final) return {k: 3, b};
     if (Date.parse(g.u) <= now) return {k: 1};
     return {k: 2}; };
-  const rg = games.filter(g => g.r === round).map(g => ({g, s: stOf(g)}))
+  const rg = games.filter(g => g.r === shownRound()).map(g => ({g, s: stOf(g)}))
                   .sort((x, y) => x.s.k - y.s.k || Date.parse(x.g.u) - Date.parse(y.g.u));   // live, starting, upcoming, finished
   if (!rg.length){ $("#gamesList").innerHTML = `<div class="list"><div class="nolive">No games this round.</div></div>`; $("#gamesList")._html = null; return; }
   const fans = g => new Set(COACHES.flatMap(c => rosterOf(c.name)).filter(p => p.club === g.h.c || p.club === g.a.c).map(p => p.code)).size;
@@ -420,12 +482,11 @@ function renderTop(){
   const sel = $("#topTeam"), clubs = new Map();
   games.forEach(g => [g.h, g.a].forEach(t => { if (t?.c && !clubs.has(t.c)) clubs.set(t.c, t.n || t.tv || t.c); }));
   const list = [...clubs].sort((a, b) => a[1].localeCompare(b[1]));
-  const pick = clubs.has(topPick) || topPick === WATCH ? topPick : "";
-  const opts = `<option value="${WATCH}">Watchlist</option><option value="">All teams</option>` + list.map(([c, n]) => `<option value="${esc(c)}">${esc(n)}</option>`).join("");
+  const pick = clubs.has(topPick) ? topPick : "";
+  const opts = `<option value="">All teams</option>` + list.map(([c, n]) => `<option value="${esc(c)}">${esc(n)}</option>`).join("");
   if (sel._opts !== opts){ sel.innerHTML = sel._opts = opts; }
   sel.value = pick;
-  $("#wNote").hidden = $("#wAdd").hidden = pick !== WATCH;
-  if (pick === WATCH) return renderWatch();
+  renderWatch();
   const top = [...seen.values()].filter(x => !pick || x.p.club === pick).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
   if (!top.length){
     const name = esc(clubs.get(pick) || ""), owned = pick && COACHES.some(c => rosterOf(c.name).some(q => q.club === pick));
@@ -446,27 +507,57 @@ function renderTop(){
 
 /* Watchlist: any players, followed privately — saved only on this phone (elf.watch, the old Watch team), never shared or counted */
 const WATCH = "__watch", WATCH_MAX = 20;
-var topPick = WATCH;                                  // Players always opens on the Watchlist; another pick lasts until you leave the tab
+var topPick = "", pTab = "watch";                     // Players always opens on the Watchlist tab; Top Performers: All teams or one club
 const watchList = () => store.get("elf.watch", []);
+let watchRows = [];
+function watchInfo(p){                         // his game this round, for the line under his name
+  const g = games.find(g => g.r === round && (g.h.c === p.club || g.a.c === p.club));
+  const s = g ? sheetState(p) : {kind: "none"};
+  if (!g) return {s, kind: "none", sub: "· no game this round"};
+  const home = g.h.c === p.club, opp = home ? g.a : g.h, b = box[g.c];
+  const vs = `· ${home ? "vs" : "@"} ${esc(opp.tv || opp.n)}`;
+  if (s.kind === "live" || s.kind === "final"){
+    const ti = b.teams[0].pl[p.code] ? 0 : b.teams[1].pl[p.code] ? 1 : (home ? 0 : 1), me = b.teams[ti].pts, them = b.teams[1 - ti].pts;
+    const sc = `<span class="sc${s.kind === "final" ? " fin" : ""} ${me > them ? "ahead" : me < them ? "behind" : ""}">${me}–${them}</span>`;
+    if (s.kind === "live"){
+      const q = String(s.q || "").replace(/\D/g, ""), qt = q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE";
+      return {s, kind: "live", sub: `<span class="lchip"><i></i>${qt}${s.t && s.t !== "00:00" ? " " + esc(String(s.t).replace(/^0/, "")) : ""}</span> ${sc}`};
+    }
+    return {s, kind: "final", sub: s.dnp ? `<span class="res">DNP</span>` : sc};
+  }
+  return {s, kind: s.kind === "soon" ? "soon" : "up", sub: `${vs} · ${s.kind === "soon" ? "starting" : esc(when(g.u))}`};
+}
 function renderWatch(){
   const own = owners(), list = watchList();
-  $("#wNote").innerHTML = `<span>Only on this phone</span><span>${list.length}/${WATCH_MAX}</span>`;
-  $("#wAdd").hidden = list.length >= WATCH_MAX;
-  const rows = list.map(p => ({p, s: games.length ? sheetState(p) : {kind: "none"}, teams: own.get(p.code) || []}));
-  const val = r => r.s.kind === "live" || r.s.kind === "final" ? r.s.val : -1e9;
-  rows.sort((a, b) => val(b) - val(a) || a.p.name.localeCompare(b.p.name));
-  topRows = rows;
-  if (!rows.length){ $("#topList").innerHTML = `<div class="nolive">Your watchlist is empty. Add any Euroleague players to follow them here.</div>`; return; }
-  const g = p => games.find(g => g.r === round && (g.h.c === p.club || g.a.c === p.club));
-  const score = ({p, s}) => s.kind === "live" || s.kind === "final" ? `<div class="score">${s.kind === "live" ? '<i class="live-dot"></i>' : ""}${s.dnp ? "DNP" : fmtShort(s.val)}</div>`
-    : s.kind === "up" ? `<div class="score dim">${esc(when(g(p).u))}</div>` : `<div class="score dim">–</div>`;
-  $("#topList").innerHTML = rows.map((r, i) => `
-    <div class="row pl" data-code="${esc(r.p.code)}" role="button" tabindex="0">
-      <div class="ph">${esc((r.p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${r.p.img ? `<img src="${esc(r.p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
-      <div class="who"><b>${esc(r.p.name)}</b><small><span class="tv">${esc(r.p.tv || "")}</span>${r.teams.length ? " · " + esc(r.teams.join(", ")) : " · " + esc(r.p.clubName || "")}</small></div>
-      ${score(r)}
-    </div>`).join("");
+  const rows = list.map(p => ({p, ...watchInfo(p), teams: own.get(p.code) || []}));
+  const has = r => r.kind === "live" || r.kind === "final";
+  rows.sort((a, b) => has(b) - has(a) || (has(a) ? b.s.val - a.s.val : 0) || (a.p.order ?? 0) - (b.p.order ?? 0));
+  watchRows = rows;
+  const ph = p => `<div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>`;
+  const html = `<div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Only on this phone <span>· ${list.length}/${WATCH_MAX}</span></div>`
+    + rows.map(r => `<div class="p ${r.kind}" data-code="${esc(r.p.code)}" role="button" tabindex="0">
+        ${ph(r.p)}
+        <div class="who"><b>${esc(r.p.name)}</b><small><span class="tv">${esc(r.p.tv || "")}</span> ${r.sub}</small></div>
+        <div class="val">${has(r) && !r.s.dnp ? fmtShort(r.s.val) : "–"}</div>
+      </div>`).join("")
+    + (list.length < WATCH_MAX ? `<div class="p empty" data-add role="button" tabindex="0"><div class="ph">+</div><div class="who"><b>Empty slot</b></div></div>` : "");
+  if ($("#wList")._html !== html) $("#wList").innerHTML = $("#wList")._html = html;
 }
+function setPTab(t){
+  pTab = t;
+  $("#pWatch").hidden = t !== "watch"; $("#pTop").hidden = t !== "top";
+  $("#pSeg").querySelectorAll("[data-pt]").forEach(b => b.classList.toggle("on", b.dataset.pt === t));
+}
+$("#pSeg").addEventListener("click", e => { const b = e.target.closest("[data-pt]"); if (b && b.dataset.pt !== pTab){ setPTab(b.dataset.pt); scrollTo({top: 0}); } });
+$("#wList").addEventListener("click", e => {
+  if (e.target.closest("[data-add]")) return openFinder();
+  const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code);
+});
+$("#wList").addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  if (e.target.closest("[data-add]")){ e.preventDefault(); return openFinder(); }
+  const r = e.target.closest("[data-code]"); if (r){ e.preventDefault(); openPlayer(r.dataset.code); }
+});
 let people = [];
 const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 1600); }
@@ -491,7 +582,6 @@ function renderResults(){
 }
 $("#q").addEventListener("input", renderResults);
 $("#closeFinder").addEventListener("click", closeFinder);
-$("#wAdd").addEventListener("click", openFinder);
 $("#results").addEventListener("click", e => {
   const r = e.target.closest(".r"); if (!r) return;
   const list = watchList(), k = list.findIndex(x => x.code === r.dataset.code);
@@ -502,7 +592,7 @@ $("#results").addEventListener("click", e => {
     list.push({...p, slot: "watch", order: Math.max(0, ...list.map(x => x.order ?? 0)) + 10});
     toast(`${p.name} → Watchlist`);
   }
-  store.set("elf.watch", list); renderResults(); refresh();
+  store.set("elf.watch", list); renderResults(); renderWatch(); refresh();
 });
 
 /* Players tab: tap a player → the same player sheet as on the team pages (assets/player-sheet.js) */
@@ -523,7 +613,7 @@ function sheetState(p){                       // his game this round: PIR (raw l
 const sheetMeta = (p, teams) => `${p.clubName || p.tv} · ${p.pos || "–"}${teams.length ? " · " + teams.join(", ") : ""}`;
 PlayerSheet.init({games: () => games, round: () => round, fantasy: () => new Set(COACHES.flatMap(c => rosterOf(c.name)).map(x => x.code))});
 function openPlayer(code){
-  const r = topRows.find(x => x.p.code === code); if (!r) return;
+  const r = (pTab === "watch" ? watchRows : topRows).find(x => x.p.code === code); if (!r) return;
   PlayerSheet.open(r.p, {state: sheetState(r.p), meta: sheetMeta(r.p, r.teams)});
 }
 $("#topTeam").addEventListener("change", e => { topPick = e.target.value; e.target.blur(); renderTop(); });   // let go of focus so the next tap opens it again (iPhone)
@@ -566,12 +656,13 @@ addEventListener("elf-msg", e => {                    // inside the app shell: G
   if (d.elf === "view" && d.view === "players") playersDefault();
   if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); scrollTo({top: 0}); } else scrollTo({top: 0, behavior: "smooth"}); }
 });
-function playersDefault(){ topPick = WATCH; try{ renderTop(); }catch{} }
+function playersDefault(){ setPTab("watch"); }
 function showView(){
   if (view === "players") playersDefault();
   $("#pageTitle").textContent = view === "games" ? "Games" : "Players";
   $("#vGames").hidden = view !== "games";
   $("#vPlayers").hidden = view !== "players";
+  if (typeof render === "function" && round) render(); 
   document.title = `${view === "games" ? "Games" : "Players"} · EL Fantasy`;
   try{ localStorage.setItem("elf.leagueView", view); }catch{}
   const u = new URL(location.href); u.searchParams.set("view", view); history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
