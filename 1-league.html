@@ -146,11 +146,12 @@
   #topList .row.pl:active{background:#1F1F23}
   /* Games: round arrows in the header */
   .rnav{display:flex;align-items:center;gap:8px;flex:none}
-  .rnav button{height:44px;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;
+  .rnav button{-webkit-appearance:none;appearance:none;box-sizing:border-box;height:44px;min-height:44px;max-height:44px;margin:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;
     font:700 14px Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
-  .rnav .rn{width:44px;font-size:24px;line-height:1;padding:0 0 3px}
+  .rnav .rn{width:44px;font-size:24px;padding:0 0 3px}
   .rnav .rn:disabled{opacity:.35;cursor:default}
-  .rnav .rn-now{padding:0 14px;background:var(--orange);border-color:var(--orange)}
+  .rnav .rn-now{padding:0 14px;background:var(--orange);border-color:var(--orange);font-size:14px}
+  .rnav button[hidden]{display:none}
   /* Players: Watchlist / Top Performers tabs (same switch as Round / Total on Teams) */
   .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
   .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
