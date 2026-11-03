@@ -250,6 +250,7 @@
   function pickRound(r, toGame){
     gRound = r === ctx.round() ? null : r; minsOpen = false; rState = gRound == null ? null : {kind: "none"};
     if (toGame && tab !== "game"){ centerRd = true; switchTab("game"); return; }
+    centerRd = true;
     paneSet(roundsBar() + `<div class="loading">Loading…</div>`);   // the picked badge right away; that round's game below once it arrives
     fillHead(false);
     renderTab();
@@ -392,7 +393,12 @@
     if (rb){
       rb.style.scrollBehavior = "auto"; rb.scrollLeft = rx;
       const on = rb.querySelector(".on");
-      if (centerRd && on){ centerRd = false; requestAnimationFrame(() => { rb.style.scrollBehavior = ""; rb.scrollLeft = on.offsetLeft - (rb.clientWidth - on.offsetWidth) / 2; }); }
+      if (centerRd && on){                                 // a round was just picked: slide it to the middle (and keep it there when the game loads in)
+        requestAnimationFrame(() => {
+          const A = rb.getBoundingClientRect(), O = on.getBoundingClientRect();
+          rb.style.scrollBehavior = ""; rb.scrollLeft += (O.left + O.width / 2) - (A.left + A.width / 2);
+        });
+      }
       else rb.style.scrollBehavior = "";
     }
     el.body.scrollTop = y;
@@ -421,7 +427,7 @@
     pane.dataset.tab = tab + p.code;
     try{
       const html = tab === "game" ? await gamePane(p) : await seasonPane(p, h => { if (!stale()) paneSet(h); });
-      if (!stale()) paneSet(html);
+      if (!stale()){ paneSet(html); if (tab === "game") centerRd = false; }
     }catch{ if (!stale()) paneSet(`<div class="empty">Couldn't load this right now. Try again in a moment.</div>`); }
   }
   /* Game tab: board (as in the League page's game sheet, but boxed) · minutes · stat grid · Team stats button */
