@@ -9,7 +9,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="EL Fantasy">
 <link rel="apple-touch-icon" href="/assets/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
@@ -34,11 +34,10 @@
   // depends on that height: the sections are sized to the real screen and the bar is placed from the top (--appH).
   const APP = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
   function fitScreen(){
-    // Safari's page zoom (aA → 80% etc., kept for the home-screen app too) shrinks CSS pixels but not screen.*, so scale the
-    // screen's height by the zoom, read off the width (which iOS gets right): e.g. 375-wide screen shown 469 CSS px wide = 80%.
-    const portrait = matchMedia("(orientation: portrait)").matches, long = Math.max(screen.width, screen.height), short = Math.min(screen.width, screen.height);
-    const zoom = innerWidth / (portrait ? short : long) || 1;
-    const full = APP ? Math.round((portrait ? long : short) * zoom) : innerHeight;
+    // The height iOS really gives the app (innerHeight, in CSS px, so Safari's page zoom and Display Zoom are already in it).
+    // Earlier tries used screen.height, but with a see-through status bar iOS shortens the app by the bar's height at the
+    // bottom and nothing can be drawn there, so the status bar is now solid black (meta tag above) and the app fills the rest.
+    const full = Math.round(window.visualViewport ? Math.max(innerHeight, visualViewport.height) : innerHeight);
     document.documentElement.style.setProperty("--appH", full + "px");
     const nav = document.getElementById("elfNav");
     if (nav){ nav.style.bottom = "auto"; nav.style.top = (full - nav.offsetHeight) + "px"; }
