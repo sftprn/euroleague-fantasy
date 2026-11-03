@@ -20,7 +20,7 @@
   // Bottom bar: pinned to the bottom, see-through black with a blur (like the round arrows on Games); the current tab is brand orange.
   // In the app shell it slides away while a bottom sheet is open in the page below (.cover).
   const CSS = `:root{--navH:calc(66px + var(--sab, env(safe-area-inset-bottom)))}
-#elfNav{position:fixed;left:0;right:0;bottom:calc(-1 * var(--gap, 0px));z-index:8;padding:8px 0 calc(6px + var(--sab, env(safe-area-inset-bottom)));pointer-events:none;
+#elfNav{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:8px 0 calc(6px + var(--sab, env(safe-area-inset-bottom)));pointer-events:none;
   background:rgba(0,0,0,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .25s ease,opacity .2s ease}
 #elfNav.cover{transform:translateY(100%);opacity:0}
 #elfNav.cover .in{pointer-events:none}

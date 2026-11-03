@@ -17,7 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#000000;touch-action:manipulation;-webkit-text-size-adjust:100%}
-  iframe{position:fixed;top:0;left:0;width:100%;height:calc(100% + var(--gap, 0px));border:0;display:block;background:#000000;z-index:1}
+  iframe{position:fixed;top:0;left:0;width:100%;height:var(--appH, 100%);border:0;display:block;background:#000000;z-index:1}
   iframe.off{visibility:hidden;pointer-events:none;z-index:0}           /* kept loaded (and scrolled where you left it), just not shown */
   #probe{position:fixed;left:0;top:0;width:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none}
 </style>
@@ -29,24 +29,23 @@
 <script>
 (function(){
   if (location.protocol === "file:"){ location.replace("2-coach.html?coach=league"); return; }
-  // iPhone home-screen app: some iOS versions lay the page out shorter than the screen, leaving an empty strip under the
-  // bottom bar. Measure the real screen and stretch the sections and the bar down over that strip (--gap; 0 in the browser).
+  // iPhone home-screen app: iOS can lay the page out shorter than the screen (about the status bar's height) and change
+  // that while the app runs, which leaves an empty strip under the bottom bar. So in the home-screen app nothing here
+  // depends on that height: the sections are sized to the real screen and the bar is placed from the top (--appH).
+  const APP = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
   function fitScreen(){
-    // iOS home-screen app: the page box (what 100% and bottom:0 use) can come out shorter than the screen — about the status
-    // bar's height — even when innerHeight is right. Compare the real screen (or innerHeight in the browser) with that box.
-    const app = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
-    const full = app ? (matchMedia("(orientation: portrait)").matches ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height))
-                     : Math.max(innerHeight, visualViewport?.height || 0);
-    const gap = Math.round(full - document.documentElement.clientHeight);
-    document.documentElement.style.setProperty("--gap", (gap > 0 && gap < 160 ? gap : 0) + "px");
+    const full = APP ? (matchMedia("(orientation: portrait)").matches ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height)) : innerHeight;
+    document.documentElement.style.setProperty("--appH", full + "px");
+    const nav = document.getElementById("elfNav");
+    if (nav){ nav.style.bottom = "auto"; nav.style.top = (full - nav.offsetHeight) + "px"; }
   }
-  fitScreen(); addEventListener("resize", fitScreen); addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
+  addEventListener("resize", fitScreen); addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
   addEventListener("load", fitScreen); setTimeout(fitScreen, 400); setTimeout(fitScreen, 1500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(fitScreen, 100); });
   const TABS = ["teams", "games", "players"];
   const q = new URLSearchParams(location.search);
   const demo = q.has("demo") ? "&demo" + (q.get("demo") ? "=" + q.get("demo") : "") : "";
-  let tab = TABS.includes(q.get("tab")) ? q.get("tab") : "teams";
+  let tab = !APP && TABS.includes(q.get("tab")) ? q.get("tab") : "teams";          // the home-screen app always opens on Teams
   let fresh = q.has("new");                               // demo "start over": only the first section loaded wipes the pretend league
   const frames = {};
   function frame(sec){                                    // sec: "teams" | "league"
@@ -75,8 +74,9 @@
     document.getElementById("elfNav")?.classList.remove("cover");
     if (sec === "league") post("league", {elf: "view", view: t});
     document.title = t === "teams" ? "Teams · EL Fantasy" : t === "games" ? "Games · EL Fantasy" : "Players · EL Fantasy";
-    const u = new URL(location.href); u.searchParams.set("tab", t); u.searchParams.delete("new"); u.searchParams.delete("coach");
+    const u = new URL(location.href); ["tab", "new", "coach"].forEach(k => u.searchParams.delete(k));   // keep the address plain, so the app reopens on Teams
     history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
+    fitScreen();
   }
   addEventListener("message", e => {                      // a section finished loading: give it the safe areas and tell it if it's shown
     if (e.origin !== location.origin) return;
@@ -98,6 +98,7 @@
     return true;
   }});
   show(tab);
+  fitScreen();
   // load the other section in the background, so the first switch is instant too
   setTimeout(() => { frame(secOf(tab) === "teams" ? "league" : "teams"); for (const k in frames) frames[k].classList.toggle("off", k !== secOf(tab)); }, 2500);
 })();
