@@ -32,12 +32,17 @@
   // iPhone home-screen app: some iOS versions lay the page out shorter than the screen, leaving an empty strip under the
   // bottom bar. Measure the real screen and stretch the sections and the bar down over that strip (--gap; 0 in the browser).
   function fitScreen(){
+    // iOS home-screen app: the page box (what 100% and bottom:0 use) can come out shorter than the screen — about the status
+    // bar's height — even when innerHeight is right. Compare the real screen (or innerHeight in the browser) with that box.
     const app = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
-    const full = matchMedia("(orientation: portrait)").matches ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-    const gap = app ? Math.round(full - innerHeight) : 0;
+    const full = app ? (matchMedia("(orientation: portrait)").matches ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height))
+                     : Math.max(innerHeight, visualViewport?.height || 0);
+    const gap = Math.round(full - document.documentElement.clientHeight);
     document.documentElement.style.setProperty("--gap", (gap > 0 && gap < 160 ? gap : 0) + "px");
   }
   fitScreen(); addEventListener("resize", fitScreen); addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
+  addEventListener("load", fitScreen); setTimeout(fitScreen, 400); setTimeout(fitScreen, 1500);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(fitScreen, 100); });
   const TABS = ["teams", "games", "players"];
   const q = new URLSearchParams(location.search);
   const demo = q.has("demo") ? "&demo" + (q.get("demo") ? "=" + q.get("demo") : "") : "";
