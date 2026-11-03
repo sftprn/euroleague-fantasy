@@ -20,7 +20,7 @@
   // Bottom bar (streaming-app style): pinned to the bottom, no box — a black gradient fades the content out behind it;
   // the current tab is full white, the others dimmed
   const CSS = `:root{--navH:calc(74px + var(--sab, env(safe-area-inset-bottom)))}
-#elfNav{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:14px 0 calc(14px + var(--sab, env(safe-area-inset-bottom)));pointer-events:none;
+#elfNav{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:70px 0 calc(14px + var(--sab, env(safe-area-inset-bottom)));pointer-events:none;
   background:linear-gradient(to top,#000 0%,rgba(0,0,0,0) 100%)}   /* one even fade: solid black at the bottom → fully clear at the top */
 #elfNav .in{height:60px;max-width:480px;margin:0 auto;display:flex;pointer-events:auto}
 #elfNav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-decoration:none;color:rgba(255,255,255,.58);
