@@ -5,7 +5,7 @@
 <!-- App shell (served by the "fantasy" Worker: https://fantasy.eurolyga.workers.dev).
      Keeps the bottom bar on screen and shows Teams (2-coach) and Games / Players (1-league) in frames underneath it,
      so switching never reloads the bar. Both sections stay loaded; the hidden one pauses its live updates. -->
-<meta name="theme-color" content="#0A0A0B">
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,8 +16,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#0A0A0B;touch-action:manipulation;-webkit-text-size-adjust:100%}
-  iframe{position:fixed;top:0;left:0;width:100%;height:calc(100% + var(--gap, 0px));border:0;display:block;background:#0A0A0B;z-index:1}
+  html,body{margin:0;height:100%;overflow:hidden;background:#000000;touch-action:manipulation;-webkit-text-size-adjust:100%}
+  iframe{position:fixed;top:0;left:0;width:100%;height:calc(100% + var(--gap, 0px));border:0;display:block;background:#000000;z-index:1}
   iframe.off{visibility:hidden;pointer-events:none;z-index:0}           /* kept loaded (and scrolled where you left it), just not shown */
   #probe{position:fixed;left:0;top:0;width:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none}
 </style>

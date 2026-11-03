@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0A0A0B">
+<meta name="theme-color" content="#000000">
 <!-- home-screen app: stay full-screen when moving between pages (iOS + Android) -->
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0A0A0B; --card:#18181B; --card-2:#232327; --line:#2B2B30; --text:#FFFFFF; --muted:#9A9AA3; --dim:#5E5E66;
+    --bg:#000000; --card:#18181B; --card-2:#232327; --line:#2B2B30; --text:#FFFFFF; --muted:#9A9AA3; --dim:#5E5E66;
     --orange:#FF6B1A; --win:#3DDC84;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -27,7 +27,7 @@
   .app{max-width:480px;margin:0 auto;min-height:100vh;padding:var(--headH, 90px) 16px calc(var(--navH, 0px) + 28px);position:relative;z-index:1}
   /* header: the same as on Teams — art backdrop, title + subtitle on the left; content scrolls under it */
   .art, .top{background-color:var(--bg);
-       background-image:linear-gradient(180deg,#0A0A0B26 0px,#0A0A0B8C 140px,#0A0A0BE6 230px,#0A0A0B 300px), url("assets/bg.jpg");
+       background-image:linear-gradient(180deg,#00000026 0px,#0000008C 140px,#000000E6 230px,#000000 300px), url("assets/bg.jpg");
        background-size:100% 300px, max(100vw, 520px) auto;background-position:center top, center -30px;background-repeat:no-repeat}
   .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}
   .top{position:fixed;left:0;right:0;top:0;z-index:4;padding:calc(14px + var(--sat, env(safe-area-inset-top))) 16px 14px;margin:0;
@@ -53,7 +53,7 @@
   /* 1st place: hero row with the background art */
   .row.lead{position:relative;align-items:center;min-height:72px;padding:14px 16px;
             background:url("assets/bg.jpg") center 35%/cover}
-  .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0A0A0B1A 0%,#0A0A0B80 55%,#0A0A0BE6 100%)}
+  .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0000001A 0%,#00000080 55%,#000000E6 100%)}
   .row.lead > *{position:relative;z-index:1}
   .row.lead .rank{color:var(--orange)}
   .row.lead .lbl{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-bottom:4px}
@@ -146,7 +146,7 @@
   #topList .row.pl:active{background:#1F1F23}
   /* Games: round arrows in the header */
   .rnav{display:flex;align-items:center;gap:8px;flex:none}
-  .rnav button{-webkit-appearance:none;appearance:none;box-sizing:border-box;height:44px;min-height:44px;max-height:44px;margin:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;
+  .rnav button{-webkit-appearance:none;appearance:none;box-sizing:border-box;height:44px;min-height:44px;max-height:44px;margin:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;border-radius:14px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;
     font:700 14px Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
   .rnav .rn{width:44px;font-size:24px;padding:0 0 3px}
   .rnav .rn:disabled{opacity:.35;cursor:default}

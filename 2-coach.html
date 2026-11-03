@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0A0A0B">
+<meta name="theme-color" content="#000000">
 <!-- home-screen app: stay full-screen when moving between pages (iOS + Android) -->
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0A0A0B; --card:#18181B; --card-2:#232327; --line:#2B2B30; --text:#FFFFFF; --muted:#9A9AA3; --dim:#5E5E66;
+    --bg:#000000; --card:#18181B; --card-2:#232327; --line:#2B2B30; --text:#FFFFFF; --muted:#9A9AA3; --dim:#5E5E66;
     --orange:#FF6B1A; --orange-soft:#FF6B1A22; --win:#3DDC84; --win-soft:#123B2A; --loss:#FF5A4E; --loss-soft:#3D1715; --danger:#8E1B1B;
     --headH:118px;
   }
@@ -30,7 +30,7 @@
   /* background art: fixed behind everything, fades into the page; never moves when swiping.
      The header paints the identical top slice (same px-based sizes) so lists can scroll under it. */
   .art, .top{background-color:var(--bg);
-       background-image:linear-gradient(180deg,#0A0A0B26 0px,#0A0A0B8C 140px,#0A0A0BE6 230px,#0A0A0B 300px), url("assets/bg.jpg");
+       background-image:linear-gradient(180deg,#00000026 0px,#0000008C 140px,#000000E6 230px,#000000 300px), url("assets/bg.jpg");
        background-size:100% 300px, max(100vw, 520px) auto;
        background-position:center top, center -30px;
        background-repeat:no-repeat}
@@ -39,7 +39,7 @@
        padding:calc(14px + var(--sat, env(safe-area-inset-top))) 16px 14px;
        -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent)}
   .bar{max-width:448px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;pointer-events:auto}
-  .icon-btn{width:44px;height:44px;padding:0;line-height:1;border-radius:14px;border:1px solid #FFFFFF22;background:#0A0A0B80;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  .icon-btn{width:44px;height:44px;padding:0;line-height:1;border-radius:14px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
             display:grid;place-items:center;text-decoration:none;color:#fff;font-size:24px;font-weight:500;cursor:pointer;flex:none}
   .icon-btn svg{display:block}
   .icon-btn#editBtn{font-size:20px}
@@ -72,7 +72,7 @@
   .lgs .rank{width:24px;font-weight:800;font-size:18px;color:var(--dim);text-align:center;flex:none}
   /* 1st place: hero row with the background art */
   .lgs .row.lead{position:relative;align-items:center;min-height:72px;padding:14px 16px; background:url("assets/bg.jpg") center 35%/cover}
-  .lgs .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0A0A0B1A 0%,#0A0A0B80 55%,#0A0A0BE6 100%)}
+  .lgs .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0000001A 0%,#00000080 55%,#000000E6 100%)}
   .lgs .row.lead > *{position:relative;z-index:1}
   .lgs .row.lead .rank{color:var(--orange)}
   .lgs .row.lead .lbl{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-bottom:4px}
@@ -148,7 +148,7 @@
 
   /* dots */
   .dots{position:fixed;left:50%;bottom:calc(var(--navH, var(--sab, env(safe-area-inset-bottom))) + 10px);transform:translateX(-50%);display:flex;gap:7px;align-items:center;
-        padding:8px 12px;border-radius:999px;background:#0A0A0BB3;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #FFFFFF14;z-index:5}
+        padding:8px 12px;border-radius:999px;background:#000000B3;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #FFFFFF14;z-index:5}
   .dots button.w{background:transparent;box-shadow:inset 0 0 0 1.5px #FFFFFF80}
   .dots button.w.on{background:var(--orange);box-shadow:none}
   .r .add.on{background:var(--card-2);color:var(--win);font-size:16px}
@@ -161,8 +161,8 @@
   .banner button{border:0;background:#ffffff26;color:#fff;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
 
   /* players boosted by an active Wild Card get the page's background art */
-  .p.wc-card,.p.wc-card.live{background:linear-gradient(90deg,#0A0A0BD9 0%,#0A0A0B99 55%,#0A0A0B66 100%), url("assets/bg.jpg") center 35%/cover}
-  .p.wc-card .ph{background:#0A0A0B99}
+  .p.wc-card,.p.wc-card.live{background:linear-gradient(90deg,#000000D9 0%,#00000099 55%,#00000066 100%), url("assets/bg.jpg") center 35%/cover}
+  .p.wc-card .ph{background:#00000099}
   .p.wc-card .tv{color:#fff}
 
   /* the single list */

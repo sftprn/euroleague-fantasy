@@ -68,7 +68,7 @@ border:2px solid #FFFFFF33}
 #gWrap .pc .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
 #gWrap .pc.fan .ph{border-color:var(--orange);box-shadow:0 0 0 3px #FF6B1A40}
 #gWrap .pc b{font-size:11.5px;font-weight:700;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-shadow:0 1px 3px #000}
-#gWrap .pc .v{font-size:11px;font-weight:800;background:#0A0A0BCC;border-radius:6px;padding:1px 6px;margin-top:2px}
+#gWrap .pc .v{font-size:11px;font-weight:800;background:#000000CC;border-radius:6px;padding:1px 6px;margin-top:2px}
 #gWrap .pc .own{position:absolute;top:-6px;right:12px;background:var(--orange);color:#fff;font-size:9.5px;font-weight:800;border-radius:6px;padding:1px 5px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #gWrap .note{font-size:11.5px;color:var(--dim);padding:6px 2px 0}
 #gWrap .sh-body .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}

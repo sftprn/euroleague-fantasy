@@ -519,7 +519,7 @@
       ${lo < 0 && hi > 0 ? `<line x1="${L}" x2="${W - R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="#5E5E66"/>` : ""}
       ${area ? `<path d="${area}" fill="url(#psFill)"/>` : ""}
       ${on.length > 1 ? `<path d="${line}" fill="none" stroke="#FF6B1A" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
-      ${on.map(q => `<circle cx="${X(q.i).toFixed(1)}" cy="${Y(q.v).toFixed(1)}" r="4.5" fill="${q.r.live ? "#FF6B1A" : "#0A0A0B"}" stroke="#fff" stroke-width="2"><title>R${q.r.r}: ${q.v} PIR</title></circle>`).join("")}
+      ${on.map(q => `<circle cx="${X(q.i).toFixed(1)}" cy="${Y(q.v).toFixed(1)}" r="4.5" fill="${q.r.live ? "#FF6B1A" : "#000000"}" stroke="#fff" stroke-width="2"><title>R${q.r.r}: ${q.v} PIR</title></circle>`).join("")}
       ${rows.map((r, i) => i % every && i !== n - 1 ? "" : `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${r.r}</text>`).join("")}
     </svg>`;
   }
