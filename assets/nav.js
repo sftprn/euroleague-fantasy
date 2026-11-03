@@ -19,9 +19,9 @@
   const LABEL = {teams: "Teams", games: "Games", players: "Players"};
   // Bottom bar (streaming-app style): pinned to the bottom, no box — a black gradient fades the content out behind it;
   // the current tab is full white, the others dimmed
-  const CSS = `:root{--navH:calc(64px + var(--sab, env(safe-area-inset-bottom)))}
-#elfNav{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:34px 0 var(--sab, env(safe-area-inset-bottom));pointer-events:none;
-  background:linear-gradient(180deg,rgba(0,0,0,0) 0,rgba(0,0,0,.8) 30px,rgba(0,0,0,.96) 50px,#000)}
+  const CSS = `:root{--navH:calc(74px + var(--sab, env(safe-area-inset-bottom)))}
+#elfNav{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:14px 0 calc(14px + var(--sab, env(safe-area-inset-bottom)));pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0,rgba(0,0,0,.85) 14px,rgba(0,0,0,.97) 30px,#000)}
 #elfNav .in{height:60px;max-width:480px;margin:0 auto;display:flex;pointer-events:auto}
 #elfNav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-decoration:none;color:rgba(255,255,255,.58);
   font:600 11px/13px Inter,system-ui,sans-serif;letter-spacing:.01em;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
