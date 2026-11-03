@@ -1,4 +1,4 @@
-/* Bottom navigation (floating rounded bar): Teams · Games · Players.
+/* Bottom navigation (pinned bar over a black gradient): Teams · Games · Players.
    Teams = the team pages (2-coach, first slide = the league table); Games and Players = the league page (1-league).
    Nav.init({active: "teams" | "games" | "players", onTap(tab) → true if the page handled it itself (no page change)})
    Sets --navH on <html> so pages can keep their content above the bar. */
@@ -17,27 +17,20 @@
     players: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
   };
   const LABEL = {teams: "Teams", games: "Games", players: "Players"};
-  // Floating bar: rounded, dark, lightly see-through and blurred; the current tab gets an indicator pill behind its icon
-  const CSS = `:root{--navH:calc(86px + var(--sab, env(safe-area-inset-bottom)))}
-#elfNav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--sab, env(safe-area-inset-bottom)));z-index:8;
-  width:min(calc(100% - 32px), 448px);height:66px;border-radius:33px;box-sizing:border-box;
-  background:rgba(22,22,26,.72);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);
-  border:1px solid rgba(255,255,255,.07);box-shadow:0 12px 32px rgba(0,0,0,.45)}
-#elfNav .in{height:100%;display:flex;padding:0 6px}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#elfNav{background:rgba(22,22,26,.95)}}
-#elfNav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:#CAC4D0;
-  font:500 11.5px/14px Inter,system-ui,sans-serif;letter-spacing:.5px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-#elfNav .ind{position:relative;width:60px;height:30px;border-radius:15px;display:grid;place-items:center;overflow:hidden}
-#elfNav .ind::before{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,122,46,.24);transform:scaleX(0);opacity:0;
-  transition:transform .3s cubic-bezier(.2,0,0,1),opacity .15s linear}                                   /* the indicator grows out from the centre */
-#elfNav .ind::after{content:"";position:absolute;inset:0;border-radius:inherit;background:#E6E0E9;opacity:0;transition:opacity .15s}   /* state layer */
-#elfNav a:hover .ind::after{opacity:.08}
-#elfNav a:active .ind::after{opacity:.12}
-#elfNav a svg{position:relative;width:24px;height:24px;display:block}
-#elfNav a.on{color:#E6E0E9;font-weight:700}
-#elfNav a.on .ind{color:#FFB68F}
-#elfNav a.on .ind::before{transform:scaleX(1);opacity:1}
-#elfNav.still .ind::before{transition:none}`;
+  // Bottom bar (streaming-app style): pinned to the bottom, no box — a black gradient fades the content out behind it;
+  // the current tab is full white, the others dimmed
+  const CSS = `:root{--navH:calc(64px + var(--sab, env(safe-area-inset-bottom)))}
+#elfNav{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:34px 0 var(--sab, env(safe-area-inset-bottom));pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0,rgba(0,0,0,.8) 30px,rgba(0,0,0,.96) 50px,#000)}
+#elfNav .in{height:60px;max-width:480px;margin:0 auto;display:flex;pointer-events:auto}
+#elfNav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-decoration:none;color:rgba(255,255,255,.58);
+  font:600 11px/13px Inter,system-ui,sans-serif;letter-spacing:.01em;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  transition:color .15s,transform .12s}
+#elfNav .ind{display:grid;place-items:center}
+#elfNav a svg{width:25px;height:25px;display:block}
+#elfNav a.on{color:#fff;font-weight:700}
+#elfNav a.on svg{stroke-width:2.4}
+#elfNav a:active{transform:scale(.92)}`;
   let opts = {active: "teams", onTap: null};
   function init(o){
     opts = {...opts, ...o};
