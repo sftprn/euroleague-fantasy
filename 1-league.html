@@ -238,6 +238,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
     <div class="seg" id="pSeg" role="tablist"><button data-pt="watch" class="on" role="tab">Watchlist</button><button data-pt="top" role="tab">Top Performers</button></div>
     <div id="pWatch"><div class="list wl" id="wList"></div></div>
     <div id="pTop" hidden>
+      <label class="pick"><select id="topRound" aria-label="Round"></select></label>
       <label class="pick"><select id="topTeam" aria-label="Show top players from"></select></label>
       <div class="list" id="topList"></div>
     </div>
@@ -362,8 +363,8 @@ async function loadBox(g){
 }
 
 /* PIR for one player this round, before the group share (null = not played yet) */
-function playerPir(p){
-  const g = games.find(g => g.r === round && (g.h.c === p.club || g.a.c === p.club));
+function playerPir(p, r = round){
+  const g = games.find(g => g.r === r && (g.h.c === p.club || g.a.c === p.club));
   if (!g) return null;
   const b = box[g.c];
   if (!b || b.pending) return null;
@@ -471,10 +472,30 @@ $("#gamesList").addEventListener("click", e => { const c = e.target.closest("[da
 $("#gamesList").addEventListener("keydown", e => { const c = e.target.closest("[data-game]"); if (c && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); GameSheet.open(+c.dataset.game); } });
 
 /* top 10 players of the round among everyone's rosters (hidden until someone has played) */
+/* Top Performers → Round: the last finished round until the next one tips off; once it's live, that round */
+let tRound = null;                                    // picked round (null = the default)
+const roundLive = () => games.some(g => g.r === round && Date.parse(g.u) <= Date.now());
+const topRound = () => tRound ?? (roundLive() || round <= 1 ? round : round - 1);
+const topLoading = new Set();
+async function loadTopRound(r){                       // scores of an earlier round's games (kept on the phone once final)
+  if (r === round || topLoading.has(r)) return;
+  const need = games.filter(g => g.r === r && Date.parse(g.u) <= Date.now() && !(box[g.c] && box[g.c].final));
+  if (!need.length) return;
+  topLoading.add(r);
+  const res = await Promise.all(need.map(g => loadBox(g).then(b => [g.c, b]).catch(() => [g.c, null])));
+  res.forEach(([c, b]) => { if (b) box[c] = b; });
+  topLoading.delete(r);
+  if (topRound() === r) renderTop();
+}
 function renderTop(){
-  const seen = new Map();
+  const seen = new Map(), tr = topRound();
+  const rs = $("#topRound"), last = roundLive() ? round : round - 1;
+  const ropts = round ? Array.from({length: Math.max(0, last)}, (_, i) => last - i).map(r => `<option value="${r}">Round ${r}${r === round ? " · live" : ""}</option>`).join("") : "";
+  if (rs._opts !== ropts){ rs.innerHTML = rs._opts = ropts; }
+  rs.value = String(tr);
+  loadTopRound(tr);
   COACHES.forEach(c => rosterOf(c.name).forEach(p => {
-    const s = games.length ? playerPir(p) : null;
+    const s = games.length ? playerPir(p, tr) : null;
     if (!s || !s.played) return;
     const e = seen.get(p.code);
     if (e) e.teams.push(teamOf(c)); else seen.set(p.code, {p, s, teams:[teamOf(c)]});
@@ -493,7 +514,8 @@ function renderTop(){
     const name = esc(clubs.get(pick) || ""), owned = pick && COACHES.some(c => rosterOf(c.name).some(q => q.club === pick));
     topRows = [];
     $("#topList").innerHTML = `<div class="nolive">${pick && !owned ? `No one has any players from ${name}.`
-      : pick ? `No ${name} players on anyone's team have played yet this round.` : "No live games yet — the round's top players show up once games start."}</div>`;
+      : topLoading.has(tr) ? "Loading…"
+      : pick ? `No ${name} players on anyone's team have played ${tr === round ? "yet this round" : `in round ${tr}`}.` : tr === round ? "No live games yet — the round's top players show up once games start." : `No scores for round ${tr}.`}</div>`;
     return;
   }
   topRows = top;
@@ -617,8 +639,9 @@ const sheetMeta = (p, teams) => `${p.clubName || p.tv} · ${p.pos || "–"}${tea
 PlayerSheet.init({games: () => games, round: () => round, fantasy: () => new Set(COACHES.flatMap(c => rosterOf(c.name)).map(x => x.code))});
 function openPlayer(code){
   const r = (pTab === "watch" ? watchRows : topRows).find(x => x.p.code === code); if (!r) return;
-  PlayerSheet.open(r.p, {state: sheetState(r.p), meta: sheetMeta(r.p, r.teams)});
+  PlayerSheet.open(r.p, {state: sheetState(r.p), meta: sheetMeta(r.p, r.teams), ...(pTab === "top" && topRound() !== round ? {round: topRound()} : {})});   // a past round's top list → his sheet on that round
 }
+$("#topRound").addEventListener("change", e => { const r = +e.target.value; tRound = r === (roundLive() || round <= 1 ? round : round - 1) ? null : r; e.target.blur(); renderTop(); });
 $("#topTeam").addEventListener("change", e => { topPick = e.target.value; e.target.blur(); renderTop(); });   // let go of focus so the next tap opens it again (iPhone)
 $("#topList").addEventListener("click", e => { const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code); });
 $("#topList").addEventListener("keydown", e => { const r = e.target.closest("[data-code]"); if (r && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openPlayer(r.dataset.code); } });
@@ -659,7 +682,7 @@ addEventListener("elf-msg", e => {                    // inside the app shell: G
   if (d.elf === "view" && d.view === "players") playersDefault();
   if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); scrollTo({top: 0}); } else scrollTo({top: 0, behavior: "smooth"}); }
 });
-function playersDefault(){ setPTab("watch"); }
+function playersDefault(){ setPTab("watch"); tRound = null; }
 function showView(){
   if (view === "players") playersDefault();
   $("#pageTitle").textContent = view === "games" ? "Games" : "Players";

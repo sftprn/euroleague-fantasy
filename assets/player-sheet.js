@@ -4,7 +4,7 @@
    The sheet always opens at full height.
    Usage (each page passes what it knows):
      PlayerSheet.init({games: () => games, round: () => round, fantasy: () => Set of player codes on fantasy rosters});
-     PlayerSheet.open(player, info)     info = {state, meta}   state = {kind:"up|soon|live|final|none", raw, win, base, share, val, q, t}
+     PlayerSheet.open(player, info)     info = {state, meta, round?}  (round: open the Game tab on that round)   state = {kind:"up|soon|live|final|none", raw, win, base, share, val, q, t}
      PlayerSheet.update(info)           live refresh while it's open (header, Game tab, Team stats sheet)
      PlayerSheet.isOpen(), PlayerSheet.current(), PlayerSheet.close()
    Needs assets/data.js (ElData). */
@@ -655,11 +655,11 @@
   function open(p, inf = {}){
     build();
     cur = p; info = {state: {kind: "none"}, meta: "", ...inf};
-    gRound = null; centerRd = true; rState = null;
+    gRound = inf.round && inf.round !== ctx.round() ? inf.round : null; centerRd = true; rState = gRound == null ? null : {kind: "none"};
     fillHead(true);
     el.body.scrollTop = 0;
     const k = info.state.kind;
-    tab = k === "live" || k === "final" ? "game" : "season";
+    tab = k === "live" || k === "final" || gRound != null ? "game" : "season";
     minsOpen = false; injOpen = false; closeTeam();
     el.pane._html = null; el.pane.dataset.tab = "";
     el.pane.classList.remove("sliding"); el.pane.style.transform = el.pane.style.opacity = "";
