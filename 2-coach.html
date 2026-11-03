@@ -125,6 +125,19 @@
   .lgs .start{margin:0 0 14px}
   .lgs .row{cursor:pointer}
   .lgs #demoLinks .row{cursor:pointer}
+  /* BasketNews import (edit mode): one team link → every team's lineup, captain, wild cards and total, each round */
+  .lgs .bn{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .lgs .bn-in{display:flex;gap:8px}
+  .lgs .bn-in input{flex:1;min-width:0;height:42px;border:1.5px solid var(--line);border-radius:12px;background:var(--card-2);color:#fff;font:600 14px Inter,system-ui,sans-serif;padding:0 12px}
+  .lgs .bn-in input:focus{outline:none;border-color:var(--orange)}
+  .lgs .bn button{height:42px;border:0;border-radius:12px;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;padding:0 16px;flex:none}
+  .lgs .bn .bn-save{background:var(--card-2);color:#fff;border:1px solid var(--line)}
+  .lgs .bn .bn-run{background:var(--orange);color:#fff;width:100%}
+  .lgs .bn button:disabled{opacity:.5;cursor:default}
+  .lgs .bn-st{font-size:13px;line-height:1.45;color:var(--muted)}
+  .lgs .bn-st b{color:#fff}
+  .lgs .bn-st .bad{color:var(--loss)}
+  .lgs .bn-st ul{margin:4px 0 0 18px;padding:0}
   .dots button.l{border-radius:2px;width:9px}
   .dots button.l.on{width:20px;border-radius:999px}
   .hd-side{width:44px;height:44px;flex:none;display:grid;place-items:center}
@@ -617,6 +630,14 @@ function buildSlides(){
     <section class="slide" data-coach="${LEAGUE}"><div class="page lgs">
       <div class="start" id="startWrap" hidden><button class="start-btn" id="startBtn"></button><div class="start-note" id="startNote"></div></div>
       <div id="lgList"></div>
+      <div id="bnBox" hidden>
+        <div class="sec-t">BASKETNEWS IMPORT</div>
+        <div class="list bn">
+          <div class="bn-in"><input id="bnUrl" type="url" inputmode="url" placeholder="Paste a BasketNews team link" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="BasketNews team link"><button class="bn-save" id="bnSave">Save</button></div>
+          <div class="bn-st" id="bnStatus">Loading…</div>
+          <button class="bn-run" id="bnRun">Import now</button>
+        </div>
+      </div>
       <div id="demoLinks" hidden>
         <div class="sec-t">DEMOS</div>
         <div class="list">
@@ -698,6 +719,7 @@ function renderLeague(){
   const rows = COACHES.map(c => { const r = coachTotal(c.name), base = baseOf(c.name); return {name: c.name, team: teamOf(c.name), ...r, base, sum: r1(base + r.total)}; })
                       .sort((a, b) => sortBy === "total" ? b.sum - a.sum || b.total - a.total : b.total - a.total || b.sum - a.sum);
   $("#demoLinks").hidden = !lgEditing;
+  $("#bnBox").hidden = !lgEditing;
   renderStart();
   if (lgEditing && list.querySelector(".team-input")) return;          // don't redraw under the keyboard
   if (lgEditing){                                                      // edit names and totals-before-this-round in one list
@@ -720,7 +742,42 @@ function renderLeague(){
       <div class="c-pts">${!tot && c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(tot ? c.sum : c.total)}</div>
     </div>`).join("")}</div>`;
 }
+/* BasketNews import (worker/bn.js): the saved team link, the last import, Save / Import now */
+const bnTime = t => new Date(t).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
+function bnStatus(d){
+  const el = $("#bnStatus"), L = d?.last;
+  if (DEMO){ el.innerHTML = "Not available in the demo."; $("#bnRun").disabled = $("#bnSave").disabled = true; return; }
+  $("#bnRun").disabled = !d?.url;
+  if (!d?.url){ el.innerHTML = "Paste the link of any team in your BasketNews draft league (fantasy.basketnews.com/…/teams/…). Each round, as soon as BasketNews shows the lineups (at the first tip-off), every team's players, captain, wild cards and Total are copied here automatically."; return; }
+  if (!L){ el.innerHTML = "Saved. Nothing imported yet."; return; }
+  const out = [];
+  if (L.msg && !L.ok) out.push(`<span class="bad">Import failed: ${esc(L.msg)}</span>`);
+  else if (L.teams) out.push(`<b>Round ${L.round}:</b> ${L.teams} team${L.teams === 1 ? "" : "s"} imported · ${esc(bnTime(L.at))}`);
+  else if (L.hidden) out.push(`<b>Round ${L.round}</b> lineups are hidden on BasketNews until the round starts. They'll be imported automatically then. Totals updated ${esc(bnTime(L.at))}.`);
+  if (L.missingTeams?.length) out.push(`<span class="bad">Not found on BasketNews (check the team name): ${L.missingTeams.map(esc).join(", ")}</span>`);
+  if (L.unmatched?.length) out.push(`<span class="bad">Players not matched, add them by hand:</span><ul>${L.unmatched.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`);
+  el.innerHTML = out.join("<br>") || "Saved.";
+}
+async function loadBn(){
+  if (DEMO || DIRECT){ bnStatus(null); return; }
+  try{ const d = await fetch("/api/bn").then(r => r.json()); $("#bnUrl").value = d.url || ""; bnStatus(d); }
+  catch{ $("#bnStatus").textContent = "Couldn't load the import settings."; }
+}
+async function bnPost(body, btn){
+  const label = btn.textContent; btn.disabled = true; btn.textContent = "Importing…";
+  try{
+    const r = await fetch("/api/bn", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify(body)});
+    const d = await r.json();
+    if (!r.ok){ $("#bnStatus").innerHTML = `<span class="bad">${esc(d.msg || "Couldn't save")}</span>`; return; }
+    await loadBn();
+    Shared.refresh?.();                                // pick up the new rosters straight away
+  }catch{ $("#bnStatus").innerHTML = `<span class="bad">Couldn't reach the server.</span>`; }
+  finally{ btn.textContent = label; btn.disabled = false; }
+}
 function wireLeagueList(){
+  $("#bnSave").onclick = () => bnPost({url: $("#bnUrl").value.trim()}, $("#bnSave"));
+  $("#bnRun").onclick = () => bnPost({run: true}, $("#bnRun"));
+  $("#bnUrl").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("#bnSave").click(); } });
   const list = $("#lgList");
   list.addEventListener("click", e => {
     const s = e.target.closest("[data-sort]");
@@ -985,7 +1042,7 @@ $("#editBtn").onclick = () => {
     lgEditing = !lgEditing;
     $("#lgList").innerHTML = "";
     renderLeague(); renderHeader();
-    if (lgEditing) $("#lgList .team-input")?.focus();
+    if (lgEditing) loadBn();
     return;
   }
   editing = !editing;

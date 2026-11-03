@@ -13,7 +13,7 @@ const NO_CACHE = { "cache-control": "no-store" };
 export const json = (body, init = {}) => new Response(JSON.stringify(body), { ...init, headers: { "content-type": "application/json", ...NO_CACHE } });
 const str = (v, max = 80) => (typeof v === "string" ? v.slice(0, max) : "");
 
-function cleanRoster(list) {
+export function cleanRoster(list) {
   if (!Array.isArray(list)) return undefined;
   const seen = new Set();
   return list.slice(0, 13).filter(p => p && typeof p.code === "string" && !seen.has(p.code) && seen.add(p.code)).map(p => ({
@@ -23,7 +23,7 @@ function cleanRoster(list) {
     ...(Number.isFinite(p.order) ? { order: Math.round(p.order) } : {}),   // manual position within the group
   }));
 }
-function cleanChips(c) {
+export function cleanChips(c) {
   if (!c || typeof c !== "object") return undefined;
   const out = {};
   for (const [round, v] of Object.entries(c).slice(0, 60)) {
