@@ -34,7 +34,11 @@
   // depends on that height: the sections are sized to the real screen and the bar is placed from the top (--appH).
   const APP = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
   function fitScreen(){
-    const full = APP ? (matchMedia("(orientation: portrait)").matches ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height)) : innerHeight;
+    // Safari's page zoom (aA → 80% etc., kept for the home-screen app too) shrinks CSS pixels but not screen.*, so scale the
+    // screen's height by the zoom, read off the width (which iOS gets right): e.g. 375-wide screen shown 469 CSS px wide = 80%.
+    const portrait = matchMedia("(orientation: portrait)").matches, long = Math.max(screen.width, screen.height), short = Math.min(screen.width, screen.height);
+    const zoom = innerWidth / (portrait ? short : long) || 1;
+    const full = APP ? Math.round((portrait ? long : short) * zoom) : innerHeight;
     document.documentElement.style.setProperty("--appH", full + "px");
     const nav = document.getElementById("elfNav");
     if (nav){ nav.style.bottom = "auto"; nav.style.top = (full - nav.offsetHeight) + "px"; }
