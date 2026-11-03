@@ -43,6 +43,24 @@
     const nav = document.getElementById("elfNav");
     if (nav){ nav.style.bottom = "auto"; nav.style.top = (full - nav.offsetHeight) + "px"; }
   }
+  // TEMPORARY diagnostics (home-screen app only): every height iOS reports, to fix the bottom strip at Safari zoom levels
+  function diag(){
+    if (!APP) return;
+    let d = document.getElementById("elfDiag");
+    if (!d){
+      d = document.createElement("div"); d.id = "elfDiag";
+      d.style.cssText = "position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top) + 2px);z-index:99;font:600 10px/1.35 ui-monospace,Menlo,monospace;color:#0f0;background:#000c;padding:4px 6px;border-radius:6px;pointer-events:none;white-space:pre-wrap";
+      const pr = (id, css) => { const e = document.createElement("div"); e.id = id; e.style.cssText = "position:fixed;left:0;width:1px;visibility:hidden;pointer-events:none;" + css; document.body.appendChild(e); };
+      pr("pB", "bottom:0;height:1px"); pr("pVH", "top:0;height:100vh"); pr("pDVH", "top:0;height:100dvh"); pr("pLVH", "top:0;height:100lvh"); pr("pSVH", "top:0;height:100svh");
+      document.body.appendChild(d);
+    }
+    const h = id => Math.round(document.getElementById(id).getBoundingClientRect().height);
+    const nav = document.getElementById("elfNav"), vv = window.visualViewport;
+    d.textContent = `scr ${screen.width}x${screen.height} dpr ${devicePixelRatio} | inner ${innerWidth}x${innerHeight} | client ${document.documentElement.clientWidth}x${document.documentElement.clientHeight}
+vv ${vv ? Math.round(vv.width) + "x" + Math.round(vv.height) + " s" + vv.scale.toFixed(2) + " top" + Math.round(vv.offsetTop) : "-"} | fixedBottom ${Math.round(document.getElementById("pB").getBoundingClientRect().bottom)}
+vh ${h("pVH")} dvh ${h("pDVH")} lvh ${h("pLVH")} svh ${h("pSVH")} | appH ${getComputedStyle(document.documentElement).getPropertyValue("--appH")} | navTop ${nav ? Math.round(nav.getBoundingClientRect().top) : "-"} navH ${nav ? nav.offsetHeight : "-"}`;
+  }
+  setInterval(diag, 1000);
   addEventListener("resize", fitScreen); addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
   addEventListener("load", fitScreen); setTimeout(fitScreen, 400); setTimeout(fitScreen, 1500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(fitScreen, 100); });
