@@ -8,6 +8,7 @@
 //   GET  /api/bn                  → {url, last, done}
 //   POST /api/bn {url}            → save the link (or clear it with ""), then import straight away
 //   POST /api/bn {run:true}       → import now (also overwrites hand edits made since the last import)
+//   POST /api/bn {prev:true}      → copy the previous (finished) round's lineups now, e.g. before this round unlocks
 //   POST /api/bn {dry:9}          → rebuild a finished round and return it, saving nothing (a health check)
 //   cron (every 10 min)           → import the current round once its lineups are visible, then stop until the next round
 //
@@ -95,13 +96,13 @@ const teamIdOf = url => (String(url || "").match(/teams\/([0-9a-f]{24})/i) || St
 
 // ── the import ──
 let busy = null;
-export async function importBn(env, { force = false, dry = 0 } = {}) {
+export async function importBn(env, { force = false, dry = 0, prev = false } = {}) {
   if (dry) return run(env, true, dry);
   if (busy) return busy;
-  busy = run(env, force).finally(() => { busy = null; });
+  busy = run(env, force, 0, prev).finally(() => { busy = null; });
   return busy;
 }
-async function run(env, force, dry = 0) {   // dry = a finished round to rebuild without saving (check that it still works)
+async function run(env, force, dry = 0, prev = false) {   // prev = copy the finished previous round's lineups (visible before this round unlocks)   // dry = a finished round to rebuild without saving (check that it still works)
   const DB = env.DB;
   await setup(DB);
   const cfg = await readCfg(DB);
@@ -111,7 +112,9 @@ async function run(env, force, dry = 0) {   // dry = a finished round to rebuild
   if (!round) return { ok: false, msg: "League round not known yet" };
   if (!force && cfg.done === round) return { ok: true, skipped: true };
   const idx = round - 1;                                   // BasketNews round index for the app's current round
-  const result = { at: Date.now(), round, ok: false, teams: 0, hidden: false, unmatched: [], missingTeams: [] };
+  const from = prev ? round - 1 : round;                   // the round whose lineups are copied
+  if (from < 1) return { ok: false, msg: "There is no previous round yet" };
+  const result = { at: Date.now(), round: from, ...(prev ? { prev: true } : {}), ok: false, teams: 0, hidden: false, unmatched: [], missingTeams: [] };
   try {
     if (!cfg.league || !cfg.fleague) {
       const f = (await gql(Q_FIND, { t: cfg.team }))?.fantasyTeamLineupRecordFromClient?.fantasyTeam;
@@ -137,7 +140,7 @@ async function run(env, force, dry = 0) {   // dry = a finished round to rebuild
       const rec = recs.find(x => x.fantasyTeam.id === id);
       const data = {};
       if (idx >= 1 && Number.isFinite(rec?.pointsTotal)) data.base = Math.round(rec.pointsTotal * 100) / 100;
-      const L = (await gql(Q_LINEUP, { t: id, l: cfg.league, r: idx }))?.fantasyTeamLineupRecordFromClient;
+      const L = (await gql(Q_LINEUP, { t: id, l: cfg.league, r: from - 1 }))?.fantasyTeamLineupRecordFromClient;
       if (L?.players?.length) {
         people = people || await loadPeople();
         const roster = [];
@@ -151,7 +154,7 @@ async function run(env, force, dry = 0) {   // dry = a finished round to rebuild
         }
         data.roster = roster;
         const chips = { ...(docs[n]?.chips || {}) };
-        delete chips[round];                                // this round: exactly what BasketNews says
+        delete chips[from];                                 // that round: exactly what BasketNews says
         for (const w of L.fantasyTeam?.wildcards || []) {
           const r = String(w.fantasyRound + 1), k = w.identifier === "boost_bench" ? "bb" : w.identifier === "triple_points_captain" ? "tc" : null;
           if (k) chips[r] = { ...(chips[r] || {}), [k]: true };
@@ -177,7 +180,7 @@ async function run(env, force, dry = 0) {   // dry = a finished round to rebuild
     }
     result.ok = true;
     const mapped = COACHES.filter(n => cfg.teams[n]).length;
-    if (mapped && result.teams === mapped) cfg.done = round;          // every lineup in: leave it alone until the next round
+    if (!prev && mapped && result.teams === mapped) cfg.done = round;          // every lineup in: leave it alone until the next round
   } catch (e) {
     result.msg = String(e.message || e).slice(0, 200);
   }
@@ -208,6 +211,7 @@ export async function handleBn(request, env) {
     if (!id) return json({ ok: true, cleared: true });
   }
   if (Number.isInteger(body.dry) && body.dry > 0) return json(await importBn(env, { dry: body.dry }));
+  if (body.prev) return json(await importBn(env, { force: true, prev: true }));
   const res = await importBn(env, { force: true });
   return json(res);
 }

@@ -133,6 +133,7 @@
   .lgs .bn button{height:42px;border:0;border-radius:12px;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;padding:0 16px;flex:none}
   .lgs .bn .bn-save{background:var(--card-2);color:#fff;border:1px solid var(--line)}
   .lgs .bn .bn-run{background:var(--orange);color:#fff;width:100%}
+  .lgs .bn .bn-prev{width:100%;margin-top:-2px}
   .lgs .bn button:disabled{opacity:.5;cursor:default}
   .lgs .bn-st{font-size:13px;line-height:1.45;color:var(--muted)}
   .lgs .bn-st b{color:#fff}
@@ -636,6 +637,7 @@ function buildSlides(){
           <div class="bn-in"><input id="bnUrl" type="url" inputmode="url" placeholder="Paste a BasketNews team link" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="BasketNews team link"><button class="bn-save" id="bnSave">Save</button></div>
           <div class="bn-st" id="bnStatus">Loading…</div>
           <button class="bn-run" id="bnRun">Import now</button>
+          <button class="bn-save bn-prev" id="bnPrev">Import previous round</button>
         </div>
       </div>
       <div id="demoLinks" hidden>
@@ -746,13 +748,13 @@ function renderLeague(){
 const bnTime = t => new Date(t).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
 function bnStatus(d){
   const el = $("#bnStatus"), L = d?.last;
-  if (DEMO){ el.innerHTML = "Not available in the demo."; $("#bnRun").disabled = $("#bnSave").disabled = true; return; }
-  $("#bnRun").disabled = !d?.url;
+  if (DEMO){ el.innerHTML = "Not available in the demo."; $("#bnRun").disabled = $("#bnSave").disabled = $("#bnPrev").disabled = true; return; }
+  $("#bnRun").disabled = $("#bnPrev").disabled = !d?.url;
   if (!d?.url){ el.innerHTML = "Paste the link of any team in your BasketNews draft league (fantasy.basketnews.com/…/teams/…). Each round, as soon as BasketNews shows the lineups (at the first tip-off), every team's players, captain, wild cards and Total are copied here automatically."; return; }
   if (!L){ el.innerHTML = "Saved. Nothing imported yet."; return; }
   const out = [];
   if (L.msg && !L.ok) out.push(`<span class="bad">Import failed: ${esc(L.msg)}</span>`);
-  else if (L.teams) out.push(`<b>Round ${L.round}:</b> ${L.teams} team${L.teams === 1 ? "" : "s"} imported · ${esc(bnTime(L.at))}`);
+  else if (L.teams) out.push(`<b>Round ${L.round}${L.prev ? " (previous round)" : ""}:</b> ${L.teams} team${L.teams === 1 ? "" : "s"} imported · ${esc(bnTime(L.at))}`);
   else if (L.hidden) out.push(`<b>Round ${L.round}</b> lineups are hidden on BasketNews until the round starts. They'll be imported automatically then. Totals updated ${esc(bnTime(L.at))}.`);
   if (L.missingTeams?.length) out.push(`<span class="bad">Not found on BasketNews (check the team name): ${L.missingTeams.map(esc).join(", ")}</span>`);
   if (L.unmatched?.length) out.push(`<span class="bad">Players not matched, add them by hand:</span><ul>${L.unmatched.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`);
@@ -777,6 +779,7 @@ async function bnPost(body, btn){
 function wireLeagueList(){
   $("#bnSave").onclick = () => bnPost({url: $("#bnUrl").value.trim()}, $("#bnSave"));
   $("#bnRun").onclick = () => bnPost({run: true}, $("#bnRun"));
+  $("#bnPrev").onclick = () => bnPost({prev: true}, $("#bnPrev"));
   $("#bnUrl").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("#bnSave").click(); } });
   const list = $("#lgList");
   list.addEventListener("click", e => {
