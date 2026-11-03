@@ -137,6 +137,15 @@
 #psWrap .chart .bar.dnp{background:#3A3A40}
 #psWrap .chart .zero{position:absolute;left:0;right:0;height:1px;background:var(--line)}
 #psWrap .hist{width:100%;border-collapse:collapse;font-size:13.5px}
+#psWrap .hist tr[data-rd]{cursor:pointer}
+#psWrap .hist tbody tr[data-rd]:active td{background:#1F1F23}
+/* Game tab: round picker (number badges; the chosen one reads "Round X"), scrolls sideways */
+#psWrap .rds{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:0 16px 2px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+#psWrap .rds::-webkit-scrollbar{display:none}
+#psWrap .rds button{flex:none;height:32px;min-width:32px;padding:0 10px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--muted);
+  font:700 13px Inter,system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#psWrap .rds button.now{color:#fff;border-color:#FFFFFF40}
+#psWrap .rds button.on{background:var(--orange);border-color:var(--orange);color:#fff;padding:0 14px}
 #psWrap .hist th{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.06em;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
 #psWrap .hist td{text-align:right;padding:9px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
 #psWrap .hist th:nth-child(-n+2),#psWrap .hist td:nth-child(-n+2){text-align:left}
@@ -224,7 +233,18 @@
     get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } },
     set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
   };
-  const gameOf = p => ctx.games().find(g => g.r === ctx.round() && (g.h.c === p.club || g.a.c === p.club));
+  let gRound = null;                                      // Game tab: the round shown (null = the current one)
+  const shownRound = () => gRound ?? ctx.round();
+  const gameOf = p => ctx.games().find(g => g.r === shownRound() && (g.h.c === p.club || g.a.c === p.club));
+  function roundsBar(){                                   // every round of the season; the chosen one in full
+    const rs = [...new Set(ctx.games().map(g => g.r))].sort((a, b) => a - b), sel = shownRound(), now = ctx.round();
+    return `<div class="rds" role="tablist" aria-label="Round">${rs.map(r => `<button type="button" data-rd="${r}" class="${r === sel ? "on" : ""}${r === now ? " now" : ""}" role="tab" aria-selected="${r === sel}">${r === sel ? `Round ${r}` : r}</button>`).join("")}</div>`;
+  }
+  let centerRd = true;                                    // scroll the chosen round into view on the next draw
+  function pickRound(r, toGame){
+    gRound = r === ctx.round() ? null : r; centerRd = true; minsOpen = false; if (gRound == null) rState = null;
+    if (toGame && tab !== "game") switchTab("game"); else renderTab();
+  }
 
   function build(){
     if (wrap) return;
@@ -240,6 +260,7 @@
     // swipe left / right on the content to go to the next / previous tab (the content follows your finger)
     let hs = null;
     el.body.addEventListener("touchstart", e => {
+      if (e.target.closest(".rds")){ hs = null; return; }   // the round picker scrolls sideways itself
       hs = e.touches.length === 1 ? {x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: e.timeStamp, mode: null, dx: 0} : null;
     }, {passive: true});
     el.body.addEventListener("touchmove", e => {
@@ -267,6 +288,8 @@
     el.body.addEventListener("touchend", hend);
     el.body.addEventListener("touchcancel", hend);
     el.pane.addEventListener("click", e => {
+      const rd = e.target.closest(".rds [data-rd]"); if (rd){ pickRound(+rd.dataset.rd); return; }             // Game tab: another round
+      const hr = e.target.closest(".hist tr[data-rd]"); if (hr){ pickRound(+hr.dataset.rd, true); return; }    // Season tab: that round in the Game tab
       if (e.target.closest(".mn")){ minsOpen = !minsOpen; renderTab(); return; }     // minutes: tap to show / hide each stint
       if (e.target.closest(".inj") && !e.target.closest("a")){ injOpen = !injOpen; renderTab(); return; }   // injury card: tap for sources
       const tb = e.target.closest(".tsb");                 // Team stats → the game sheet on his team's tab; News → a sheet on top
@@ -308,9 +331,9 @@
   addEventListener("resize", () => { if (isOpen()) fitName(); });
   function fillHead(first){
     const p = cur; if (!p) return;
-    const s = info.state || {kind: "none"};
+    const s = rState || info.state || {kind: "none"};
     el.name.textContent = p.name; fitName();
-    el.meta.textContent = info.meta || `${p.clubName || p.tv || ""} · ${p.pos || ""}`;
+    el.meta.textContent = (info.meta || `${p.clubName || p.tv || ""} · ${p.pos || ""}`) + (gRound != null ? ` · Round ${gRound}` : "");
     // e.g. "20.00 −10% = 18.00 × 2" (final) or "live 14.00 × 1"
     const calc = s.kind === "final" ? `${fmtFull(s.raw)} ${s.win ? "+10%" : "−10%"} = ${fmtFull(s.base)} × ${s.share}`
                : s.kind === "live" ? `live ${fmtFull(s.raw)} × ${s.share}` : "";
@@ -329,9 +352,16 @@
   function paneSet(html){                                 // skip redraws when nothing changed; keep where you've scrolled
     const pane = el.pane;
     if (pane._html === html) return;
-    const y = el.body.scrollTop, x = pane.querySelector(".tmw")?.scrollLeft || 0;
+    const y = el.body.scrollTop, x = pane.querySelector(".tmw")?.scrollLeft || 0, rx = pane.querySelector(".rds")?.scrollLeft || 0;
     pane.innerHTML = pane._html = html;
     const w = pane.querySelector(".tmw"); if (w) w.scrollLeft = x;
+    const rb = pane.querySelector(".rds");
+    if (rb){
+      rb.style.scrollBehavior = "auto"; rb.scrollLeft = rx;
+      const on = rb.querySelector(".on");
+      if (centerRd && on){ centerRd = false; requestAnimationFrame(() => { rb.style.scrollBehavior = ""; rb.scrollLeft = on.offsetLeft - (rb.clientWidth - on.offsetWidth) / 2; }); }
+      else rb.style.scrollBehavior = "";
+    }
     el.body.scrollTop = y;
   }
   const TABS = ["game", "season"];
@@ -369,13 +399,27 @@
     return `<div class="bd"${window.GameSheet ? ` data-game="${g.c}" role="button" tabindex="0" aria-label="Open the game"` : ""}>${side(g.h)}<div class="mid"><div class="sc">${has ? `${b.teams[0].pts} – ${b.teams[1].pts}` : "vs"}</div>${status}</div>${side(g.a)}</div>`;
   }
   const btns = (team = true) => `<div class="btns">${team ? `<button class="tsb" type="button" data-top="team">Team stats</button>` : ""}<button class="tsb" type="button" data-top="news">News</button></div>`;
+  let rState = null;                                      // another round picked: its PIR for the header (null = this round, from the page)
   async function gamePane(p){
-    const g = gameOf(p), inj = injCard(p, await injuryOf(p));
+    rState = gRound == null ? null : {kind: "none"};
+    const html = roundsBar() + await gameBody(p);
+    fillHead(false);
+    return html;
+  }
+  async function gameBody(p){
+    const g = gameOf(p), inj = gRound == null ? injCard(p, await injuryOf(p)) : "";   // injury report: only for this round
+    if (!g && gRound != null) return btns(false) + `<div class="empty">No game in round ${gRound}.</div>`;
     if (!g) return inj + btns(false) + `<div class="empty">No game this round.</div>`;
     if (Date.parse(g.u) > Date.now()) return board(g, null, p) + inj + btns(false) + `<div class="empty">Stats show up once the game starts.</div>`;
     const [b, st] = await Promise.all([ElData.box(g.c), ElData.stretches(g.c).catch(() => null)]);
     if (b.pending) return board(g, b, p) + inj + btns(false) + `<div class="empty">Waiting for the first stats…</div>`;
     const l = await ElData.line(g.c, p.code);
+    if (gRound != null && b.teams?.length === 2){         // header: that round's PIR (raw live; ±10% for the result once final)
+      const home = g.h.c === p.club, me = b.teams[home ? 0 : 1].pts, them = b.teams[home ? 1 : 0].pts, win = me > them;
+      const raw = l && l.min !== "DNP" && l.mins ? l.pir : 0;
+      const base = b.live ? raw : Math.round((raw + (win ? 1 : -1) * Math.abs(raw) * 0.1) * 100) / 100;
+      rState = {kind: b.live ? "live" : "final", raw, win, base, share: 1, val: base};
+    }
     if (!l || l.min === "DNP" || !l.mins) return board(g, b, p) + inj + btns() + `<div class="empty">Did not play${b.live ? " yet" : ""}.</div>`;
     const pf = Math.min(5, l.pf || 0);
     const cell = (v, lab, extra = "") => `<div><b>${v}</b><small>${lab}</small>${extra}</div>`;
@@ -539,7 +583,7 @@
           <div><b>${best ?? "–"}</b><small>BEST</small></div>
         </div>${chart}
         <table class="hist"><thead><tr><th>RD</th><th>OPP</th><th>RESULT</th><th>MIN</th><th>PIR</th><th>±10%</th></tr></thead><tbody>
-        ${rows.slice().reverse().map(r => `<tr class="${r.r === round ? "cur" : ""}"><td class="rd">${r.r}</td><td>${r.home ? "vs" : "@"} ${esc(r.opp.tv)}</td>
+        ${rows.slice().reverse().map(r => `<tr class="${r.r === round ? "cur" : ""}" data-rd="${r.r}" role="button" tabindex="0" aria-label="Round ${r.r} in the Game tab"><td class="rd">${r.r}</td><td>${r.home ? "vs" : "@"} ${esc(r.opp.tv)}</td>
           <td>${r.loading ? "…" : res(r)}</td><td>${r.loading ? "" : r.played ? esc(r.min) : r.pending ? "–" : "DNP"}</td>
           <td><b>${r.loading || r.pir == null ? "" : r.pir}</b></td><td>${r.loading || r.adj == null ? "" : fmtFull(r.adj)}</td></tr>`).join("")}
         </tbody></table>
@@ -572,6 +616,7 @@
   function open(p, inf = {}){
     build();
     cur = p; info = {state: {kind: "none"}, meta: "", ...inf};
+    gRound = null; centerRd = true; rState = null;
     fillHead(true);
     el.body.scrollTop = 0;
     const k = info.state.kind;
