@@ -34,7 +34,13 @@
 #psWrap .ph-head{align-items:flex-end;padding:0 0 0 20px;min-height:0;gap:8px}
 #psWrap .ph-txt{flex:1;min-width:0;padding:2px 0 14px}
 #psWrap .ph-txt .big{display:block;font-size:21px;font-weight:800;line-height:1.2;letter-spacing:-.01em;color:#fff}
-#psWrap .ph-txt .big.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}          /* long names shrink to fit one line (fitName) */
+#psWrap .ph-txt .big.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+#psWrap .nmrow{display:flex;align-items:center;gap:6px;min-width:0}
+#psWrap .star{flex:none;width:32px;height:32px;margin:-4px 0;padding:0;border:0;background:none;color:#5E5E66;cursor:pointer;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
+#psWrap .star svg{fill:none;transition:transform .15s}
+#psWrap .star.on{color:#FF6B1A}
+#psWrap .star.on svg{fill:currentColor}
+#psWrap .star:active svg{transform:scale(.85)}          /* long names shrink to fit one line (fitName) */
 #psWrap .ph-txt .sub{display:block;font-size:12px;font-weight:400;color:var(--muted);line-height:1.35;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #psWrap .ph-txt .big.pir{margin-top:10px}
 #psWrap .ph-txt .big.pir.none{color:var(--dim)}
@@ -186,7 +192,7 @@
     <div class="grab" aria-hidden="true"></div>
     <div class="sh-head ph-head">
       <div class="ph-txt">
-        <span class="big nm" data-ps="name" id="shName"></span>
+        <div class="nmrow"><span class="big nm" data-ps="name" id="shName"></span><button type="button" class="star" data-ps="star" aria-label="Add to Watchlist" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button></div>
         <span class="sub" data-ps="meta" id="shMeta"></span>
         <span class="big pir" data-ps="pir" id="shPir"></span>
         <span class="sub" data-ps="calc" id="shCalc"></span>
@@ -242,8 +248,11 @@
   }
   let centerRd = true;                                    // scroll the chosen round into view on the next draw
   function pickRound(r, toGame){
-    gRound = r === ctx.round() ? null : r; centerRd = true; minsOpen = false; if (gRound == null) rState = null;
-    if (toGame && tab !== "game") switchTab("game"); else renderTab();
+    gRound = r === ctx.round() ? null : r; minsOpen = false; rState = gRound == null ? null : {kind: "none"};
+    if (toGame && tab !== "game"){ centerRd = true; switchTab("game"); return; }
+    paneSet(roundsBar() + `<div class="loading">Loading…</div>`);   // the picked badge right away; that round's game below once it arrives
+    fillHead(false);
+    renderTab();
   }
 
   function build(){
@@ -254,6 +263,7 @@
     el.sheet = wrap.querySelector(".sheet.pm"); el.body = el.sheet.querySelector(".sh-body");
     el.ts = wrap.querySelector(".sheet.ts");
     wrap.querySelector("[data-psclose]").onclick = close;
+    el.star.onclick = toggleWatch;
     wrap.querySelector("[data-tsclose]").onclick = closeTeam;
     document.addEventListener("keydown", e => { if (e.key === "Escape" && isOpen()) tsOpen ? closeTeam() : close(); });
     el.tabs.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b && b.dataset.tab !== tab) switchTab(b.dataset.tab); });
@@ -312,7 +322,7 @@
         if (dy > Math.min(120, sheet.offsetHeight * 0.3) || fast) onClose();
       };
       sheet.querySelectorAll(".grab, .sh-head").forEach(h => {
-        h.addEventListener("pointerdown", e => { id = e.pointerId; y0 = e.clientY; dy = 0; t0 = Date.now(); sheet.classList.add("dragging"); h.setPointerCapture(id); });
+        h.addEventListener("pointerdown", e => { if (e.target.closest("button")) return; id = e.pointerId; y0 = e.clientY; dy = 0; t0 = Date.now(); sheet.classList.add("dragging"); h.setPointerCapture(id); });
         h.addEventListener("pointermove", e => { if (e.pointerId !== id) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = `translate(-50%, ${dy}px)`; });
         h.addEventListener("pointerup", end);
         h.addEventListener("pointercancel", end);
@@ -340,12 +350,35 @@
     const has = s.kind === "final" || s.kind === "live";
     el.pir.textContent = has ? `${fmtFull(s.val)} PIR` : "– PIR";
     el.pir.classList.toggle("none", !has);
-    el.calc.textContent = calc; el.calc.hidden = !calc;
+    el.calc.textContent = calc || "\u00a0"; el.calc.style.visibility = calc ? "" : "hidden";   // keeps its line so the header never changes height
+    starSet();
     if (!first) return;
     const img = el.img, pic = el.pic;
     pic.hidden = !p.img; img.onerror = () => { pic.hidden = true; };
     if (p.img) img.src = p.img;
     else img.removeAttribute("src");
+  }
+
+  /* Watchlist star (the Players tab's private list, saved only on this phone as elf.watch) */
+  const WATCH_MAX = 20;
+  const watchList = () => { try{ return JSON.parse(localStorage.getItem("elf.watch")) || []; }catch{ return []; } };
+  function starSet(){
+    const on = !!cur && watchList().some(x => x.code === cur.code);
+    el.star.classList.toggle("on", on); el.star.setAttribute("aria-pressed", on);
+    el.star.setAttribute("aria-label", on ? "Remove from Watchlist" : "Add to Watchlist");
+  }
+  function toggleWatch(){
+    const p = cur; if (!p) return;
+    const list = watchList(), k = list.findIndex(x => x.code === p.code);
+    if (k >= 0) list.splice(k, 1);
+    else {
+      if (list.length >= WATCH_MAX){ el.star.animate?.([{transform: "translateX(-4px)"}, {transform: "translateX(4px)"}, {transform: "none"}], 240); return; }
+      const {code, name, club, tv, clubName, crest, img, pos} = p;
+      list.push({code, name, club, tv, clubName, crest, img, pos, slot: "watch", order: Math.max(0, ...list.map(x => x.order ?? 0)) + 10});
+    }
+    try{ localStorage.setItem("elf.watch", JSON.stringify(list)); }catch{}
+    starSet();
+    dispatchEvent(new Event("elf-watch"));                 // this page's Watchlist redraws (other open pages get a storage event)
   }
 
   /* tabs */

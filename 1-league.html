@@ -549,6 +549,8 @@ function setPTab(t){
   $("#pWatch").hidden = t !== "watch"; $("#pTop").hidden = t !== "top";
   $("#pSeg").querySelectorAll("[data-pt]").forEach(b => b.classList.toggle("on", b.dataset.pt === t));
 }
+addEventListener("elf-watch", () => { renderWatch(); refresh(); });          // star in the player sheet
+addEventListener("storage", e => { if (e.key === "elf.watch"){ renderWatch(); refresh(); } });   // starred on the Teams page
 $("#pSeg").addEventListener("click", e => { const b = e.target.closest("[data-pt]"); if (b && b.dataset.pt !== pTab){ setPTab(b.dataset.pt); scrollTo({top: 0}); } });
 $("#wList").addEventListener("click", e => {
   if (e.target.closest("[data-add]")) return openFinder();
