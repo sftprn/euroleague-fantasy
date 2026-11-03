@@ -8,6 +8,7 @@
 //   GET  /api/bn                  → {url, last, done}
 //   POST /api/bn {url}            → save the link (or clear it with ""), then import straight away
 //   POST /api/bn {run:true}       → import now (also overwrites hand edits made since the last import)
+//   POST /api/bn {dry:9}          → rebuild a finished round and return it, saving nothing (a health check)
 //   cron (every 10 min)           → import the current round once its lineups are visible, then stop until the next round
 //
 // BasketNews ↔ app:
@@ -94,18 +95,19 @@ const teamIdOf = url => (String(url || "").match(/teams\/([0-9a-f]{24})/i) || St
 
 // ── the import ──
 let busy = null;
-export async function importBn(env, { force = false } = {}) {
+export async function importBn(env, { force = false, dry = 0 } = {}) {
+  if (dry) return run(env, true, dry);
   if (busy) return busy;
   busy = run(env, force).finally(() => { busy = null; });
   return busy;
 }
-async function run(env, force) {
+async function run(env, force, dry = 0) {   // dry = a finished round to rebuild without saving (check that it still works)
   const DB = env.DB;
   await setup(DB);
   const cfg = await readCfg(DB);
   if (!cfg.team) return { ok: false, msg: "No BasketNews link saved" };
   const league = JSON.parse((await DB.prepare("SELECT v FROM kv WHERE k = 'league'").first())?.v || "null");
-  const round = league?.round;
+  const round = dry || league?.round;
   if (!round) return { ok: false, msg: "League round not known yet" };
   if (!force && cfg.done === round) return { ok: true, skipped: true };
   const idx = round - 1;                                   // BasketNews round index for the app's current round
@@ -159,6 +161,7 @@ async function run(env, force) {
       } else result.hidden = true;
       if (Object.keys(data).length) writes.push([n, data]);
     }
+    if (dry) return { ...result, ok: true, dry: true, rosters: writes.map(([n, d]) => ({ n, base: d.base, chips: d.chips?.[round], roster: (d.roster || []).map(p => `${p.slot}${p.captain ? "*" : ""} ${p.name} ${p.tv} ${p.code}`) })) };
     if (writes.length) {
       const stmts = [];
       for (const [n, d] of writes) {
@@ -204,6 +207,7 @@ export async function handleBn(request, env) {
     await writeCfg(env.DB, id ? { team: id, teams: cfg.team === id ? cfg.teams : {} } : {});
     if (!id) return json({ ok: true, cleared: true });
   }
+  if (Number.isInteger(body.dry) && body.dry > 0) return json(await importBn(env, { dry: body.dry }));
   const res = await importBn(env, { force: true });
   return json(res);
 }
