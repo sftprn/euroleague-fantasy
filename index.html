@@ -67,13 +67,19 @@
     const sec = secOf(t);
     frame(sec);
     for (const k in frames){ frames[k].classList.toggle("off", k !== sec); post(k, {elf: "show", on: k === sec}); }
+    document.getElementById("elfNav")?.classList.remove("cover");
     if (sec === "league") post("league", {elf: "view", view: t});
     document.title = t === "teams" ? "Teams · EL Fantasy" : t === "games" ? "Games · EL Fantasy" : "Players · EL Fantasy";
     const u = new URL(location.href); u.searchParams.set("tab", t); u.searchParams.delete("new"); u.searchParams.delete("coach");
     history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
   }
   addEventListener("message", e => {                      // a section finished loading: give it the safe areas and tell it if it's shown
-    if (e.origin !== location.origin || e.data?.elf !== "ready") return;
+    if (e.origin !== location.origin) return;
+    if (e.data?.elf === "cover"){                         // a bottom sheet opened / closed in the shown section: bar out of the way / back
+      const shown = frames[secOf(tab)]; if (!shown || shown.contentWindow === e.source) document.getElementById("elfNav")?.classList.toggle("cover", !!e.data.on);
+      return;
+    }
+    if (e.data?.elf !== "ready") return;
     insets();
     for (const k in frames) if (frames[k].contentWindow === e.source){
       post(k, {elf: "show", on: k === secOf(tab)});

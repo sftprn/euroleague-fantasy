@@ -17,10 +17,14 @@
     players: `<svg class="o" viewBox="0 0 24 24" fill="currentColor"><path d="M1,17.58V16.71q0-0.92 0.98-1.53t2.53-0.61q0.23,0 0.49,0.02t0.56,0.07q-0.23,0.41-0.34,0.84T5.12,16.38v1.2H1Zm6,0V16.45q0-0.6 0.35-1.11t1.04-0.87t1.6-0.55t2.01-0.18q1.12,0 2.03,0.18t1.6,0.55t1.03,0.87T17,16.45v1.13H7Zm11.88,0v-1.2q0-0.48-0.1-0.9t-0.31-0.81q0.31-0.05 0.56-0.07t0.47-0.02q1.55,0 2.53,0.6T23,16.71v0.86H18.88Zm-10.86-1h7.95V16.37q-0.06-0.71-1.17-1.16T12,14.75T9.19,15.2T8.03,16.37v0.21ZM4.51,13.63q-0.59,0-1-0.42T3.1,12.21q0-0.58 0.42-0.99t1.01-0.41q0.58,0 1,0.41t0.42,1q0,0.57-0.41,0.99T4.51,13.63Zm14.99,0q-0.58,0-1-0.42t-0.42-0.99q0-0.59 0.42-1t1-0.41q0.6,0 1.01,0.41t0.41,0.99q0,0.59-0.41,1.01T19.5,13.63ZM12.01,13q-0.91,0-1.55-0.64T9.81,10.81q0-0.93 0.64-1.56T12,8.62q0.93,0 1.56,0.63t0.63,1.56q0,0.91-0.63,1.55T12.01,13Zm0-1q0.49,0 0.84-0.35t0.35-0.85T12.85,9.96T12,9.62q-0.48,0-0.84,0.34t-0.35,0.85q0,0.48 0.35,0.84T12.01,12Zm-0,4.58ZM12,10.81Z"/></svg><svg class="f" viewBox="0 0 24 24" fill="currentColor"><path d="M1,17.58V16.71q0-0.92 0.98-1.53t2.53-0.61q0.23,0 0.49,0.02t0.56,0.07q-0.23,0.41-0.34,0.84T5.12,16.38v1.2H1Zm6,0V16.45q0-0.6 0.35-1.11t1.04-0.87t1.6-0.55t2.01-0.18q1.12,0 2.03,0.18t1.6,0.55t1.03,0.87T17,16.45v1.13H7Zm11.88,0v-1.2q0-0.48-0.1-0.9t-0.31-0.81q0.31-0.05 0.56-0.07t0.47-0.02q1.55,0 2.53,0.6T23,16.71v0.86H18.88ZM4.51,13.63q-0.59,0-1-0.42T3.1,12.21q0-0.58 0.42-0.99t1.01-0.41q0.58,0 1,0.41t0.42,1q0,0.57-0.41,0.99T4.51,13.63Zm14.99,0q-0.58,0-1-0.42t-0.42-0.99q0-0.59 0.42-1t1-0.41q0.6,0 1.01,0.41t0.41,0.99q0,0.59-0.41,1.01T19.5,13.63ZM12.01,13q-0.91,0-1.55-0.64T9.81,10.81q0-0.93 0.64-1.56T12,8.62q0.93,0 1.56,0.63t0.63,1.56q0,0.91-0.63,1.55T12.01,13Z"/></svg>`,
   };
   const LABEL = {teams: "Teams", games: "Games", players: "Players"};
-  // Bottom bar: pinned to the bottom, solid black like the page; the current tab is brand orange, the others dimmed
+  // Bottom bar: pinned to the bottom, see-through black with a blur (like the round arrows on Games); the current tab is brand orange.
+  // In the app shell it slides away while a bottom sheet is open in the page below (.cover).
   const CSS = `:root{--navH:calc(74px + var(--sab, env(safe-area-inset-bottom)))}
 #elfNav{position:fixed;left:0;right:0;bottom:calc(-1 * var(--gap, 0px));z-index:8;padding:8px 0 calc(14px + var(--sab, env(safe-area-inset-bottom)));pointer-events:none;
-  background:#000}
+  background:rgba(0,0,0,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .25s ease,opacity .2s ease}
+#elfNav.cover{transform:translateY(100%);opacity:0}
+#elfNav.cover .in{pointer-events:none}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#elfNav{background:rgba(0,0,0,.9)}}
 #elfNav .in{height:60px;max-width:480px;margin:0 auto;display:flex;pointer-events:auto}
 #elfNav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-decoration:none;color:rgba(255,255,255,.58);
   font:600 11px/13px Inter,system-ui,sans-serif;letter-spacing:.01em;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
