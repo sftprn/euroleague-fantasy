@@ -33,7 +33,7 @@
   let anim = null;
   function slide(dir, enter){
     if (!enter) return;
-    const el = document.querySelector("[data-slide]"); if (!el || !el.animate) return;
+    const el = window.ELF_SLIDE_TARGET?.() || document.querySelector("[data-slide]"); if (!el || !el.animate) return;   // Teams: just the page in view
     anim?.cancel();
     anim = el.animate([{transform: `translateX(${dir * 12}px)`}, {transform: "none"}], {duration: 180, easing: "cubic-bezier(.2,.8,.2,1)"});
   }

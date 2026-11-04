@@ -681,26 +681,29 @@ function renderSlide(n){
   const el = slideOf(n); if (!el) return;
   const rows = rosters[n].map((p, i) => ({p, i, s: games.length ? stateOf(p, n) : {kind:"none"}}));
   if (n === WATCH){
-    el.querySelector(".list").innerHTML = `<div class="zone z-watch" data-zone="watch">
+    setHTML(el.querySelector(".list"), `<div class="zone z-watch" data-zone="watch">
       <div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Only on this phone</div>
       ${rows.sort(byKey).map(r => rowHTML(r, n)).join("")}
       ${rosters[WATCH].length < WATCH_MAX ? emptyHTML("watch") : ""}
-    </div>`;
+    </div>`);
     return;
   }
   const wc = chipsOf(n);
   // Bench Boost merges 100% and 50% into one 100% block
   const groups = wc.bb ? [{key:"full", label:"100%", slots:["full", "half"]}, {key:"zero", label:"0%", slots:["zero"]}]
                        : ORDER.map(s => ({key:s, label:LABEL[s], slots:[s]}));
-  el.querySelector(".list").innerHTML = groups.map(gr => {
+  setHTML(el.querySelector(".list"), groups.map(gr => {
     const list = rows.filter(r => gr.slots.includes(r.p.slot)).sort(byKey);
     const empties = gr.slots.map(s => emptyHTML(s).repeat(Math.max(0, SLOTS[s] - slotCount(n, s)))).join("");
     return `<div class="zone z-${gr.key}" data-zone="${gr.key}">
       <div class="gh">${gr.label}</div>
       ${list.map(r => rowHTML(r, n)).join("")}${empties}
     </div>`;
-  }).join("");
+  }).join(""));
 }
+// write a list only when its contents changed: rebuilding unchanged rows (and their photos) was a visible hitch on iPhone
+window.ELF_SLIDE_TARGET = () => slideOf(cur)?.querySelector(".page");   // shell switches slide just the page in view
+function setHTML(node, html){ if (node && node._html !== html){ node.innerHTML = html; node._html = html; } }
 function renderHeader(){
   const lg = cur === LEAGUE;
   document.querySelectorAll("[data-edit]").forEach(b => {        // the Edit button at the bottom of each screen
@@ -747,6 +750,7 @@ function renderLeague(){
   renderStart();
   if (lgEditing && list.querySelector(".team-input")) return;          // don't redraw under the keyboard
   if (lgEditing){                                                      // edit names and totals-before-this-round in one list
+    list._html = null;                                   // edit mode writes the list itself
     list.innerHTML = `<div class="list tbl">` + rows.map((c, i) => `
     <div class="row editing${i === 0 ? " lead" : ""}">
       <div class="rank">${i + 1}</div>
@@ -758,13 +762,13 @@ function renderLeague(){
   }
   // Round / Total tabs over one list (the choice is remembered on this phone)
   const tot = sortBy === "total";
-  list.innerHTML = `<div class="seg" role="tablist"><button data-sort="round" class="${tot ? "" : "on"}" role="tab">Round${round ? " " + round : ""}</button><button data-sort="total" class="${tot ? "on" : ""}" role="tab">Total</button></div>
+  setHTML(list, `<div class="seg" role="tablist"><button data-sort="round" class="${tot ? "" : "on"}" role="tab">Round${round ? " " + round : ""}</button><button data-sort="total" class="${tot ? "on" : ""}" role="tab">Total</button></div>
     <div class="list tbl">${rows.map((c, i) => `
     <div class="row${i === 0 ? " lead" : ""}" data-team="${esc(c.name)}" role="button" tabindex="0">
       <div class="rank">${i + 1}</div>
       <div class="who"><b>${esc(c.team)}</b></div>
       <div class="c-pts">${!tot && c.live ? '<i class="live-dot"></i>' : ""}${fmtShort(tot ? c.sum : c.total)}</div>
-    </div>`).join("")}</div>`;
+    </div>`).join("")}</div>`);
 }
 /* BasketNews import (worker/bn.js): the saved team link, the last import, Save / Import now */
 const bnTime = t => new Date(t).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
@@ -1066,7 +1070,7 @@ track.addEventListener("click", e => { if (e.target.closest("[data-edit]")) togg
 function toggleEdit(){
   if (cur === LEAGUE){
     lgEditing = !lgEditing;
-    $("#lgList").innerHTML = "";
+    $("#lgList").innerHTML = ""; $("#lgList")._html = null;
     renderLeague(); renderHeader();
     if (lgEditing) loadBn();
     return;
