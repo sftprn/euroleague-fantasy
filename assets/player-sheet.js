@@ -151,7 +151,18 @@
 #psWrap .rds button{flex:none;height:32px;min-width:32px;padding:0 10px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--muted);
   font:700 13px Inter,system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #psWrap .rds button.now{color:#fff;border-color:#FFFFFF40}
-#psWrap .rds button.on{background:var(--orange);border-color:var(--orange);color:#fff;padding:0 14px}
+#psWrap .rds button.on{background:transparent;border-color:transparent;color:#fff;padding:0 14px}
+#psWrap .rds{position:relative}
+#psWrap .rds button{position:relative;z-index:1}
+#psWrap .rds .rpill{position:absolute;top:0;left:0;height:32px;border-radius:16px;background:var(--orange);z-index:0;pointer-events:none;
+  transition:left .28s cubic-bezier(.2,.8,.2,1),width .28s cubic-bezier(.2,.8,.2,1)}            /* glides to the chosen round */
+/* another round picked: the same boxes stay where they are and shimmer until that round's game is in */
+#psWrap .gbody.skel :is(.bd,.mn,.inj,.grid > div,.tsb,.empty){position:relative;overflow:hidden}
+#psWrap .gbody.skel :is(.bd,.mn,.inj,.grid > div,.tsb,.empty) > *{visibility:hidden}
+#psWrap .gbody.skel :is(.tsb,.empty){color:transparent}
+#psWrap .gbody.skel :is(.bd,.mn,.inj,.grid > div,.tsb,.empty)::after{content:"";position:absolute;inset:10px;border-radius:10px;
+  background:linear-gradient(90deg,#FFFFFF08 0%,#FFFFFF1A 50%,#FFFFFF08 100%);background-size:200% 100%;animation:psShim 1s linear infinite}
+@keyframes psShim{from{background-position:100% 0}to{background-position:-100% 0}}
 #psWrap .hist th{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.06em;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
 #psWrap .hist td{text-align:right;padding:9px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
 #psWrap .hist th:nth-child(-n+2),#psWrap .hist td:nth-child(-n+2){text-align:left}
@@ -244,16 +255,34 @@
   const gameOf = p => ctx.games().find(g => g.r === shownRound() && (g.h.c === p.club || g.a.c === p.club));
   function roundsBar(){                                   // every round of the season; the chosen one in full
     const now = ctx.round(), rs = [...new Set(ctx.games().map(g => g.r))].filter(r => r <= now).sort((a, b) => a - b), sel = shownRound();
-    return `<div class="rds" role="tablist" aria-label="Round">${rs.map(r => `<button type="button" data-rd="${r}" class="${r === sel ? "on" : ""}${r === now ? " now" : ""}" role="tab" aria-selected="${r === sel}">${r === sel ? `Round ${r}` : r}</button>`).join("")}</div>`;
+    return `<div class="rds" role="tablist" aria-label="Round"><i class="rpill" aria-hidden="true"></i>${rs.map(r => `<button type="button" data-rd="${r}" class="${r === sel ? "on" : ""}${r === now ? " now" : ""}" role="tab" aria-selected="${r === sel}">${r === sel ? `Round ${r}` : r}</button>`).join("")}</div>`;
   }
   let centerRd = true;                                    // scroll the chosen round into view on the next draw
   function pickRound(r, toGame){
     gRound = r === ctx.round() ? null : r; minsOpen = false; rState = gRound == null ? null : {kind: "none"};
     if (toGame && tab !== "game"){ centerRd = true; switchTab("game"); return; }
-    centerRd = true;
-    paneSet(roundsBar() + `<div class="loading">Loading…</div>`);   // the picked badge right away; that round's game below once it arrives
+    const rb = el.pane.querySelector(".rds"), body = el.pane.querySelector(".gbody");
+    if (rb && body){ syncBar(rb, true); body.classList.add("skel"); }   // badge glides over; the game's boxes shimmer in place
+    else { centerRd = true; paneSet(roundsBar() + `<div class="gbody"><div class="loading">Loading…</div></div>`); }
     fillHead(false);
     renderTab();
+  }
+  // the round badges, updated in place: the chosen one reads "Round X", the orange pill glides to it, and it's centred
+  function syncBar(rb, animate){
+    const sel = shownRound();
+    rb.querySelectorAll("[data-rd]").forEach(b => { const r = +b.dataset.rd, on = r === sel;
+      b.classList.toggle("on", on); b.setAttribute("aria-selected", on); b.textContent = on ? `Round ${r}` : r; });
+    placePill(rb, animate);
+    const on = rb.querySelector(".on"); if (!on) return;
+    const A = rb.getBoundingClientRect(), O = on.getBoundingClientRect();
+    rb.style.scrollBehavior = animate ? "" : "auto"; rb.scrollLeft += (O.left + O.width / 2) - (A.left + A.width / 2);
+  }
+  function placePill(rb, animate){
+    const pill = rb.querySelector(".rpill"), on = rb.querySelector(".on"); if (!pill) return;
+    if (!on){ pill.style.width = "0"; return; }
+    if (!animate){ pill.style.transition = "none"; }
+    pill.style.left = on.offsetLeft + "px"; pill.style.width = on.offsetWidth + "px";
+    if (!animate){ void pill.offsetWidth; pill.style.transition = ""; }
   }
 
   function build(){
@@ -286,6 +315,7 @@
       if (e.cancelable) e.preventDefault();
       const next = swipeTarget(dx < 0 ? 1 : -1);
       hs.dx = next ? dx : dx * 0.25;                       // nothing that way: just a little give
+      if (next?.round) return;                             // to another round: the content stays where it is
       el.pane.style.transform = `translateX(${hs.dx}px)`;
     }, {passive: false});
     const hend = e => {
@@ -294,7 +324,7 @@
       const dir = h.dx < 0 ? 1 : -1, next = swipeTarget(dir);
       const fast = Math.abs(h.dx) > 30 && Math.abs(h.dx) / Math.max(1, e.timeStamp - h.t0) > 0.4;
       if (next && (Math.abs(h.dx) > el.body.clientWidth * 0.25 || fast)){
-        if (next.round) slideRound(next.round, dir); else switchTab(next.tab, dir);
+        if (next.round){ el.pane.style.transform = ""; pickRound(next.round); } else switchTab(next.tab, dir);
       }
       else { el.pane.classList.add("sliding"); el.pane.style.transform = ""; }
     };
@@ -393,6 +423,7 @@
     const w = pane.querySelector(".tmw"); if (w) w.scrollLeft = x;
     const rb = pane.querySelector(".rds");
     if (rb){
+      placePill(rb, false);
       rb.style.scrollBehavior = "auto"; rb.scrollLeft = rx;
       const on = rb.querySelector(".on");
       if (centerRd && on){                                 // a round was just picked: slide it to the middle (and keep it there when the game loads in)
@@ -417,18 +448,6 @@
     const t = TABS[TABS.indexOf(tab) + dir];
     return t ? {tab: t} : null;
   }
-  function slideRound(r, dir){                            // the Game tab's content slides out and the other round's slides in
-    const pane = el.pane, w = el.body.clientWidth;
-    pane.classList.add("sliding");
-    pane.style.transform = `translateX(${-dir * w}px)`; pane.style.opacity = "0";
-    setTimeout(() => {
-      pane.classList.remove("sliding");
-      pane.style.transform = `translateX(${dir * w * 0.4}px)`;
-      pickRound(r);
-      void pane.offsetWidth;
-      pane.classList.add("sliding"); pane.style.transform = ""; pane.style.opacity = "";
-    }, 170);
-  }
   function switchTab(t, dir){                             // dir: 1 = came from a swipe left, -1 = swipe right, none = tapped
     const pane = el.pane, w = el.body.clientWidth;
     if (!dir) dir = TABS.indexOf(t) > TABS.indexOf(tab) ? 1 : -1;
@@ -451,6 +470,15 @@
     if (pane.dataset.tab !== tab + p.code) paneSet(`<div class="loading">Loading…</div>`);
     pane.dataset.tab = tab + p.code;
     try{
+      if (tab === "game" && pane.querySelector(".gbody")){      // same player's Game tab: just refill the boxes below the badges
+        const body = await gameBody(p);
+        if (stale()) return;
+        fillHead(false);
+        const gb = pane.querySelector(".gbody");
+        if (gb._html !== body){ const y = el.body.scrollTop; gb.innerHTML = gb._html = body; el.body.scrollTop = y; }
+        gb.classList.remove("skel"); pane._html = null;
+        return;
+      }
       const html = tab === "game" ? await gamePane(p) : await seasonPane(p, h => { if (!stale()) paneSet(h); });
       if (!stale()){ paneSet(html); if (tab === "game") centerRd = false; }
     }catch{ if (!stale()) paneSet(`<div class="empty">Couldn't load this right now. Try again in a moment.</div>`); }
@@ -466,11 +494,12 @@
   let rState = null;                                      // another round picked: its PIR for the header (null = this round, from the page)
   async function gamePane(p){
     rState = gRound == null ? null : {kind: "none"};
-    const html = roundsBar() + await gameBody(p);
+    const html = roundsBar() + `<div class="gbody">${await gameBody(p)}</div>`;
     fillHead(false);
     return html;
   }
   async function gameBody(p){
+    if (rState == null && gRound != null) rState = {kind: "none"};
     const g = gameOf(p), inj = gRound == null ? injCard(p, await injuryOf(p)) : "";   // injury report: only for this round
     if (!g && gRound != null) return btns(false) + `<div class="empty">No game in round ${gRound}.</div>`;
     if (!g) return inj + btns(false) + `<div class="empty">No game this round.</div>`;
