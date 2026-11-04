@@ -869,7 +869,7 @@ Nav.init({active: "teams", onTap: k => {
 }});
 
 /* ───────── carousel ───────── */
-function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height + 8) + "px"); }
+function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height + 12) + "px"); }   // same gap under the header as Games / Players
 sizeHeader(); addEventListener("resize", sizeHeader);
 function goTo(n, smooth = true){
   const i = order.indexOf(n); if (i < 0) return;

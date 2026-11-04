@@ -35,7 +35,7 @@
   .top .bar{max-width:448px;margin:0 auto;display:flex;align-items:center;min-height:44px}
   .top .title{text-align:left;min-width:0;flex:1;padding:0}
   .top .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:normal}
-  .top .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .top .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;align-items:center;gap:6px;white-space:nowrap;min-height:1.3em}   /* kept even when empty: same header height as Teams */
 
   /* header */
   .logo{width:40px;height:40px;flex:none;display:block}
@@ -152,6 +152,10 @@
   .rnav .rn:disabled{opacity:.35;cursor:default}
   .rnav .rn-now{padding:0 14px;background:var(--orange);border-color:var(--orange);font-size:14px}
   .rnav button[hidden]{display:none}
+  /* ‹ 10 › as one control */
+  .rgrp{display:flex;align-items:center;height:44px;box-sizing:border-box;border-radius:14px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .rgrp .rn{width:38px;height:42px;min-height:0;max-height:none;border:0;border-radius:13px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .rgrp .rnum{min-width:26px;text-align:center;font:800 17px/1 Inter,system-ui,sans-serif;color:#fff;font-variant-numeric:tabular-nums}
   /* Players: Watchlist / Top Performers tabs (same switch as Round / Total on Teams) */
   .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
   .seg button{flex:1;height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
@@ -224,8 +228,8 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <body>
 <div class="art" aria-hidden="true"></div>
 <div class="app">
-  <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt">Loading…</div></div>
-    <div class="rnav" id="rnav" hidden><button class="rn-now" id="rNow" hidden>Current</button><button class="rn" id="rPrev" aria-label="Previous round">‹</button><button class="rn" id="rNext" aria-label="Next round">›</button></div>
+  <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
+    <div class="rnav" id="rnav" hidden><button class="rn-now" id="rNow" hidden>Current</button><div class="rgrp" role="group" aria-label="Round"><button class="rn" id="rPrev" aria-label="Previous round">‹</button><span class="rnum" id="rNum" aria-live="polite"></span><button class="rn" id="rNext" aria-label="Next round">›</button></div></div>
   </div></header>
 
   <!-- Games: this round's games (tap one to open it) — Teams is the team pages' first slide; the bottom bar switches -->
@@ -387,7 +391,7 @@ function coachTotal(c){
 }
 
 function render(){
-  $("#roundTxt").textContent = round ? `Round ${view === "games" ? shownRound() : round}` : "Loading…";
+  $("#roundTxt").textContent = "";                    // no "Round X" under Games / Players (Games shows it between the arrows)
   renderTop();
   renderGames();
   GameSheet.update();
@@ -406,7 +410,7 @@ function renderRnav(){
   const nav = $("#rnav"); nav.hidden = view !== "games" || !round;
   if (nav.hidden) return;
   const [lo, hi] = roundSpan(), r = shownRound();
-  $("#rPrev").disabled = r <= lo; $("#rNext").disabled = r >= hi; $("#rNow").hidden = r === round;
+  $("#rPrev").disabled = r <= lo; $("#rNext").disabled = r >= hi; $("#rNow").hidden = r === round; $("#rNum").textContent = r;
 }
 async function goRound(r){
   const [lo, hi] = roundSpan(); r = Math.max(lo, Math.min(hi, r));
