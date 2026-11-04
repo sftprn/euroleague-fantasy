@@ -110,44 +110,87 @@
   const PERIODS = ["FirstQuarter", "SecondQuarter", "ThirdQuarter", "ForthQuarter"];
   function buildStretches(pbp, b){
     const ev = [];
-    let len = 40, last = 0;
-    PERIODS.forEach((k, qi) => (pbp?.[k] || []).forEach(e => ev.push({e, start: qi * 10, plen: 10})));
-    let ot = -1;
-    (pbp?.ExtraTime || []).forEach(e => { if (e.PLAYTYPE === "BP") ot++; ev.push({e, start: 40 + Math.max(0, ot) * 5, plen: 5}); });
-    if (ot >= 0) len = 40 + (ot + 1) * 5;
-    const on = {}, pl = {};
-    const add = (c, a, z) => { if (z - a < 0.005) return; const l = pl[c] = pl[c] || []; const p = l[l.length - 1];
-      if (p && a - p[1] < 0.005) p[1] = z; else l.push([a, z]); };
-    for (const t of b?.teams || []) for (const [c, l] of Object.entries(t.pl)) if (l.starter) on[c] = 0;
-    // order by game clock (the feed sometimes appends late corrections with a high play number), then play number
-    ev.forEach(x => x.t = x.e.MARKERTIME ? x.start + x.plen - toMin(x.e.MARKERTIME) : null);
-    ev.sort((x, y) => (x.t ?? -1) - (y.t ?? -1) || x.e.NUMBEROFPLAY - y.e.NUMBEROFPLAY);
-    const seen = new Set();                           // players with a substitution logged so far
-    for (const {e, t} of ev){
-      if (t == null) continue;
-      last = Math.max(last, t);
-      const c = code(e.PLAYER_ID); if (!c) continue;
-      if (e.PLAYTYPE === "IN"){ if (on[c] == null) on[c] = t; seen.add(c); }
-      else if (e.PLAYTYPE === "OUT"){
-        if (on[c] != null){ add(c, on[c], t); delete on[c]; }
-        // first thing logged for him is going OFF: he was on since tip-off (the live box score doesn't always mark starters)
-        else if (!seen.has(c)) add(c, 0, t);
-        seen.add(c);
+    let len = 40;
+    // Each play's time comes from MARKERTIME ("time left in the period", "MM:SS"). The feed sometimes sends junk there
+    // instead ("24.?", "12.?", "??.?" — bits of the shot clock), often for a batch of substitutions. Those used to read as
+    // 0:00 left (the end of the quarter): a player subbed in that way got no stint at all, and while live everyone on court
+    // was drawn to the end of the quarter. Such a play only tells us its game minute (MINUTE: "in the 11th minute"), so it
+    // gets a time inside that minute: for a batch of substitutions, the time that makes the players' minutes match the box
+    // score best; for anything else, just after the play before it.
+    const groups = [];
+    const period = (list, start, plen) => { let el = 0, grp = null;
+      for (const e of list){
+        const m = /^(\d{1,2}):(\d{2})$/.exec(String(e.MARKERTIME ?? "").trim());
+        const x = {e};
+        if (m){ el = Math.min(plen, Math.max(0, plen - (+m[1] + +m[2] / 60))); grp = null; }
+        else if (e.PLAYTYPE === "EP") el = plen;                // end of period: its time is often blank
+        else if (e.PLAYTYPE !== "BP"){
+          const mi = +e.MINUTE;                                 // game minute, 1-based: minute 11 = 10:00–11:00 played
+          const lo = mi ? Math.min(plen, Math.max(0, mi - 1 - start)) : el, hi = mi ? Math.min(plen, Math.max(lo, mi - start)) : el;
+          el = Math.min(hi, Math.max(lo, el));
+          if (e.PLAYTYPE === "IN" || e.PLAYTYPE === "OUT"){
+            if (!grp || grp.mi !== mi){ grp = {mi, lo: start + lo, hi: start + hi, ev: []}; groups.push(grp); }
+            grp.ev.push(x);
+          }
+        }
+        x.t = start + el; ev.push(x);
+      } };
+    PERIODS.forEach((k, qi) => period(pbp?.[k] || [], qi * 10, 10));
+    const ots = [];
+    (pbp?.ExtraTime || []).forEach(e => { if (e.PLAYTYPE === "BP" || !ots.length) ots.push([]); ots[ots.length - 1].push(e); });
+    ots.forEach((list, i) => period(list, 40 + i * 5, 5));
+    if (ots.length) len = 40 + ots.length * 5;
+    if (pbp?.Live && b?.q){ const q = +String(b.q).replace(/\D/g, "") || 0; if (q > 4) len = Math.max(len, 40 + (q - 4) * 5); }
+    const boxMin = {};
+    for (const t of b?.teams || []) for (const [c, l] of Object.entries(t.pl)) if (/^\d+:\d\d$/.test(l.min || "")) boxMin[c] = toMin(l.min);
+
+    function run(){
+      let last = 0;
+      const on = {}, pl = {};
+      const add = (c, a, z) => { if (z - a < 0.005) return; const l = pl[c] = pl[c] || []; const p = l[l.length - 1];
+        if (p && a - p[1] < 0.005) p[1] = z; else l.push([a, z]); };
+      for (const t of b?.teams || []) for (const [c, l] of Object.entries(t.pl)) if (l.starter) on[c] = 0;
+      // order by game clock (the feed sometimes appends late corrections with a high play number), then play number
+      const evs = ev.slice().sort((x, y) => x.t - y.t || x.e.NUMBEROFPLAY - y.e.NUMBEROFPLAY);
+      const seen = new Set();                         // players with a substitution logged so far
+      for (const {e, t} of evs){
+        last = Math.max(last, t);
+        const c = code(e.PLAYER_ID); if (!c) continue;
+        if (e.PLAYTYPE === "IN"){ if (on[c] == null) on[c] = t; seen.add(c); }
+        else if (e.PLAYTYPE === "OUT"){
+          if (on[c] != null){ add(c, on[c], t); delete on[c]; }
+          // first thing logged for him is going OFF: he was on since tip-off (the live box score doesn't always mark starters)
+          else if (!seen.has(c)) add(c, 0, t);
+          seen.add(c);
+        }
       }
-    }
-    if (pbp?.Live && b?.q){                           // live: the game clock is more exact than the last logged play
-      const q = +String(b.q).replace(/\D/g, "") || 0, left = clockLeft(b.t);
-      // only when the clock reads cleanly: a time we can't read used to count as 0:00 left, which ran everyone who's on
-      // court to the end of the quarter; and never further than the quarter's end
-      if (q && left != null){
-        const qEnd = q > 4 ? 40 + (q - 4) * 5 : q * 10, plen = q > 4 ? 5 : 10;
-        const clock = qEnd - Math.min(left, plen);
-        if (clock > last) last = clock;
+      if (pbp?.Live && b?.q){                         // live: the game clock is more exact than the last logged play
+        const q = +String(b.q).replace(/\D/g, "") || 0, left = clockLeft(b.t);
+        // only when the clock reads cleanly, and never further than the quarter's end
+        if (q && left != null){
+          const qEnd = q > 4 ? 40 + (q - 4) * 5 : q * 10, plen = q > 4 ? 5 : 10;
+          const clock = qEnd - Math.min(left, plen);
+          if (clock > last) last = clock;
+        }
       }
-      if (q > 4) len = Math.max(len, 40 + (q - 4) * 5);
+      const end = pbp?.Live ? last : len;
+      for (const [c, a] of Object.entries(on)) add(c, a, end);
+      return {pl, last};
     }
-    const end = pbp?.Live ? last : len;
-    for (const [c, a] of Object.entries(on)) add(c, a, end);
+    // place each batch of junk-timed substitutions (to the second) where the box score's minutes fit best
+    for (const g of groups){
+      const who = [...new Set(g.ev.map(x => code(x.e.PLAYER_ID)))].filter(c => boxMin[c] != null);
+      if (!who.length || g.hi - g.lo < 1 / 60) continue;
+      let best = null, bestErr = Infinity;
+      for (let T = g.lo; T <= g.hi + 1e-9; T += 1 / 60){
+        g.ev.forEach(x => x.t = T);
+        const {pl} = run();
+        const err = who.reduce((a, c) => a + Math.abs((pl[c] || []).reduce((s, [f, z]) => s + z - f, 0) - boxMin[c]), 0);
+        if (err < bestErr - 1e-6){ bestErr = err; best = T; }
+      }
+      g.ev.forEach(x => x.t = best);
+    }
+    const {pl, last} = run();
     for (const l of Object.values(pl)) l.forEach(s => { s[0] = Math.round(s[0] * 100) / 100; s[1] = Math.round(s[1] * 100) / 100; });
     return {len, now: pbp?.Live ? last : len, live: !!pbp?.Live, pl};
   }
