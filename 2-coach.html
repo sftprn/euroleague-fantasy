@@ -60,7 +60,7 @@
   .hpir small{display:block;margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3}
   .hpir.live b{color:var(--orange)}
   .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;justify-content:flex-start;align-items:center;gap:6px;white-space:nowrap}
+  .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;justify-content:flex-start;align-items:center;gap:6px;white-space:nowrap;min-height:1.3em}
   .meta b{color:#fff;font-weight:800}
   .meta .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite}
   .demo-pill{background:#fff;color:#000;font-size:10px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:5px}
@@ -307,7 +307,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <div class="art" aria-hidden="true"></div>
 <header class="top" id="top">
   <div class="bar">
-    <div class="title" id="title"><h1 id="coachName" class="fx">&nbsp;</h1><div class="meta" id="meta"><nav class="dots" id="dots" aria-label="Coaches"></nav><span id="metaTxt" class="fx">Loading…</span></div></div>
+    <div class="title" id="title"><h1 id="coachName" class="fx">&nbsp;</h1><div class="meta" id="meta"><nav class="dots" id="dots" aria-label="Coaches"></nav><span id="metaTxt" class="fx"></span></div></div>
     <div class="hpir fx" id="hPir" hidden><b id="hPirN">0.0</b><small>PIR</small></div>
     <button class="icon-btn" id="editBtn" aria-label="Edit players">✎</button>
   </div>
@@ -697,14 +697,14 @@ function renderHeader(){
     $("#coachName").textContent = "Teams";
     document.title = "Teams · EL Fantasy";
     const live = COACHES.some(c => coachTotal(c.name).live);
-    $("#metaTxt").innerHTML = round ? `${live ? '<i class="dot"></i>' : ""}Round ${round}${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}` : "Loading…";
+    $("#metaTxt").innerHTML = `${live ? '<i class="dot" title="Live"></i>' : ""}${DEMO ? '<span class="demo-pill">DEMO</span>' : ""}`;   // no "Round X": just the page dots (+ live dot)
     $("#hPir").hidden = true;
     return;
   }
   $("#coachName").textContent = teamOf(cur);
   document.title = `${teamOf(cur)} · EL Fantasy`;
   const {total, live} = coachTotal(cur);
-  $("#metaTxt").innerHTML = round ? `${live ? '<i class="dot"></i>' : ""}Round ${round}${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}` : "Loading…";
+  $("#metaTxt").innerHTML = `${live ? '<i class="dot" title="Live"></i>' : ""}${DEMO ? '<span class="demo-pill">DEMO</span>' : ""}`;
   $("#hPir").hidden = !round; $("#hPirN").textContent = fmtShort(total); $("#hPir").classList.toggle("live", live);
   const wc = chipsOf(cur);
 }
