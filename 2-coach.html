@@ -712,8 +712,7 @@ function renderHeader(){
   if (lg){
     $("#coachName").textContent = "Teams";
     document.title = "Teams · EL Fantasy";
-    const live = COACHES.some(c => coachTotal(c.name).live);
-    $("#metaTxt").innerHTML = `${live ? '<i class="dot" title="Live"></i>' : ""}${DEMO ? '<span class="demo-pill">DEMO</span>' : ""}`;   // no "Round X": just the page dots (+ live dot)
+    $("#metaTxt").innerHTML = DEMO ? '<span class="demo-pill">DEMO</span>' : "";   // just the page dots (the live dot shows next to a team's points only)
     $("#hPirN").hidden = $("#hPirL").hidden = true;
     return;
   }
