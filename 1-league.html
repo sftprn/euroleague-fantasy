@@ -141,7 +141,7 @@
   .pl .tv{font-weight:700;color:#C9C9CF}
   #topList .row.pl{cursor:pointer}
   /* Games ↔ Players: the old view slides out to one side while the new one slides in from the other (Games is left of Players) */
-  .vslide{transition:transform .24s cubic-bezier(.2,.8,.2,1),opacity .24s ease}
+  .vslide{transition:transform .2s cubic-bezier(.2,.8,.2,1),opacity .2s ease}
   .vgone{position:absolute;left:16px;right:16px;pointer-events:none}
   #topList .own{color:var(--orange);font-weight:700}      /* on someone's fantasy team */
   .pick{position:relative;display:block;margin-bottom:12px}                 /* Players tab: All teams / one Euroleague club */
@@ -232,7 +232,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 </head>
 <body>
 <div class="art" aria-hidden="true"></div>
-<div class="app">
+<div class="app" data-slide>
   <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
     <div class="rnav" id="rnav" hidden><button class="rn-now" id="rNow" hidden aria-label="Back to the current round" title="Current round"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button><div class="rgrp" role="group" aria-label="Round"><button class="rn" id="rPrev" aria-label="Previous round">‹</button><span class="rnum" id="rNum" aria-live="polite"></span><button class="rn" id="rNext" aria-label="Next round">›</button></div></div>
   </div></header>
@@ -712,13 +712,13 @@ function slideViews(){
   lastView = view;
   // the old view stays on screen (lifted out of the flow) just long enough to slide away
   outEl.hidden = false; outEl.classList.add("vgone"); outEl.style.top = inEl.offsetTop + "px";
-  for (const [el, x0] of [[inEl, dir * 30], [outEl, 0]]){ el.classList.remove("vslide"); el.style.transform = `translateX(${x0}%)`; el.style.opacity = el === inEl ? "0" : "1"; }
+  for (const [el, x0] of [[inEl, dir * 40], [outEl, 0]]){ el.classList.remove("vslide"); el.style.transform = `translateX(${x0}px)`; el.style.opacity = el === inEl ? "0" : "1"; }
   void inEl.offsetWidth;
   for (const el of [inEl, outEl]) el.classList.add("vslide");
   inEl.style.transform = ""; inEl.style.opacity = "";
-  outEl.style.transform = `translateX(${-dir * 30}%)`; outEl.style.opacity = "0";
+  outEl.style.transform = `translateX(${-dir * 40}px)`; outEl.style.opacity = "0";
   clearTimeout(slideViews.t);
-  slideViews.t = setTimeout(() => { outEl.hidden = true; outEl.classList.remove("vgone", "vslide"); outEl.style.cssText = ""; inEl.classList.remove("vslide"); }, 260);
+  slideViews.t = setTimeout(() => { outEl.hidden = true; outEl.classList.remove("vgone", "vslide"); outEl.style.cssText = ""; inEl.classList.remove("vslide"); }, 220);
 }
 function showView(){
   if (view === "players") playersDefault();

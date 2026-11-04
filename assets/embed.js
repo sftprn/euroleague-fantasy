@@ -21,8 +21,18 @@
       const was = window.ELF_HIDDEN; window.ELF_HIDDEN = !d.on;
       if (was && d.on) dispatchEvent(new Event("elf-show"));
     }
+    if (d.elf === "slide") slide(d.dir, d.enter);
     dispatchEvent(new CustomEvent("elf-msg", {detail: d}));
   });
+  // switching sections: only the content ([data-slide]) moves sideways, a little; the header artwork stays where it is
+  let anim = null;
+  function slide(dir, enter){
+    const el = document.querySelector("[data-slide]"); if (!el || !el.animate) return;
+    anim?.cancel();
+    const off = {transform: `translateX(${(enter ? dir : -dir) * 40}px)`, opacity: 0}, on = {transform: "none", opacity: 1};
+    anim = el.animate(enter ? [off, on] : [on, off], {duration: 200, easing: "cubic-bezier(.2,.8,.2,1)", fill: enter ? "none" : "forwards"});
+    if (enter) anim.onfinish = () => { anim = null; };
+  }
   try{ parent.postMessage({elf: "ready", page: location.pathname}, location.origin); }catch{}
   // a bottom sheet / the player search is open → ask the shell to move its bar out of the way (it sits above this frame)
   const OPEN = "#psWrap.open, #gWrap.open, #wcWrap.open, #finder.open";
