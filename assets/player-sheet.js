@@ -243,7 +243,7 @@
   const shownRound = () => gRound ?? ctx.round();
   const gameOf = p => ctx.games().find(g => g.r === shownRound() && (g.h.c === p.club || g.a.c === p.club));
   function roundsBar(){                                   // every round of the season; the chosen one in full
-    const rs = [...new Set(ctx.games().map(g => g.r))].sort((a, b) => a - b), sel = shownRound(), now = ctx.round();
+    const now = ctx.round(), rs = [...new Set(ctx.games().map(g => g.r))].filter(r => r <= now).sort((a, b) => a - b), sel = shownRound();
     return `<div class="rds" role="tablist" aria-label="Round">${rs.map(r => `<button type="button" data-rd="${r}" class="${r === sel ? "on" : ""}${r === now ? " now" : ""}" role="tab" aria-selected="${r === sel}">${r === sel ? `Round ${r}` : r}</button>`).join("")}</div>`;
   }
   let centerRd = true;                                    // scroll the chosen round into view on the next draw
@@ -284,16 +284,18 @@
       }
       if (hs.mode !== "h") return;
       if (e.cancelable) e.preventDefault();
-      const next = TABS[TABS.indexOf(tab) + (dx < 0 ? 1 : -1)];
-      hs.dx = next ? dx : dx * 0.25;                       // no tab that way: just a little give
+      const next = swipeTarget(dx < 0 ? 1 : -1);
+      hs.dx = next ? dx : dx * 0.25;                       // nothing that way: just a little give
       el.pane.style.transform = `translateX(${hs.dx}px)`;
     }, {passive: false});
     const hend = e => {
       const h = hs; hs = null;
       if (!h || h.mode !== "h") return;
-      const next = TABS[TABS.indexOf(tab) + (h.dx < 0 ? 1 : -1)];
+      const dir = h.dx < 0 ? 1 : -1, next = swipeTarget(dir);
       const fast = Math.abs(h.dx) > 30 && Math.abs(h.dx) / Math.max(1, e.timeStamp - h.t0) > 0.4;
-      if (next && (Math.abs(h.dx) > el.body.clientWidth * 0.25 || fast)) switchTab(next, h.dx < 0 ? 1 : -1);
+      if (next && (Math.abs(h.dx) > el.body.clientWidth * 0.25 || fast)){
+        if (next.round) slideRound(next.round, dir); else switchTab(next.tab, dir);
+      }
       else { el.pane.classList.add("sliding"); el.pane.style.transform = ""; }
     };
     el.body.addEventListener("touchend", hend);
@@ -404,6 +406,29 @@
     el.body.scrollTop = y;
   }
   const TABS = ["game", "season"];
+  // where a sideways swipe goes (dir 1 = swipe left, -1 = swipe right): in the Game tab it steps through the rounds
+  // (right = an earlier round); swiping left on the current round opens Season, swiping right on Season comes back
+  function swipeTarget(dir){
+    if (tab === "game"){
+      const r = shownRound(), first = Math.min(...ctx.games().map(g => g.r));
+      if (dir < 0) return r > first ? {round: r - 1} : null;
+      return r < ctx.round() ? {round: r + 1} : {tab: "season"};
+    }
+    const t = TABS[TABS.indexOf(tab) + dir];
+    return t ? {tab: t} : null;
+  }
+  function slideRound(r, dir){                            // the Game tab's content slides out and the other round's slides in
+    const pane = el.pane, w = el.body.clientWidth;
+    pane.classList.add("sliding");
+    pane.style.transform = `translateX(${-dir * w}px)`; pane.style.opacity = "0";
+    setTimeout(() => {
+      pane.classList.remove("sliding");
+      pane.style.transform = `translateX(${dir * w * 0.4}px)`;
+      pickRound(r);
+      void pane.offsetWidth;
+      pane.classList.add("sliding"); pane.style.transform = ""; pane.style.opacity = "";
+    }, 170);
+  }
   function switchTab(t, dir){                             // dir: 1 = came from a swipe left, -1 = swipe right, none = tapped
     const pane = el.pane, w = el.body.clientWidth;
     if (!dir) dir = TABS.indexOf(t) > TABS.indexOf(tab) ? 1 : -1;
