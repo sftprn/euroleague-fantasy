@@ -25,16 +25,18 @@
   /* the page itself never scrolls (so iOS can't bounce the top bar along); the lists scroll in .scroller, as on Teams */
   html,body{height:100%;overflow:hidden;overscroll-behavior:none}
   html{background:var(--bg)}
-  .scroller{position:fixed;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+  .scroller{position:fixed;left:0;right:0;top:var(--listTop, 88px);bottom:var(--navH, 0px);z-index:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
   body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
-  .app{max-width:480px;margin:0 auto;padding:var(--headH, 90px) 16px calc(var(--navH, 0px) + 28px);position:relative}
+  .app{max-width:480px;margin:0 auto;padding:0 16px 16px;position:relative}
   /* header: the same as on Teams — art backdrop, title + subtitle on the left; content scrolls under it */
-  .art, .top{background-color:var(--bg);
+  .art{background-color:var(--bg);
        background-image:linear-gradient(180deg,#00000026 0px,#0000008C 140px,#000000E6 230px,#000000 300px), url("assets/bg.jpg");
        background-size:100% 300px, max(100vw, 520px) auto;background-position:center top, center -30px;background-repeat:no-repeat}
   .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}
-  .top{position:fixed;left:0;right:0;top:0;z-index:4;padding:calc(12px + var(--sat, env(safe-area-inset-top))) 16px 14px;margin:0;
-       -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent)}
+  .top{position:fixed;left:0;right:0;top:0;z-index:4;padding:calc(12px + var(--sat, env(safe-area-inset-top))) 16px 14px;margin:0}   /* nothing scrolls under it: no artwork copy, no fade */
+  .ctrl{position:fixed;left:0;right:0;top:var(--headH, 76px);z-index:3;padding:0 16px}
+  .ctrl > *{max-width:448px;margin:0 auto !important}
+  .ctrl > [hidden]{display:none !important}
   .top .bar{max-width:448px;margin:0 auto;display:flex;align-items:center;min-height:44px}
   .top .title{text-align:left;min-width:0;flex:1;padding:0;min-height:50px;display:flex;flex-direction:column;justify-content:center}   /* as tall as Teams' title + dots; a lone headline sits in the middle */
   .top .meta:empty{display:none}
@@ -242,17 +244,20 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <div class="art" aria-hidden="true"></div>
 <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
 </div></header>
+<!-- the screen's controls stay put under the top bar; only the area below them scrolls -->
+<div class="ctrl" id="ctrl">
+  <div class="rgrp" id="rnav" role="group" aria-label="Round" hidden><button class="rn" id="rPrev" aria-label="Previous round">‹</button><button class="rnum" id="rNum" aria-live="polite" title="Back to the current round"></button><button class="rn" id="rNext" aria-label="Next round">›</button></div>
+  <div class="seg" id="pSeg" hidden role="tablist"><button data-pt="watch" class="on" role="tab">Watchlist</button><button data-pt="top" role="tab">Top Performers</button></div>
+</div>
 <div class="scroller" id="scroller"><div class="app" data-slide>
 
   <!-- Games: this round's games (tap one to open it) — Teams is the team pages' first slide; the bottom bar switches -->
   <div id="vGames" hidden>
-    <div class="rgrp" id="rnav" role="group" aria-label="Round" hidden><button class="rn" id="rPrev" aria-label="Previous round">‹</button><button class="rnum" id="rNum" aria-live="polite" title="Back to the current round"></button><button class="rn" id="rNext" aria-label="Next round">›</button></div>
     <div id="gamesList"><div class="list"><div class="nolive">Loading…</div></div></div>
   </div>
 
   <!-- Players: top 10 of the round among everyone's rosters -->
   <div id="vPlayers" hidden>
-    <div class="seg" id="pSeg" role="tablist"><button data-pt="watch" class="on" role="tab">Watchlist</button><button data-pt="top" role="tab">Top Performers</button></div>
     <div id="pWatch"><div class="list wl" id="wList"></div></div>
     <div id="pTop" hidden>
       <label class="pick"><select id="topRound" aria-label="Round"></select></label>
@@ -420,7 +425,8 @@ let gRound = null;                                   // null = follow the curren
 const shownRound = () => gRound ?? round;
 const roundSpan = () => games.length ? [Math.min(...games.map(g => g.r)), Math.max(...games.map(g => g.r))] : [1, 1];
 function renderRnav(){
-  const nav = $("#rnav"); nav.hidden = !round;
+  const nav = $("#rnav"), was = nav.hidden; nav.hidden = view !== "games" || !round;
+  if (was !== nav.hidden) sizeHeader();
   if (nav.hidden) return;
   const [lo, hi] = roundSpan(), r = shownRound();
   $("#rPrev").disabled = r <= lo; $("#rNext").disabled = r >= hi;
@@ -705,7 +711,11 @@ addEventListener("elf-show", () => setTimeout(refresh, 250));   // shown again b
 const VIEWS = ["games", "players"];
 let view = "games";
 try{ const v = new URLSearchParams(location.search).get("view") || localStorage.getItem("elf.leagueView"); if (VIEWS.includes(v)) view = v; }catch{}
-function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height + 12) + "px"); }
+function sizeHeader(){
+  const h = Math.round($("#top").getBoundingClientRect().height), c = $("#ctrl").getBoundingClientRect().height;
+  document.documentElement.style.setProperty("--headH", h + "px");
+  document.documentElement.style.setProperty("--listTop", (h + (c ? Math.round(c) + 12 : 0)) + "px");
+}
 sizeHeader(); addEventListener("resize", sizeHeader);
 addEventListener("elf-msg", e => {                    // inside the app shell: Games / Players picked in the bar
   const d = e.detail;
@@ -727,6 +737,7 @@ function showView(){
   $("#pageTitle").textContent = view === "games" ? "Games" : "Players";
   $("#vGames").hidden = view !== "games";
   $("#vPlayers").hidden = view !== "players";
+  $("#pSeg").hidden = view !== "players"; $("#rnav").hidden = view !== "games" || !round; sizeHeader();
   slideViews();
   if (typeof render === "function" && round) render(); 
   document.title = `${view === "games" ? "Games" : "Players"} · EL Fantasy`;

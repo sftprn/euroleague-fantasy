@@ -27,17 +27,16 @@
   body{color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
   button{font:inherit;color:inherit}
 
-  /* background art: fixed behind everything, fades into the page; never moves when swiping.
-     The header paints the identical top slice (same px-based sizes) so lists can scroll under it. */
-  .art, .top{background-color:var(--bg);
+  /* background art: fixed behind everything, fades into the page; never moves when swiping. Nothing scrolls under the
+     top bar (each screen scrolls only inside its own area below the controls), so the bar needs no artwork or fade */
+  .art{background-color:var(--bg);
        background-image:linear-gradient(180deg,#00000026 0px,#0000008C 140px,#000000E6 230px,#000000 300px), url("assets/bg.jpg");
        background-size:100% 300px, max(100vw, 520px) auto;
        background-position:center top, center -30px;
        background-repeat:no-repeat}
   .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}
   .top{position:fixed;left:0;right:0;top:0;z-index:4;pointer-events:none;
-       padding:calc(12px + var(--sat, env(safe-area-inset-top))) 16px 14px;
-       -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent)}
+       padding:calc(12px + var(--sat, env(safe-area-inset-top))) 16px 14px}
   .bar{max-width:448px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;pointer-events:auto}
   .icon-btn{width:44px;height:44px;padding:0;line-height:1;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
             display:grid;place-items:center;text-decoration:none;color:#fff;font-size:24px;font-weight:500;cursor:pointer;flex:none}
@@ -72,10 +71,17 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 #FF6B1A99}70%{box-shadow:0 0 0 7px #FF6B1A00}100%{box-shadow:0 0 0 0 #FF6B1A00}}
 
   /* carousel: one full-screen list per coach, swipe sideways */
-  .track{position:fixed;inset:0;z-index:1;display:flex;   /* pinned to all screen edges, incl. behind the iPhone home indicator */overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+  .track{position:fixed;left:0;right:0;top:var(--headH);bottom:var(--navH, 0px);z-index:1;display:flex;   /* pinned to all screen edges, incl. behind the iPhone home indicator */overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
   .track::-webkit-scrollbar{display:none}
-  .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
-  .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(var(--navH, 0px) + 28px)}
+  .slide{flex:0 0 100%;width:100%;height:100%;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always}
+  .page{max-width:480px;margin:0 auto;height:100%;box-sizing:border-box;padding:0 16px 12px;display:flex;flex-direction:column}
+  .page > *{flex:none}
+  /* a team: the roster card itself scrolls (only inside its own edges), its 100% / 50% / 0% headers stay on top */
+  .page > .list{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .page > .list .gh{position:sticky;top:0;z-index:3}
+  /* the league table: Start Round + Round / Total stay put, the rest scrolls below them */
+  .lg-scroll{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:16px}
+  .page .edit-btn{margin-top:12px}
   /* first slide: the league table (Start Round, standings) — tap a team to slide to it */
   .lgs .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}
   .lgs .row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
@@ -646,6 +652,8 @@ function buildSlides(){
   track.innerHTML = order.map(n => n === LEAGUE ? `
     <section class="slide" data-coach="${LEAGUE}"><div class="page lgs">
       <div class="start" id="startWrap" hidden><button class="start-btn" id="startBtn"></button><div class="start-note" id="startNote"></div></div>
+      <div id="lgSeg"></div>
+      <div class="lg-scroll" id="lgScroll">
       <div id="lgList"></div>
       <div id="bnBox" hidden>
         <div class="sec-t">BASKETNEWS IMPORT</div>
@@ -662,6 +670,7 @@ function buildSlides(){
           <a class="row" href="${DIRECT ? "2-coach.html" : "/2-coach"}?coach=league&demo=live&new"><div class="who"><b>Live games</b><small>Games tipping off, live PIR climbing</small></div><div class="score"><span class="chev">›</span></div></a>
           <a class="row" href="${DIRECT ? "1-league.html" : "/1-league"}?demo=round&new"><div class="who"><b>Start new round</b><small>Round finished, try the Start Round button</small></div><div class="score"><span class="chev">›</span></div></a>
         </div>
+      </div>
       </div>
       <button class="edit-btn" data-edit type="button"></button>
     </div></section>` : `
@@ -750,6 +759,7 @@ function renderLeague(){
   renderStart();
   if (lgEditing && list.querySelector(".team-input")) return;          // don't redraw under the keyboard
   if (lgEditing){                                                      // edit names and totals-before-this-round in one list
+    setHTML($("#lgSeg"), "");
     list._html = null;                                   // edit mode writes the list itself
     list.innerHTML = `<div class="list tbl">` + rows.map((c, i) => `
     <div class="row editing${i === 0 ? " lead" : ""}">
@@ -762,8 +772,8 @@ function renderLeague(){
   }
   // Round / Total tabs over one list (the choice is remembered on this phone)
   const tot = sortBy === "total";
-  setHTML(list, `<div class="seg" role="tablist"><button data-sort="round" class="${tot ? "" : "on"}" role="tab">Round${round ? " " + round : ""}</button><button data-sort="total" class="${tot ? "on" : ""}" role="tab">Total</button></div>
-    <div class="list tbl">${rows.map((c, i) => `
+  setHTML($("#lgSeg"), `<div class="seg" role="tablist"><button data-sort="round" class="${tot ? "" : "on"}" role="tab">Round${round ? " " + round : ""}</button><button data-sort="total" class="${tot ? "on" : ""}" role="tab">Total</button></div>`);
+  setHTML(list, `<div class="list tbl">${rows.map((c, i) => `
     <div class="row${i === 0 ? " lead" : ""}" data-team="${esc(c.name)}" role="button" tabindex="0">
       <div class="rank">${i + 1}</div>
       <div class="who"><b>${esc(c.team)}</b></div>
@@ -803,6 +813,7 @@ async function bnPost(body, btn){
   finally{ btn.textContent = label; btn.disabled = false; }
 }
 function wireLeagueList(){
+  $("#lgSeg").addEventListener("click", e => { const s = e.target.closest("[data-sort]"); if (s){ sortBy = s.dataset.sort; try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{} renderLeague(); } });
   $("#bnSave").onclick = () => bnPost({url: $("#bnUrl").value.trim()}, $("#bnSave"));
   $("#bnRun").onclick = () => bnPost({run: true}, $("#bnRun"));
   $("#bnPrev").onclick = () => bnPost({prev: true}, $("#bnPrev"));
@@ -875,17 +886,17 @@ async function startVote(){
 addEventListener("elf-msg", e => {                    // inside the app shell: Teams tapped while on Teams
   if (e.detail.elf !== "teams-top") return;
   if (cur !== LEAGUE) goTo(LEAGUE);
-  const sl = slideOf(LEAGUE); if (sl) sl.scrollTo({top: 0, behavior: "smooth"});
+  $("#lgScroll")?.scrollTo({top: 0, behavior: "smooth"});
 });
 Nav.init({active: "teams", onTap: k => {
   if (k !== "teams") return false;                    // Games / Players: go to the league page
   if (cur !== LEAGUE) goTo(LEAGUE);                   // Teams while on Teams: back to the league table…
-  const sl = slideOf(LEAGUE); if (sl) sl.scrollTo({top: 0, behavior: "smooth"});   // …at its top
+  $("#lgScroll")?.scrollTo({top: 0, behavior: "smooth"});   // …at its top
   return true;
 }});
 
 /* ───────── carousel ───────── */
-function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height + 12) + "px"); }   // same gap under the header as Games / Players
+function sizeHeader(){ document.documentElement.style.setProperty("--headH", Math.round($("#top").getBoundingClientRect().height) + "px"); }   // same gap under the header as Games / Players
 sizeHeader(); addEventListener("resize", sizeHeader);
 function goTo(n, smooth = true){
   const i = order.indexOf(n); if (i < 0) return;
@@ -1200,7 +1211,7 @@ function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("sh
 document.addEventListener("pointerdown", e => {
   const card = e.target.closest(".slide .p[data-i]");
   if (!card || e.button > 0 || e.target.closest(".pbtn")) return;
-  drag = {card, n: coachOf(card), slide: card.closest(".slide"), i:+card.dataset.i, x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, id:e.pointerId, type:e.pointerType, on:false};
+  drag = {card, n: coachOf(card), slide: card.closest(".slide"), scroller: card.closest(".list"), i:+card.dataset.i, x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, id:e.pointerId, type:e.pointerType, on:false};
   if (e.pointerType !== "mouse") drag.timer = setTimeout(() => drag && startDrag(), 300);
 });
 document.addEventListener("pointermove", e => {
@@ -1235,9 +1246,9 @@ function startDrag(){
   moveDrag();
   (function scroll(){                                       // auto-scroll near screen edges
     if (!drag || !drag.on) return;
-    const top = $("#top").getBoundingClientRect().bottom - 30, edge = 80, y = drag.ly;
-    const v = y < top + edge ? -(top + edge - y) / 6 : y > innerHeight - edge ? (y - (innerHeight - edge)) / 6 : 0;
-    if (v){ drag.slide.scrollBy(0, v); highlight(); }
+    const box = drag.scroller.getBoundingClientRect(), edge = 60, y = drag.ly;   // near the roster card's top / bottom edge
+    const v = y < box.top + edge ? -(box.top + edge - y) / 6 : y > box.bottom - edge ? (y - (box.bottom - edge)) / 6 : 0;
+    if (v){ drag.scroller.scrollBy(0, v); highlight(); }
     requestAnimationFrame(scroll);
   })();
 }
