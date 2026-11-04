@@ -56,7 +56,8 @@
   #metaTxt{display:inline-flex;align-items:center;gap:6px;min-width:0}
   /* two rows: team name │ points, then dots │ "PIR" (each pair on one line) */
   .title{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center}
-  .hpn{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:normal;color:#fff;text-align:right}
+  .hpn{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:normal;color:#fff;display:flex;align-items:center;justify-content:flex-end;gap:8px}
+  .hpn .dot{width:8px;height:8px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}   /* live: pulsing dot left of the points */
   .hpn.live{color:var(--orange)}
   .hpl{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;text-align:right;min-height:1.3em;display:flex;align-items:center;justify-content:flex-end}
   .hpn[hidden],.hpl[hidden]{display:none}
@@ -707,8 +708,8 @@ function renderHeader(){
   $("#coachName").textContent = teamOf(cur);
   document.title = `${teamOf(cur)} · EL Fantasy`;
   const {total, live} = coachTotal(cur);
-  $("#metaTxt").innerHTML = `${live ? '<i class="dot" title="Live"></i>' : ""}${DEMO ? '<span class="demo-pill">DEMO</span>' : ""}`;
-  $("#hPirN").hidden = $("#hPirL").hidden = !round; $("#hPirN").textContent = fmtShort(total); $("#hPirN").classList.toggle("live", live);
+  $("#metaTxt").innerHTML = DEMO ? '<span class="demo-pill">DEMO</span>' : "";
+  $("#hPirN").hidden = $("#hPirL").hidden = !round; $("#hPirN").innerHTML = `${live ? '<i class="dot" title="Live"></i>' : ""}${fmtShort(total)}`; $("#hPirN").classList.toggle("live", live);
   const wc = chipsOf(cur);
 }
 function render(){
