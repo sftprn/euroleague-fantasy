@@ -711,20 +711,11 @@ addEventListener("elf-msg", e => {                    // inside the app shell: G
 });
 function playersDefault(){ setPTab("watch"); tRound = null; }
 let lastView = null;
-function slideViews(){
-  const inEl = $(view === "games" ? "#vGames" : "#vPlayers"), outEl = $(view === "games" ? "#vPlayers" : "#vGames");
+function slideViews(){                                // Games ↔ Players: swap at once, the new view slides in a little (no fade: blurs stay on)
+  const inEl = $(view === "games" ? "#vGames" : "#vPlayers");
   if (!lastView || lastView === view){ lastView = view; return; }
-  const dir = view === "players" ? 1 : -1;              // going right in the bar → content comes in from the right
-  lastView = view;
-  // the old view stays on screen (lifted out of the flow) just long enough to slide away
-  outEl.hidden = false; outEl.classList.add("vgone"); outEl.style.top = inEl.offsetTop + "px";
-  for (const [el, x0] of [[inEl, dir * 12], [outEl, 0]]){ el.classList.remove("vslide"); el.style.transform = `translateX(${x0}px)`; el.style.opacity = el === inEl ? "0" : "1"; }
-  void inEl.offsetWidth;
-  for (const el of [inEl, outEl]) el.classList.add("vslide");
-  inEl.style.transform = ""; inEl.style.opacity = "";
-  outEl.style.transform = `translateX(${-dir * 12}px)`; outEl.style.opacity = "0";
-  clearTimeout(slideViews.t);
-  slideViews.t = setTimeout(() => { outEl.hidden = true; outEl.classList.remove("vgone", "vslide"); outEl.style.cssText = ""; inEl.classList.remove("vslide"); }, 180);
+  const dir = view === "players" ? 1 : -1; lastView = view;
+  inEl.animate?.([{transform: `translateX(${dir * 12}px)`}, {transform: "none"}], {duration: 180, easing: "cubic-bezier(.2,.8,.2,1)"});
 }
 function showView(){
   if (view === "players") playersDefault();

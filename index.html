@@ -25,7 +25,7 @@
   iframe.off{visibility:hidden;pointer-events:none;z-index:0}           /* kept loaded (and scrolled where you left it), just not shown */
   /* switching sections: the new page cross-fades in on top (both have the same artwork in the same place, so the
      background stays still) while each page slides its own content sideways, in the bar's order (embed.js "slide") */
-  iframe{transition:opacity .16s ease}
+  /* sections switch instantly (same artwork in both, so nothing seems to change but the content, which slides in a little) */
   iframe.top{z-index:2}
   iframe.enter{transition:none}
   #probe{position:fixed;left:0;top:0;width:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none}
@@ -90,10 +90,9 @@
     for (const k in frames){ frames[k].classList.remove("top", "enter"); frames[k].style.transform = frames[k].style.opacity = ""; }
     if (prev && f.classList.contains("off")){             // slide: old out to one side, new in from the other
       const dir = TABS.indexOf(t) > TABS.indexOf(from) ? 1 : -1, old = frames[prev];
-      post(sec, {elf: "slide", dir, enter: true}); post(prev, {elf: "slide", dir, enter: false});   // content in / out, sideways
-      f.classList.add("enter", "top"); f.classList.remove("off"); f.style.opacity = "0";
-      void f.offsetWidth; f.classList.remove("enter"); f.style.opacity = "";
-      xfade = setTimeout(() => { old.classList.add("off"); f.classList.remove("top"); }, 180);
+      post(sec, {elf: "slide", dir, enter: true});         // the new page's content slides in from that side
+      f.classList.add("top"); f.classList.remove("off");
+      xfade = setTimeout(() => { old.classList.add("off"); f.classList.remove("top"); }, 30);
     } else for (const k in frames) frames[k].classList.toggle("off", k !== sec);
     for (const k in frames) post(k, {elf: "show", on: k === sec});
     document.getElementById("elfNav")?.classList.remove("cover");
