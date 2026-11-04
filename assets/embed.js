@@ -4,6 +4,8 @@
    elfHidden()        true when the page is hidden OR the shell is showing the other section (pause polling then)
    events: "elf-show" (this section is shown again → refresh), "elf-msg" (detail = message from the shell)
    The shell also sends the iPhone's safe areas as --sat / --sab, since env(safe-area-inset-*) is 0 inside a frame. */
+// Page-switch slide animation (Teams / Games / Players): switched OFF for now. Set to true to turn it back on.
+window.ELF_PAGE_SLIDE = false;
 (function(){
   const EMBED = window.self !== window.top && new URLSearchParams(location.search).has("embed");
   window.ELF_EMBED = EMBED;
@@ -32,7 +34,8 @@
   // front ("slid"), so the content is never seen in place for a moment before jumping aside to slide in (the jiggle).
   let anim = null;
   function slide(dir, enter){
-    if (!enter) return;
+    if (!window.ELF_PAGE_SLIDE) enter = false;          // switched off for now: the page just appears
+    if (!enter){ try{ parent.postMessage({elf: "slid"}, location.origin); }catch{} return; }
     const el = window.ELF_SLIDE_TARGET?.() || document.querySelector("[data-slide]");   // Teams: just the page in view
     if (el?.animate){
       anim?.cancel();

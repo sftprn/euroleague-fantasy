@@ -716,6 +716,7 @@ function slideViews(){                                // Games ↔ Players: swap
   const inEl = $(view === "games" ? "#vGames" : "#vPlayers");
   if (!lastView || lastView === view){ lastView = view; return; }
   const dir = view === "players" ? 1 : -1; lastView = view;
+  if (!window.ELF_PAGE_SLIDE) return;                   // switched off for now (assets/embed.js)
   inEl.animate?.([{transform: `translateX(${dir * 12}px)`}, {transform: "none"}], {duration: 180, easing: "cubic-bezier(.2,.8,.2,1)"});
 }
 function showView(){
