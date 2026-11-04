@@ -10,6 +10,12 @@
   window.ELF_HIDDEN = false;
   window.elfHidden = () => document.hidden || window.ELF_HIDDEN;
   if (!EMBED) return;
+  // inside the shell: see-through page, no artwork of its own (the shell draws it once, so it stays put when switching);
+  // the header keeps its artwork (same picture, same place) so lists still scroll away under it
+  document.documentElement.classList.add("elf-embed");
+  const st = document.createElement("style");
+  st.textContent = "html.elf-embed,html.elf-embed body{background:transparent!important}html.elf-embed .art{display:none!important}";
+  document.head.appendChild(st);
   addEventListener("message", e => {
     if (e.origin !== location.origin) return;
     const d = e.data || {};
@@ -29,8 +35,8 @@
   function slide(dir, enter){
     const el = document.querySelector("[data-slide]"); if (!el || !el.animate) return;
     anim?.cancel();
-    const off = {transform: `translateX(${(enter ? dir : -dir) * 40}px)`, opacity: 0}, on = {transform: "none", opacity: 1};
-    anim = el.animate(enter ? [off, on] : [on, off], {duration: 200, easing: "cubic-bezier(.2,.8,.2,1)", fill: enter ? "none" : "forwards"});
+    const off = {transform: `translateX(${(enter ? dir : -dir) * 12}px)`, opacity: 0}, on = {transform: "none", opacity: 1};
+    anim = el.animate(enter ? [off, on] : [on, off], {duration: 160, easing: "cubic-bezier(.2,.8,.2,1)", fill: enter ? "none" : "forwards"});
     if (enter) anim.onfinish = () => { anim = null; };
   }
   try{ parent.postMessage({elf: "ready", page: location.pathname}, location.origin); }catch{}

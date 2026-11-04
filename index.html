@@ -17,11 +17,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#000000;touch-action:manipulation;-webkit-text-size-adjust:100%}
-  iframe{position:fixed;top:0;left:0;width:100%;height:var(--appH, 100%);border:0;display:block;background:#000000;z-index:1}
+  iframe{position:fixed;top:0;left:0;width:100%;height:var(--appH, 100%);border:0;display:block;background:transparent;z-index:1}
+  /* the background artwork, drawn once here behind both sections (they're see-through), so it never moves when switching */
+  .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none;background-color:#000;
+       background-image:linear-gradient(180deg,#00000026 0px,#0000008C 140px,#000000E6 230px,#000000 300px), url("/assets/bg.jpg");
+       background-size:100% 300px, max(100vw, 520px) auto;background-position:center top, center -30px;background-repeat:no-repeat}
   iframe.off{visibility:hidden;pointer-events:none;z-index:0}           /* kept loaded (and scrolled where you left it), just not shown */
   /* switching sections: the new page cross-fades in on top (both have the same artwork in the same place, so the
      background stays still) while each page slides its own content sideways, in the bar's order (embed.js "slide") */
-  iframe{transition:opacity .2s ease}
+  iframe{transition:opacity .16s ease}
   iframe.top{z-index:2}
   iframe.enter{transition:none}
   #probe{position:fixed;left:0;top:0;width:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none}
@@ -29,6 +33,7 @@
 <script>document.addEventListener("gesturestart", e => e.preventDefault(), {passive: false});</script>
 </head>
 <body>
+<div class="art" aria-hidden="true"></div>
 <div id="probe"></div>
 <script src="/assets/nav.js"></script>
 <script>
@@ -88,7 +93,7 @@
       post(sec, {elf: "slide", dir, enter: true}); post(prev, {elf: "slide", dir, enter: false});   // content in / out, sideways
       f.classList.add("enter", "top"); f.classList.remove("off"); f.style.opacity = "0";
       void f.offsetWidth; f.classList.remove("enter"); f.style.opacity = "";
-      xfade = setTimeout(() => { old.classList.add("off"); f.classList.remove("top"); }, 220);
+      xfade = setTimeout(() => { old.classList.add("off"); f.classList.remove("top"); }, 180);
     } else for (const k in frames) frames[k].classList.toggle("off", k !== sec);
     for (const k in frames) post(k, {elf: "show", on: k === sec});
     document.getElementById("elfNav")?.classList.remove("cover");
