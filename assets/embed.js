@@ -45,7 +45,7 @@ window.ELF_PAGE_SLIDE = false;
   }
   try{ parent.postMessage({elf: "ready", page: location.pathname}, location.origin); }catch{}
   // a bottom sheet / the player search is open → ask the shell to move its bar out of the way (it sits above this frame)
-  const OPEN = "#psWrap.open, #gWrap.open, #wcWrap.open, #finder.open";
+  const OPEN = "#psWrap.open, #gWrap.open, #wcWrap.open, #tfWrap.open, #finder.open";
   let covered = false;
   const check = () => { const on = !!document.querySelector(OPEN); if (on !== covered){ covered = on; try{ parent.postMessage({elf: "cover", on}, location.origin); }catch{} } };
   new MutationObserver(check).observe(document.documentElement, {subtree: true, attributes: true, attributeFilter: ["class"], childList: true});

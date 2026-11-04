@@ -109,7 +109,7 @@
   /* live games */
   .lg{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
   .lg:first-child{border-top:0}
-  .day-h{display:flex;align-items:center;min-height:40px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--line)}   /* Games tab: a list per day, date on top like the Teams table header */
+  .day-h{display:flex;align-items:center;min-height:40px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#FFFFFFB3;text-transform:uppercase;border-bottom:1px solid var(--line);background:#FFFFFF14}   /* Games tab: a list per day, date on top like the Teams table header */
   .day-h{justify-content:space-between;gap:10px}
   .day-h span{letter-spacing:.06em;text-transform:none;font-weight:700;font-size:11.5px}
   .day-h + .lg{border-top:0}
@@ -152,10 +152,50 @@
   .vslide{transition:transform .16s cubic-bezier(.2,.8,.2,1),opacity .16s ease}
   .vgone{position:absolute;left:16px;right:16px;pointer-events:none}
   #topList .own{color:var(--orange);font-weight:700}      /* on someone's fantasy team */
-  .pick{position:relative;display:block;margin-bottom:12px}                 /* Players tab: All teams / one Euroleague club */
-  .pick select{appearance:none;-webkit-appearance:none;width:100%;height:46px;border:1px solid var(--line);border-radius:16px;background:var(--card);
-    color:#fff;font:700 16px Inter,system-ui,sans-serif;padding:0 44px 0 16px;cursor:pointer}
-  .pick::after{content:"";position:absolute;right:18px;top:50%;width:8px;height:8px;border:solid var(--muted);border-width:0 2px 2px 0;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+  /* list headers: the same lighter glass as the 1st place on the Teams table */
+  .lh{display:flex;align-items:center;gap:12px;min-height:44px;padding:10px 10px 10px 16px;background:#FFFFFF14;border-bottom:1px solid var(--line)}
+  .lh .lh-t{flex:1;min-width:0}
+  .lh .lh-t b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lh .lh-t small{display:block;margin-top:2px;font-size:12px;font-weight:600;color:#FFFFFFB3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lh .lh-t img{width:16px;height:16px;object-fit:contain;vertical-align:-3px;margin-right:6px}
+  .lh + .row{border-top:0}
+  .tune{flex:none;width:40px;height:40px;border-radius:13px;border:1px solid #FFFFFF22;background:#00000059;color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+  .tune:active{background:#FFFFFF24}
+  .tune.set{border-color:var(--orange);color:var(--orange)}
+  /* Top Performers settings sheet */
+  #tfWrap .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
+  #tfWrap .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
+         border-radius:24px 24px 0 0;display:flex;flex-direction:column;max-height:calc(100vh - var(--sat, env(safe-area-inset-top)) - 16px);max-height:calc(100dvh - var(--sat, env(safe-area-inset-top)) - 16px);
+         transition:transform .25s ease,visibility .25s;visibility:hidden;z-index:11;overflow:hidden}
+  #tfWrap.open .scrim{opacity:1;pointer-events:auto}
+  #tfWrap.open .sheet{transform:translate(-50%,0);visibility:visible}
+  #tfWrap .sheet.dragging{transition:none}
+  #tfWrap .grab{flex:none;height:30px;display:grid;place-items:center;cursor:grab;touch-action:none}
+  #tfWrap .grab::before{content:"";width:40px;height:4px;background:#3A3A40;border-radius:4px}
+  #tfWrap .sh-head{flex:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 20px 14px;border-bottom:1px solid var(--line);touch-action:none}
+  #tfWrap .sh-head b{font-size:20px;font-weight:800;display:block}
+  #tfWrap .sh-head small{color:var(--muted);font-size:12.5px}
+  #tfWrap .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 16px calc(22px + var(--sab, env(safe-area-inset-bottom)))}
+  .tf-done{flex:none;height:36px;padding:0 14px;border-radius:13px;border:0;background:#FFFFFF24;color:#fff;font:700 14px Inter,system-ui,sans-serif;cursor:pointer}
+  .tf-l{font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#FFFFFFB3;text-transform:uppercase;margin:18px 4px 10px}
+  .tf-rds{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px}
+  .tf-clubs{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
+  .tf-rds button,.tf-clubs button{height:40px;border-radius:13px;border:1px solid #FFFFFF22;background:var(--card);color:#FFFFFFCC;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px;padding:0 8px;min-width:0;-webkit-tap-highlight-color:transparent}
+  .tf-clubs button{justify-content:flex-start}
+  .tf-clubs .all{grid-column:1/-1;justify-content:center}
+  .tf-clubs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tf-clubs img{width:20px;height:20px;object-fit:contain;flex:none}
+  .tf-rds button.on,.tf-clubs button.on{background:var(--orange);border-color:var(--orange);color:#fff}
+  .tf-rds button i{width:6px;height:6px;border-radius:50%;background:var(--orange);flex:none}
+  .tf-rds button.on i{background:#fff}
+  #tfWrap .tg{display:flex;align-items:center;gap:14px;width:100%;padding:12px 4px;border:0;background:none;color:#fff;text-align:left;cursor:pointer;border-radius:16px}
+  #tfWrap .tg .txt{flex:1;min-width:0}
+  #tfWrap .tg .txt b{display:block;font-size:16px;font-weight:800}
+  #tfWrap .tg .txt small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+  #tfWrap .sw{width:50px;height:30px;border-radius:999px;background:#3A3A40;position:relative;flex:none;transition:background .2s}
+  #tfWrap .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+  #tfWrap .tg.on .sw{background:var(--orange)} #tfWrap .tg.on .sw::after{left:23px}
   #topList .row.pl:active{background:#1F1F23}
   /* Games: round arrows in the header */
   .rnav{display:flex;align-items:center;gap:8px;flex:none}
@@ -179,8 +219,8 @@
   .seg button{flex:1;height:36px;border:0;border-radius:13px;background:transparent;color:#FFFFFF99;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
   .seg button.on{background:#FFFFFF24;color:#fff}
   /* Watchlist rows look like a team's player list on Teams; "Empty slot" adds a player */
-  .wl .gh{display:flex;justify-content:center;align-items:center;gap:6px;padding:11px 14px;background:var(--card-2);font-weight:800;font-size:15px;letter-spacing:.02em}
-  .wl .gh span{color:var(--muted);font-weight:700}
+  .wl .gh{display:flex;justify-content:center;align-items:center;gap:6px;padding:11px 14px;background:#FFFFFF14;border-bottom:1px solid var(--line);font-weight:800;font-size:15px;letter-spacing:.02em}
+  .wl .gh span{color:#FFFFFFB3;font-weight:700}
   .wl .p{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);cursor:pointer;position:relative;user-select:none;-webkit-user-select:none}
   .wl .gh + .p{border-top:0}
   .wl .p:active{background:#1F1F23}
@@ -263,8 +303,6 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
   <div id="vPlayers" hidden>
     <div id="pWatch"><div class="list wl" id="wList"></div></div>
     <div id="pTop" hidden>
-      <label class="pick"><select id="topRound" aria-label="Round"></select></label>
-      <label class="pick"><select id="topTeam" aria-label="Show top players from"></select></label>
       <div class="list" id="topList"></div>
     </div>
   </div>
@@ -283,6 +321,22 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<!-- Top Performers: what the list shows (round, club, players nobody owns) -->
+<div id="tfWrap">
+  <div class="scrim" data-tfclose></div>
+  <div class="sheet" role="dialog" aria-label="Top Performers settings">
+    <div class="grab" aria-hidden="true"></div>
+    <div class="sh-head"><div><b>Top Performers</b><small>Choose what the list shows</small></div><button class="tf-done" data-tfclose>Done</button></div>
+    <div class="sh-body">
+      <div class="tf-l">Round</div>
+      <div class="tf-rds" id="tfRounds"></div>
+      <div class="tf-l">Team</div>
+      <div class="tf-clubs" id="tfClubs"></div>
+      <div class="tf-l">Players</div>
+      <button class="tg" id="tfFree" type="button" role="switch"><div class="txt"><b>Players not on any team</b><small>Also list players nobody in the league has picked</small></div><i class="sw"></i></button>
+    </div>
+  </div>
+</div>
 
 
 
@@ -516,10 +570,6 @@ async function loadTopRound(r){                       // scores of an earlier ro
 }
 function renderTop(){
   const seen = new Map(), tr = topRound();
-  const rs = $("#topRound"), last = roundLive() ? round : round - 1;
-  const ropts = round ? Array.from({length: Math.max(0, last)}, (_, i) => last - i).map(r => `<option value="${r}">Round ${r}${r === round ? " · live" : ""}</option>`).join("") : "";
-  if (rs._opts !== ropts){ rs.innerHTML = rs._opts = ropts; }
-  rs.value = String(tr);
   loadTopRound(tr);
   // every player who played in that round's games (not only fantasy rosters); a fantasy team that has him shows in orange
   const own = owners(), pmap = new Map(people.map(x => [x.code, x])), rmap = new Map(COACHES.flatMap(c => rosterOf(c.name)).map(x => [x.code, x]));
@@ -536,31 +586,79 @@ function renderTop(){
       }
     });
   }
-  // club picker: All teams (default) or one Euroleague club → that club's top 10
-  const sel = $("#topTeam"), clubs = new Map();
-  games.forEach(g => [g.h, g.a].forEach(t => { if (t?.c && !clubs.has(t.c)) clubs.set(t.c, t.n || t.tv || t.c); }));
-  const list = [...clubs].sort((a, b) => a[1].localeCompare(b[1]));
-  const pick = clubs.has(topPick) ? topPick : "";
-  const opts = `<option value="">All teams</option>` + list.map(([c, n]) => `<option value="${esc(c)}">${esc(n)}</option>`).join("");
-  if (sel._opts !== opts){ sel.innerHTML = sel._opts = opts; }
-  sel.value = pick;
+  // club: All teams (default) or one Euroleague club → that club's top 10; players nobody owns can be left out
+  const clubs = topClubs(), pick = clubs.has(topPick) ? topPick : "", free = topFree();
   renderWatch();
-  const top = [...seen.values()].filter(x => !pick || x.p.club === pick).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
+  if ($("#tfWrap").classList.contains("open")) renderTopSheet();
+  const top = [...seen.values()].filter(x => (!pick || x.p.club === pick) && (free || x.teams.length)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
+  // the list's header: what it shows on the left, the settings on the right
+  const club = pick ? clubs.get(pick) : null;
+  const head = `<div class="lh"><div class="lh-t"><b>${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}Round ${tr} · ${esc(club ? club.n : "All teams")}</b>`
+    + `<small>${tr === round && roundLive() ? "Live · " : ""}Top 10 · ${free ? "all players" : "fantasy players only"}</small></div>`
+    + `<button class="tune${pick || !free || tRound != null ? " set" : ""}" data-tune aria-label="Choose what Top Performers shows"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg></button></div>`;
   if (!top.length){
-    const name = esc(clubs.get(pick) || "");
     topRows = [];
-    $("#topList").innerHTML = `<div class="nolive">${topLoading.has(tr) || (!people.length && peopleLoad) ? "Loading…"
-      : pick ? `No ${name} players have played ${tr === round ? "yet this round" : `in round ${tr}`}.` : tr === round ? "No live games yet — the round's top players show up once games start." : `No scores for round ${tr}.`}</div>`;
+    $("#topList").innerHTML = head + `<div class="nolive">${topLoading.has(tr) || (!people.length && peopleLoad) ? "Loading…"
+      : pick ? `No ${esc(club.n)}${free ? "" : " fantasy"} players have played ${tr === round ? "yet this round" : `in round ${tr}`}.`
+      : !free && seen.size ? `No fantasy players have played ${tr === round ? "yet this round" : `in round ${tr}`}.`
+      : tr === round ? "No live games yet — the round's top players show up once games start." : `No scores for round ${tr}.`}</div>`;
     return;
   }
   topRows = top;
-  $("#topList").innerHTML = top.map(({p, s, teams}, i) => `
+  $("#topList").innerHTML = head + top.map(({p, s, teams}, i) => `
     <div class="row pl" data-code="${esc(p.code)}" role="button" tabindex="0">
       <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
       <div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
       <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span>${teams.length ? ` · <span class="own">${esc(teams.join(", "))}</span>` : ""}</small></div>
       <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${fmtShort(s.f)}</div>
     </div>`).join("");
+}
+
+/* Top Performers settings (the ⚙ in the list's header): round, club, players nobody owns */
+const tfWrap = $("#tfWrap");
+const topFree = () => store.get("elf.topFree", true);
+function topClubs(){                                  // code → {n, cr}, by name
+  const m = new Map();
+  games.forEach(g => [g.h, g.a].forEach(t => { if (t?.c && !m.has(t.c)) m.set(t.c, {n: t.n || t.tv || t.c, tv: t.tv || t.c, cr: t.cr || ""}); }));
+  return new Map([...m].sort((a, b) => a[1].n.localeCompare(b[1].n)));
+}
+function renderTopSheet(){
+  const last = roundLive() ? round : round - 1, tr = topRound();
+  const rds = Array.from({length: Math.max(0, last)}, (_, i) => i + 1)
+    .map(r => `<button type="button" data-r="${r}" class="${r === tr ? "on" : ""}">${r}${r === round && roundLive() ? "<i></i>" : ""}</button>`).join("");
+  const clubs = topClubs(), pick = clubs.has(topPick) ? topPick : "";
+  const cl = `<button type="button" class="all${pick ? "" : " on"}" data-club="">All teams</button>`
+    + [...clubs].map(([c, t]) => `<button type="button" data-club="${esc(c)}" class="${c === pick ? "on" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}<span>${esc(t.n)}</span></button>`).join("");
+  if ($("#tfRounds")._html !== rds) $("#tfRounds").innerHTML = $("#tfRounds")._html = rds;
+  if ($("#tfClubs")._html !== cl) $("#tfClubs").innerHTML = $("#tfClubs")._html = cl;
+  const f = $("#tfFree"); f.classList.toggle("on", topFree()); f.setAttribute("aria-checked", String(topFree()));
+}
+function openTopSheet(){ renderTopSheet(); tfWrap.classList.add("open");
+  requestAnimationFrame(() => $("#tfRounds .on")?.scrollIntoView({block: "nearest"})); }
+const closeTopSheet = () => tfWrap.classList.remove("open");
+tfWrap.addEventListener("click", e => {
+  if (e.target.closest("[data-tfclose]")) return closeTopSheet();
+  const r = e.target.closest("[data-r]");
+  if (r){ const v = +r.dataset.r; tRound = v === (roundLive() || round <= 1 ? round : round - 1) ? null : v; renderTop(); renderTopSheet(); return; }
+  const c = e.target.closest("[data-club]");
+  if (c){ topPick = c.dataset.club; renderTop(); renderTopSheet(); return; }
+  if (e.target.closest("#tfFree")){ store.set("elf.topFree", !topFree()); renderTop(); renderTopSheet(); }
+});
+$("#topList").addEventListener("click", e => { if (e.target.closest("[data-tune]")){ e.stopPropagation(); openTopSheet(); } }, true);
+{ // swipe the sheet down to close: from its grab bar / header, or anywhere once its content is at the top
+  const sh = tfWrap.querySelector(".sheet");
+  SheetDrag.attach(sh, closeTopSheet);
+  let y0 = 0, dy = 0, t0 = 0, id = null;
+  const end = () => {
+    if (id == null) return;
+    id = null; sh.classList.remove("dragging"); sh.style.transform = "";
+    if (dy > Math.min(120, sh.offsetHeight * 0.3) || (dy > 30 && dy / Math.max(1, Date.now() - t0) > 0.5)) closeTopSheet();
+  };
+  sh.querySelectorAll(".grab, .sh-head").forEach(h => {
+    h.addEventListener("pointerdown", e => { if (e.target.closest("button")) return; id = e.pointerId; y0 = e.clientY; dy = 0; t0 = Date.now(); sh.classList.add("dragging"); h.setPointerCapture(id); });
+    h.addEventListener("pointermove", e => { if (e.pointerId === id){ dy = Math.max(0, e.clientY - y0); sh.style.transform = `translate(-50%, ${dy}px)`; } });
+    h.addEventListener("pointerup", end); h.addEventListener("pointercancel", end);
+  });
 }
 
 /* Watchlist: any players, followed privately — saved only on this phone (elf.watch, the old Watch team), never shared or counted */
@@ -680,8 +778,6 @@ function openPlayer(code){
   const r = (pTab === "watch" ? watchRows : topRows).find(x => x.p.code === code); if (!r) return;
   PlayerSheet.open(r.p, {state: sheetState(r.p), meta: sheetMeta(r.p, r.teams), ...(pTab === "top" && topRound() !== round ? {round: topRound()} : {})});   // a past round's top list → his sheet on that round
 }
-$("#topRound").addEventListener("change", e => { const r = +e.target.value; tRound = r === (roundLive() || round <= 1 ? round : round - 1) ? null : r; e.target.blur(); renderTop(); });
-$("#topTeam").addEventListener("change", e => { topPick = e.target.value; e.target.blur(); renderTop(); });   // let go of focus so the next tap opens it again (iPhone)
 $("#topList").addEventListener("click", e => { const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code); });
 $("#topList").addEventListener("keydown", e => { const r = e.target.closest("[data-code]"); if (r && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openPlayer(r.dataset.code); } });
 
@@ -748,6 +844,40 @@ function showView(){
   try{ localStorage.setItem("elf.leagueView", view); }catch{}
   const u = new URL(location.href); u.searchParams.set("view", view); history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
 }
+/* swipe sideways on the screen: Players → Watchlist / Top Performers, Games → the round before / after */
+function nudge(el, dir){ el?.animate?.([{transform: `translateX(${dir * 28}px)`}, {transform: "none"}], {duration: 200, easing: "cubic-bezier(.2,.8,.2,1)"}); }   // transform only: fading would switch the blurs off on iPhone
+{
+  let sw = null;
+  document.addEventListener("touchstart", e => {
+    sw = null;
+    if (e.touches.length !== 1 || !e.target.closest("#scroller, #ctrl") || e.target.closest("input, select, textarea")) return;
+    const t = e.touches[0]; sw = {x: t.clientX, y: t.clientY, t: e.timeStamp, h: null};
+  }, {passive: true});
+  document.addEventListener("touchmove", e => {
+    if (!sw || sw.h != null) return;
+    const t = e.touches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y;
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) sw.h = Math.abs(dx) > Math.abs(dy) * 1.5;   // decided by the first clear movement
+  }, {passive: true});
+  document.addEventListener("touchend", e => {
+    const s = sw; sw = null;
+    if (!s || !s.h) return;
+    const t = e.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (Math.abs(dx) < 60 && !(Math.abs(dx) > 30 && Math.abs(dx) / Math.max(1, e.timeStamp - s.t) > 0.4)) return;   // far enough, or a quick flick
+    if (Math.abs(dy) > Math.abs(dx)) return;
+    const dir = dx < 0 ? 1 : -1;                         // swipe left → the next one (right side), swipe right → the one before
+    if (view === "players"){
+      const order = ["watch", "top"], i = order.indexOf(pTab) + dir;
+      if (i < 0 || i >= order.length) return;
+      setPTab(order[i]); $("#scroller").scrollTo({top: 0}); nudge($("#vPlayers"), dir);
+    } else if (view === "games" && round){
+      const [lo, hi] = roundSpan(), r = shownRound() + dir;
+      if (r < lo || r > hi) return;
+      goRound(r); nudge($("#vGames"), dir);
+    }
+  }, {passive: true});
+  document.addEventListener("touchcancel", () => { sw = null; }, {passive: true});
+}
+
 Nav.init({active: view, onTap: k => {
   if (k === "teams") return false;                    // Teams: the team pages
   if (k === "players") playersDefault();

@@ -57,7 +57,7 @@
   .title{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center}
   .hpn{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:normal;color:#fff;display:flex;align-items:center;justify-content:flex-end;gap:8px}
   .hpn .dot{width:8px;height:8px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}   /* live: pulsing dot left of the points */
-  .hpn.live{color:var(--orange);text-shadow:0 1px 2px #000,0 2px 10px #000000B3}   /* live orange points: a black shadow so they read over the artwork */
+  .hpn.live{color:var(--orange);text-shadow:0 1px 3px #000000CC,0 4px 24px #000,0 6px 48px #000000E6}   /* live orange points: a big, very soft black shadow so they read over the artwork */
   .hpl{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;text-align:right;min-height:1.3em;display:flex;align-items:center;justify-content:flex-end}
   .hpn[hidden],.hpl[hidden]{display:none}
   .hpl.appear{animation:hplIn .2s ease-out}            /* "PIR" fades in when a team page first shows it, then stays put between teams */
@@ -129,9 +129,9 @@
   .edit-btn .ic{margin-right:4px}                     /* with the 8px gap: a little more room between icon and word */
   .edit-btn.on{color:#fff;border-color:var(--orange);background:#FF6B1A26}
   /* Teams table: rank · team · ROUND │ TOTAL */
-  .lgs .tbl .th{display:flex;align-items:center;gap:14px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--dim);border-bottom:1px solid var(--line)}
+  .lgs .tbl .th{display:flex;align-items:center;gap:14px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#FFFFFFB3;border-bottom:1px solid var(--line);background:#FFFFFF14}
   .lgs .tbl .th .who{font-size:10.5px}
-  .lgs .tbl .th button{all:unset;cursor:pointer;color:var(--dim);white-space:nowrap}
+  .lgs .tbl .th button{all:unset;cursor:pointer;color:#FFFFFF99;white-space:nowrap}
   .lgs .tbl .th button.on{color:#fff}
   .lgs .tbl .th button.on::after{content:" ▾"}
   .lgs .tbl .th + .row{border-top:0}
@@ -140,7 +140,7 @@
   .lgs .c-rd{width:52px;text-align:right;flex:none;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:flex-end;position:relative}
   .lgs .c-rd .live-dot{position:absolute;left:-6px;top:50%;margin-top:-3.5px}
   .lgs .c-tot{width:70px;text-align:right;flex:none;font-size:15px;font-weight:700;color:#C9C9CF;align-self:stretch;display:flex;align-items:center;justify-content:flex-end; border-left:1px solid var(--line);margin:-15px 0;padding:15px 0}
-  .lgs .th .c-rd,.lgs .th .c-tot{font-size:10.5px;font-weight:800;color:var(--dim);margin:-10px 0 -8px;padding:10px 0 8px}
+  .lgs .th .c-rd,.lgs .th .c-tot{font-size:10.5px;font-weight:800;color:#FFFFFFB3;margin:-10px 0 -8px;padding:10px 0 8px}
   .lgs .row.lead .c-tot{border-left-color:#FFFFFF33;color:#FFFFFFD9;margin:-14px 0;padding:14px 0}
   .lgs .tbl .row.editing .base-input{width:92px}
   .lgs #lgList > .sec-t:first-child{margin-top:2px}
@@ -197,7 +197,8 @@
   .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}   /* lists: the same see-through glass and corners as the tab groups */
   .zone{position:relative}
   .zone.drop{box-shadow:inset 0 0 0 2px var(--orange)}
-  .gh{display:flex;justify-content:center;align-items:center;padding:11px 14px;background:var(--card-2);font-weight:800;font-size:15px;letter-spacing:.02em;border-top:1px solid var(--line)}
+  .gh{display:flex;justify-content:center;align-items:center;padding:11px 14px;background:#FFFFFF14;font-weight:800;font-size:15px;letter-spacing:.02em;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}   /* list headers: the lighter glass of the 1st place on the Teams table */
+  .pscroll .gh{background:#FFFFFF1A;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}   /* sticky: the rows passing underneath are blurred away */
   .zone:first-child .gh{border-top:0}
   .zone.z-zero .gh{color:var(--muted)}
 
