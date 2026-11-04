@@ -73,7 +73,7 @@ border:2px solid #FFFFFF33}
 #gWrap .note{font-size:11.5px;color:var(--dim);padding:6px 2px 0}
 #gWrap .sh-body .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
 
-#gWrap .seg{margin:8px 0;height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}   /* team tabs: like the player sheet's tabs; they scroll with the content */
+#gWrap .seg{margin:8px 0;height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:0;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}   /* team tabs: like the player sheet's tabs; they scroll with the content */
 #gWrap #gContent{will-change:transform}
 #gWrap #gContent.sliding{transition:transform .18s ease,opacity .18s ease}
 #gWrap .seg button{flex:1;height:36px;border:0;border-radius:13px;background:transparent;color:#FFFFFF99;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
