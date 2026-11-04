@@ -10,8 +10,8 @@
 //   POST /api/bn {run:true}       → import now (also overwrites hand edits made since the last import)
 //   POST /api/bn {prev:true}      → copy the previous (finished) round's lineups now, e.g. before this round unlocks
 //   POST /api/bn {dry:9}          → rebuild a finished round and return it, saving nothing (a health check)
-//   cron (every 10 min)           → from 3 h before the round's first tip-off, check every 10 min until its lineups are in
-//                                   (BasketNews shows them at tip-off), then stop until the next round; nothing is asked earlier
+//   cron (every 10 min)           → only from 3 h before until 1 h after the first tip-off of each game day of the round:
+//                                   lineups unlock at the round's first tip-off, later days pick up swaps made between days
 //
 // BasketNews ↔ app:
 //   round:   BasketNews `fantasyRound` is 0-based → app round = fantasyRound + 1
@@ -191,7 +191,14 @@ async function run(env, force, dry = 0, prev = false) {   // prev = copy the fin
   return result;
 }
 
-const BEFORE = 3 * 3600e3, GIVE_UP = 24 * 3600e3;
+const BEFORE = 3 * 3600e3, AFTER = 1 * 3600e3;
+// first tip-off of each game day of a round (days in Vilnius time; a round often spans Tue–Fri)
+function dayTips(games, round) {
+  const day = t => new Date(t).toLocaleDateString("en-CA", { timeZone: "Europe/Vilnius" });
+  const first = {};
+  for (const g of games.filter(g => g.r === round)) { const d = day(g.u); if (!first[d] || g.u < first[d]) first[d] = g.u; }
+  return Object.values(first).sort((a, b) => a - b);
+}
 export async function scheduledBn(env) {
   if (!env.DB) return;
   try {
@@ -199,17 +206,18 @@ export async function scheduledBn(env) {
     const cfg = await readCfg(env.DB);
     if (!cfg.team) return;
     const round = JSON.parse((await env.DB.prepare("SELECT v FROM kv WHERE k = 'league'").first())?.v || "null")?.round;
-    if (!round || cfg.done === round) return;                 // this round's lineups are already in
-    cfg.tips = cfg.tips || {};
-    if (!cfg.tips[round]) {                                    // first tip-off of the round, looked up once and kept
-      const t = firstTip(await loadGames(), round);
-      if (!t) return;
+    if (!round) return;
+    if (!Array.isArray(cfg.tips?.[round])) {                   // the round's game-day tip-offs, looked up once and kept
+      const t = dayTips(await loadGames(), round);
+      if (!t.length) return;
       cfg.tips = { [round]: t };
       await writeCfg(env.DB, cfg);
     }
-    const now = Date.now(), tip = cfg.tips[round];
-    if (now < tip - BEFORE || now > tip + GIVE_UP) return;      // only from 3 h before tip-off (and not forever after it)
-    await importBn(env);
+    // check (every 10 min, with the cron) from 3 h before until 1 h after each game day's first tip-off; never in between.
+    // Lineups unlock at the round's first tip-off; later days pick up the swaps BasketNews allows between game days.
+    const now = Date.now();
+    if (!cfg.tips[round].some(t => now >= t - BEFORE && now <= t + AFTER)) return;
+    await importBn(env, { force: true });
   } catch (e) { console.log("bn import failed", e); }
 }
 
