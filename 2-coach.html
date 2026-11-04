@@ -129,8 +129,7 @@
   .edit-btn .ic{margin-right:4px}                     /* with the 8px gap: a little more room between icon and word */
   .edit-btn.on{color:#fff;border-color:var(--orange);background:#FF6B1A26}
   /* Teams table: rank · team · ROUND │ TOTAL */
-  .lgs .tbl .th{display:flex;align-items:center;gap:14px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#FFFFFFB3;border-bottom:1px solid var(--line);background:#FFFFFF14}
-  .lgs .tbl .th .who{font-size:10.5px}
+  .lgs .tbl .th .who{font:inherit;overflow:hidden;text-overflow:ellipsis}
   .lgs .tbl .th button{all:unset;cursor:pointer;color:#FFFFFF99;white-space:nowrap}
   .lgs .tbl .th button.on{color:#fff}
   .lgs .tbl .th button.on::after{content:" ▾"}
@@ -140,7 +139,7 @@
   .lgs .c-rd{width:52px;text-align:right;flex:none;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:flex-end;position:relative}
   .lgs .c-rd .live-dot{position:absolute;left:-6px;top:50%;margin-top:-3.5px}
   .lgs .c-tot{width:70px;text-align:right;flex:none;font-size:15px;font-weight:700;color:#C9C9CF;align-self:stretch;display:flex;align-items:center;justify-content:flex-end; border-left:1px solid var(--line);margin:-15px 0;padding:15px 0}
-  .lgs .th .c-rd,.lgs .th .c-tot{font-size:10.5px;font-weight:800;color:#FFFFFFB3;margin:-10px 0 -8px;padding:10px 0 8px}
+  .lgs .th .c-rd,.lgs .th .c-tot{font:inherit;color:#FFFFFFB3;margin:0;padding:0;align-self:stretch}
   .lgs .row.lead .c-tot{border-left-color:#FFFFFF33;color:#FFFFFFD9;margin:-14px 0;padding:14px 0}
   .lgs .tbl .row.editing .base-input{width:92px}
   .lgs #lgList > .sec-t:first-child{margin-top:2px}
@@ -197,7 +196,13 @@
   .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}   /* lists: the same see-through glass and corners as the tab groups */
   .zone{position:relative}
   .zone.drop{box-shadow:inset 0 0 0 2px var(--orange)}
-  .gh{display:flex;justify-content:center;align-items:center;padding:11px 14px;background:#FFFFFF14;font-weight:800;font-size:15px;letter-spacing:.02em;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}   /* list headers: the lighter glass of the 1st place on the Teams table */
+  /* list headers (100% / 50% / 0%, the Teams table — and the same on Games / Players): one height, one type style, one line,
+     in the lighter glass of the 1st place on the Teams table */
+  .gh,.lgs .tbl .th{display:flex;align-items:center;gap:8px;height:44px;min-height:44px;box-sizing:border-box;padding:0 16px;background:#FFFFFF14;border-bottom:1px solid var(--line);
+    font:700 14px/1 Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;text-transform:none;white-space:nowrap;overflow:hidden}
+  .gh{justify-content:center;border-top:1px solid var(--line)}
+  .gh .lt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* one line; cut off with … when it doesn't fit */
+  .gh svg{flex:none}
   .pscroll .gh{background:#26262BF0;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}   /* sticky: the same light grey, but solid enough that rows passing underneath don't show through */
   .zone:first-child .gh{border-top:0}
   .zone.z-zero .gh{color:var(--muted)}
@@ -699,7 +704,7 @@ function renderSlide(n){
   const rows = rosters[n].map((p, i) => ({p, i, s: games.length ? stateOf(p, n) : {kind:"none"}}));
   if (n === WATCH){
     setHTML(el.querySelector(".list"), `<div class="zone z-watch" data-zone="watch">
-      <div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Only on this phone</div>
+      <div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" ><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="lt">Only on this phone</span></div>
       ${rows.sort(byKey).map(r => rowHTML(r, n)).join("")}
       ${rosters[WATCH].length < WATCH_MAX ? emptyHTML("watch") : ""}
     </div>`);
@@ -713,7 +718,7 @@ function renderSlide(n){
     const list = rows.filter(r => gr.slots.includes(r.p.slot)).sort(byKey);
     const empties = gr.slots.map(s => emptyHTML(s).repeat(Math.max(0, SLOTS[s] - slotCount(n, s)))).join("");
     return `<div class="zone z-${gr.key}" data-zone="${gr.key}">
-      <div class="gh">${gr.label}</div>
+      <div class="gh"><span class="lt">${gr.label}</span></div>
       ${list.map(r => rowHTML(r, n)).join("")}${empties}
     </div>`;
   }).join(""));

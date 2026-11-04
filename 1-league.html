@@ -109,9 +109,16 @@
   /* live games */
   .lg{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
   .lg:first-child{border-top:0}
-  .day-h{display:flex;align-items:center;min-height:40px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#FFFFFFB3;text-transform:uppercase;border-bottom:1px solid var(--line);background:#FFFFFF14}   /* Games tab: a list per day, date on top like the Teams table header */
-  .day-h{justify-content:space-between;gap:10px}
-  .day-h span{letter-spacing:.06em;text-transform:none;font-weight:700;font-size:11.5px}
+  /* list headers (Games days, Watchlist, Top Performers — and the same on Teams): one height, one type style, one line,
+     in the lighter glass of the 1st place on the Teams table */
+  .day-h,.wl .gh,.lh{display:flex;align-items:center;gap:8px;height:44px;min-height:44px;box-sizing:border-box;padding:0 16px;background:#FFFFFF14;border-bottom:1px solid var(--line);
+    font:700 14px/1 Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;text-transform:none;white-space:nowrap;overflow:hidden}
+  .day-h .lt,.wl .gh .lt,.lh .lt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* one line; cut off with … when it doesn't fit */
+  .day-h .lx,.wl .gh .lx,.lh .lx{color:#FFFFFFB3}
+  .day-h .lt{flex:1 1 auto}
+  .day-h > .lx{flex:none}
+  .wl .gh{justify-content:center}
+  .wl .gh svg,.lh img{flex:none}
   .day-h + .lg{border-top:0}
   #gamesList .list + .list{margin-top:12px}
   .lg:active{background:#1F1F23}
@@ -153,13 +160,11 @@
   .vgone{position:absolute;left:16px;right:16px;pointer-events:none}
   #topList .own{color:var(--orange);font-weight:700}      /* on someone's fantasy team */
   /* list headers: the same lighter glass as the 1st place on the Teams table */
-  .lh{display:flex;align-items:center;gap:12px;min-height:44px;padding:10px 10px 10px 16px;background:#FFFFFF14;border-bottom:1px solid var(--line)}
-  .lh .lh-t{flex:1;min-width:0}
-  .lh .lh-t b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .lh .lh-t small{display:block;margin-top:2px;font-size:12px;font-weight:600;color:#FFFFFFB3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .lh .lh-t img{width:16px;height:16px;object-fit:contain;vertical-align:-3px;margin-right:6px}
+  .lh{padding-right:6px}
+  .lh .lt{flex:1 1 auto}
+  .lh img{width:18px;height:18px;object-fit:contain}
   .lh + .row{border-top:0}
-  .tune{flex:none;width:40px;height:40px;border-radius:13px;border:1px solid #FFFFFF22;background:#00000059;color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+  .tune{flex:none;width:32px;height:32px;border-radius:10px;border:1px solid #FFFFFF22;background:#00000059;color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
   .tune:active{background:#FFFFFF24}
   .tune.set{border-color:var(--orange);color:var(--orange)}
   /* Top Performers settings sheet */
@@ -219,8 +224,6 @@
   .seg button{flex:1;height:36px;border:0;border-radius:13px;background:transparent;color:#FFFFFF99;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
   .seg button.on{background:#FFFFFF24;color:#fff}
   /* Watchlist rows look like a team's player list on Teams; "Empty slot" adds a player */
-  .wl .gh{display:flex;justify-content:center;align-items:center;gap:6px;padding:11px 14px;background:#FFFFFF14;border-bottom:1px solid var(--line);font-weight:800;font-size:15px;letter-spacing:.02em}
-  .wl .gh span{color:#FFFFFFB3;font-weight:700}
   .wl .p{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);cursor:pointer;position:relative;user-select:none;-webkit-user-select:none}
   .wl .gh + .p{border-top:0}
   .wl .p:active{background:#1F1F23}
@@ -529,7 +532,7 @@ function renderGames(){
   const days = [...new Set(rg.map(x => dayKey(x.g.u)))].sort((a, b) => dayDone(a) - dayDone(b) || a.localeCompare(b));   // finished days go to the bottom
   const html = days.length < 2 ? `<div class="list">${rg.map(row).join("")}</div>`
     : days.map(k => { const list = rg.filter(x => dayKey(x.g.u) === k);
-        return `<div class="list"><div class="day-h">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}))}<span>${list.length} game${list.length === 1 ? "" : "s"}</span></div>${list.map(row).join("")}</div>`; }).join("");
+        return `<div class="list"><div class="day-h"><span class="lt">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}))}</span><span class="lx">${list.length} game${list.length === 1 ? "" : "s"}</span></div>${list.map(row).join("")}</div>`; }).join("");
   if ($("#gamesList")._html !== html) $("#gamesList").innerHTML = $("#gamesList")._html = html;
 }
 const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
@@ -593,8 +596,8 @@ function renderTop(){
   const top = [...seen.values()].filter(x => (!pick || x.p.club === pick) && (free || x.teams.length)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
   // the list's header: what it shows on the left, the settings on the right
   const club = pick ? clubs.get(pick) : null;
-  const head = `<div class="lh"><div class="lh-t"><b>${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}Round ${tr} · ${esc(club ? club.n : "All teams")}</b>`
-    + `<small>${tr === round && roundLive() ? "Live · " : ""}Top 10 · ${free ? "all players" : "fantasy players only"}</small></div>`
+  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">Round ${tr} · ${esc(club ? club.n : "All teams")}`
+    + ` <span class="lx">· ${tr === round && roundLive() ? "Live · " : ""}${free ? "All players" : "Fantasy players only"}</span></span>`
     + `<button class="tune${pick || !free || tRound != null ? " set" : ""}" data-tune aria-label="Choose what Top Performers shows"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg></button></div>`;
   if (!top.length){
     topRows = [];
@@ -690,7 +693,7 @@ function renderWatch(){
   rows.sort((a, b) => has(b) - has(a) || (has(a) ? b.s.val - a.s.val : 0) || (a.p.order ?? 0) - (b.p.order ?? 0));
   watchRows = rows;
   const ph = p => `<div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>`;
-  const html = `<div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Only on this phone <span>· ${list.length}/${WATCH_MAX}</span></div>`
+  const html = `<div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="lt">Only on this phone <span class="lx">· ${list.length}/${WATCH_MAX}</span></span></div>`
     + rows.map(r => `<div class="p ${r.kind}" data-code="${esc(r.p.code)}" role="button" tabindex="0">
         ${ph(r.p)}
         <div class="who"><b>${esc(r.p.name)}</b><small><span class="tv">${esc(r.p.tv || "")}</span> ${r.sub}</small></div>
