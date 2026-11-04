@@ -22,15 +22,18 @@
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
+  /* the page itself never scrolls (so iOS can't bounce the top bar along); the lists scroll in .scroller, as on Teams */
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
   html{background:var(--bg)}
+  .scroller{position:fixed;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
   body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
-  .app{max-width:480px;margin:0 auto;min-height:100vh;padding:var(--headH, 90px) 16px calc(var(--navH, 0px) + 28px);position:relative;z-index:1}
+  .app{max-width:480px;margin:0 auto;padding:var(--headH, 90px) 16px calc(var(--navH, 0px) + 28px);position:relative}
   /* header: the same as on Teams — art backdrop, title + subtitle on the left; content scrolls under it */
   .art, .top{background-color:var(--bg);
        background-image:linear-gradient(180deg,#00000026 0px,#0000008C 140px,#000000E6 230px,#000000 300px), url("assets/bg.jpg");
        background-size:100% 300px, max(100vw, 520px) auto;background-position:center top, center -30px;background-repeat:no-repeat}
   .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}
-  .top{position:fixed;left:0;right:0;top:0;z-index:4;padding:calc(12px + var(--sat, env(safe-area-inset-top))) 16px 8px;margin:0;
+  .top{position:fixed;left:0;right:0;top:0;z-index:4;padding:calc(12px + var(--sat, env(safe-area-inset-top))) 16px 14px;margin:0;
        -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent)}
   .top .bar{max-width:448px;margin:0 auto;display:flex;align-items:center;min-height:44px}
   .top .title{text-align:left;min-width:0;flex:1;padding:0;min-height:50px;display:flex;flex-direction:column;justify-content:center}   /* as tall as Teams' title + dots; a lone headline sits in the middle */
@@ -237,9 +240,9 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 </head>
 <body>
 <div class="art" aria-hidden="true"></div>
-<div class="app" data-slide>
-  <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
-  </div></header>
+<header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
+</div></header>
+<div class="scroller" id="scroller"><div class="app" data-slide>
 
   <!-- Games: this round's games (tap one to open it) — Teams is the team pages' first slide; the bottom bar switches -->
   <div id="vGames" hidden>
@@ -257,7 +260,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
       <div class="list" id="topList"></div>
     </div>
   </div>
-</div>
+</div></div>
 <div class="finder" id="finder" role="dialog" aria-label="Add players to your watchlist">
   <div class="finder-in">
     <div class="s-row">
@@ -426,7 +429,7 @@ function renderRnav(){
 async function goRound(r){
   const [lo, hi] = roundSpan(); r = Math.max(lo, Math.min(hi, r));
   gRound = r === round ? null : r;
-  scrollTo({top: 0}); render();
+  $("#scroller").scrollTo({top: 0}); render();
   if (gRound == null) return;
   const need = games.filter(g => g.r === r && Date.parse(g.u) <= Date.now() && !(box[g.c] && (box[g.c].final || box[g.c].live)));   // scores for that round's games
   const res = await Promise.all(need.map(g => loadBox(g).then(b => [g.c, b]).catch(() => [g.c, null])));
@@ -596,7 +599,7 @@ function setPTab(t){
 }
 addEventListener("elf-watch", () => { renderWatch(); refresh(); });          // star in the player sheet
 addEventListener("storage", e => { if (e.key === "elf.watch"){ renderWatch(); refresh(); } });   // starred on the Teams page
-$("#pSeg").addEventListener("click", e => { const b = e.target.closest("[data-pt]"); if (b && b.dataset.pt !== pTab){ setPTab(b.dataset.pt); scrollTo({top: 0}); } });
+$("#pSeg").addEventListener("click", e => { const b = e.target.closest("[data-pt]"); if (b && b.dataset.pt !== pTab){ setPTab(b.dataset.pt); $("#scroller").scrollTo({top: 0}); } });
 $("#wList").addEventListener("click", e => {
   if (e.target.closest("[data-add]")) return openFinder();
   const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code);
@@ -707,7 +710,7 @@ sizeHeader(); addEventListener("resize", sizeHeader);
 addEventListener("elf-msg", e => {                    // inside the app shell: Games / Players picked in the bar
   const d = e.detail;
   if (d.elf === "view" && d.view === "players") playersDefault();
-  if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); scrollTo({top: 0}); } else scrollTo({top: 0, behavior: "smooth"}); }
+  if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); $("#scroller").scrollTo({top: 0}); } else $("#scroller").scrollTo({top: 0, behavior: "smooth"}); }
 });
 function playersDefault(){ setPTab("watch"); tRound = null; }
 window.ELF_SLIDE_TARGET = () => $(view === "games" ? "#vGames" : "#vPlayers");   // arriving from Teams: slide only the view, never the header
@@ -733,8 +736,8 @@ function showView(){
 Nav.init({active: view, onTap: k => {
   if (k === "teams") return false;                    // Teams: the team pages
   if (k === "players") playersDefault();
-  if (k !== view){ view = k; showView(); scrollTo({top: 0}); }
-  else scrollTo({top: 0, behavior: "smooth"});       // same tab again: back to the top
+  if (k !== view){ view = k; showView(); $("#scroller").scrollTo({top: 0}); }
+  else $("#scroller").scrollTo({top: 0, behavior: "smooth"});       // same tab again: back to the top
   return true;
 }});
 showView();
