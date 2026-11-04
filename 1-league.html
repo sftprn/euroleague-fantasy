@@ -710,6 +710,7 @@ addEventListener("elf-msg", e => {                    // inside the app shell: G
   if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); scrollTo({top: 0}); } else scrollTo({top: 0, behavior: "smooth"}); }
 });
 function playersDefault(){ setPTab("watch"); tRound = null; }
+window.ELF_SLIDE_TARGET = () => $(view === "games" ? "#vGames" : "#vPlayers");   // arriving from Teams: slide only the view, never the header
 let lastView = null;
 function slideViews(){                                // Games ↔ Players: swap at once, the new view slides in a little (no fade: blurs stay on)
   const inEl = $(view === "games" ? "#vGames" : "#vPlayers");
