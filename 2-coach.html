@@ -80,6 +80,9 @@
   .pscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:12px}
   .pscroll > .list{overflow:clip}                      /* keeps the rounded corners without stopping the sticky headers */
   .pscroll .gh{position:sticky;top:0;z-index:3}
+  /* a team's roster: the scroll area is exactly the card's width and has the card's rounded top corners, so whatever is
+     at the top while scrolling (the card, or a sticky 100% / 50% / 0% header) keeps the rounded top-left / top-right */
+  .slide:not([data-coach="league"]) .pscroll{border-radius:16px 16px 0 0;isolation:isolate}
   /* Teams list: Round / Total sits right on top of its scroll area (the 12 px gap is inside it), and its bottom corners
      go square once the table has scrolled up to it */
   #lgSeg .seg{margin-bottom:0;transition:border-bottom-left-radius .2s ease,border-bottom-right-radius .2s ease}
