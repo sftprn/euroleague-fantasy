@@ -114,24 +114,18 @@
     // Each play's time comes from MARKERTIME ("time left in the period", "MM:SS"). The feed sometimes sends junk there
     // instead ("24.?", "12.?", "??.?" — bits of the shot clock), often for a batch of substitutions. Those used to read as
     // 0:00 left (the end of the quarter): a player subbed in that way got no stint at all, and while live everyone on court
-    // was drawn to the end of the quarter. Such a play only tells us its game minute (MINUTE: "in the 11th minute"), so it
-    // gets a time inside that minute: for a batch of substitutions, the time that makes the players' minutes match the box
-    // score best; for anything else, just after the play before it.
-    const groups = [];
-    const period = (list, start, plen) => { let el = 0, grp = null;
+    // was drawn to the end of the quarter. Such a play takes the time of the play before it in the feed (the start of the
+    // period, for the usual batch of subs before the first basket), kept inside its game minute (MINUTE 11 = 10:00–11:00).
+    const period = (list, start, plen) => { let el = 0;
       for (const e of list){
         const m = /^(\d{1,2}):(\d{2})$/.exec(String(e.MARKERTIME ?? "").trim());
         const x = {e};
-        if (m){ el = Math.min(plen, Math.max(0, plen - (+m[1] + +m[2] / 60))); grp = null; }
+        if (m) el = Math.min(plen, Math.max(0, plen - (+m[1] + +m[2] / 60)));
         else if (e.PLAYTYPE === "EP") el = plen;                // end of period: its time is often blank
         else if (e.PLAYTYPE !== "BP"){
           const mi = +e.MINUTE;                                 // game minute, 1-based: minute 11 = 10:00–11:00 played
           const lo = mi ? Math.min(plen, Math.max(0, mi - 1 - start)) : el, hi = mi ? Math.min(plen, Math.max(lo, mi - start)) : el;
           el = Math.min(hi, Math.max(lo, el));
-          if (e.PLAYTYPE === "IN" || e.PLAYTYPE === "OUT"){
-            if (!grp || grp.mi !== mi){ grp = {mi, lo: start + lo, hi: start + hi, ev: []}; groups.push(grp); }
-            grp.ev.push(x);
-          }
         }
         x.t = start + el; ev.push(x);
       } };
@@ -141,9 +135,6 @@
     ots.forEach((list, i) => period(list, 40 + i * 5, 5));
     if (ots.length) len = 40 + ots.length * 5;
     if (pbp?.Live && b?.q){ const q = +String(b.q).replace(/\D/g, "") || 0; if (q > 4) len = Math.max(len, 40 + (q - 4) * 5); }
-    const boxMin = {};
-    for (const t of b?.teams || []) for (const [c, l] of Object.entries(t.pl)) if (/^\d+:\d\d$/.test(l.min || "")) boxMin[c] = toMin(l.min);
-
     function run(){
       let last = 0;
       const on = {}, pl = {};
@@ -176,19 +167,6 @@
       const end = pbp?.Live ? last : len;
       for (const [c, a] of Object.entries(on)) add(c, a, end);
       return {pl, last};
-    }
-    // place each batch of junk-timed substitutions (to the second) where the box score's minutes fit best
-    for (const g of groups){
-      const who = [...new Set(g.ev.map(x => code(x.e.PLAYER_ID)))].filter(c => boxMin[c] != null);
-      if (!who.length || g.hi - g.lo < 1 / 60) continue;
-      let best = null, bestErr = Infinity;
-      for (let T = g.lo; T <= g.hi + 1e-9; T += 1 / 60){
-        g.ev.forEach(x => x.t = T);
-        const {pl} = run();
-        const err = who.reduce((a, c) => a + Math.abs((pl[c] || []).reduce((s, [f, z]) => s + z - f, 0) - boxMin[c]), 0);
-        if (err < bestErr - 1e-6){ bestErr = err; best = T; }
-      }
-      g.ev.forEach(x => x.t = best);
     }
     const {pl, last} = run();
     for (const l of Object.values(pl)) l.forEach(s => { s[0] = Math.round(s[0] * 100) / 100; s[1] = Math.round(s[1] * 100) / 100; });
