@@ -49,7 +49,7 @@
 #psWrap .ph-img{position:absolute;top:0;left:50%;height:215%;width:auto;max-width:none;transform:translateX(-50%)}   /* head and shoulders: the rest is cut off at the header's edge */
 #psWrap .tabs{flex:none;display:flex;gap:4px;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px}   /* own row: never scrolls with the content */
 #psWrap .sheet.pm > .sh-body{padding-top:12px;overflow-x:hidden}
-#psWrap .tabs button{flex:1;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+#psWrap .tabs button{flex:1;height:34px;border:0;border-radius:12px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
 #psWrap .tabs button.on{background:var(--card-2);color:#fff}
 #psWrap .pane{min-height:120px;will-change:transform}
 #psWrap .pane.sliding{transition:transform .18s ease,opacity .18s ease}
@@ -105,12 +105,12 @@
 #psWrap .mn .tl-lab{margin-bottom:8px}
 #psWrap .btns{display:flex;gap:8px;margin-top:12px}
 #psWrap .pane > .btns:first-child{margin-top:0}
-#psWrap .tsb{display:block;flex:1;min-width:0;height:46px;border:0;border-radius:14px;background:var(--card-2);color:#fff;font:700 14.5px Inter,system-ui,sans-serif;cursor:pointer}
+#psWrap .tsb{display:block;flex:1;min-width:0;height:46px;border:0;border-radius:16px;background:var(--card-2);color:#fff;font:700 14.5px Inter,system-ui,sans-serif;cursor:pointer}
 #psWrap .tsb:active{background:#2E2E33}
 #psWrap .lc{display:block;margin:4px 0 14px;overflow:visible}
 #psWrap .lc text{font:600 10.5px Inter,system-ui,sans-serif;fill:var(--dim)}
 #psWrap .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-#psWrap .grid div{background:var(--card-2);border-radius:12px;padding:9px 6px 8px;text-align:center;min-width:0}
+#psWrap .grid div{background:var(--card-2);border-radius:16px;padding:9px 6px 8px;text-align:center;min-width:0}
 #psWrap .grid b{display:block;font-size:17px;font-weight:800}
 #psWrap .grid small{display:block;font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-top:2px}
 #psWrap .grid em{display:block;font-style:normal;font-size:10.5px;color:var(--dim);margin-top:1px}
@@ -133,7 +133,7 @@
 #psWrap .mn .stint:last-child{border-bottom:0}
 #psWrap .stint span{color:var(--muted)}
 #psWrap .avg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
-#psWrap .avg div{background:var(--card-2);border-radius:12px;padding:9px 6px 8px;text-align:center}
+#psWrap .avg div{background:var(--card-2);border-radius:16px;padding:9px 6px 8px;text-align:center}
 #psWrap .avg b{display:block;font-size:17px;font-weight:800}
 #psWrap .avg small{display:block;font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-top:2px}
 #psWrap .chart{display:flex;align-items:stretch;justify-content:center;gap:3px;height:84px;margin:4px 0 14px;position:relative}
