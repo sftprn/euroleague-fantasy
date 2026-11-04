@@ -36,7 +36,7 @@
        background-repeat:no-repeat}
   .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}
   .top{position:fixed;left:0;right:0;top:0;z-index:4;pointer-events:none;
-       padding:calc(14px + var(--sat, env(safe-area-inset-top))) 16px 14px;
+       padding:calc(6px + var(--sat, env(safe-area-inset-top))) 16px 8px;
        -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent)}
   .bar{max-width:448px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;pointer-events:auto}
   .icon-btn{width:44px;height:44px;padding:0;line-height:1;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
@@ -83,8 +83,7 @@
   .lgs .row:active{background:#1F1F23}
   .lgs .rank{width:24px;font-weight:800;font-size:18px;color:var(--dim);text-align:center;flex:none}
   /* 1st place: hero row with the background art */
-  .lgs .row.lead{position:relative;align-items:center;min-height:72px;padding:14px 16px; background:url("assets/bg.jpg") center 35%/cover}
-  .lgs .row.lead::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0000001A 0%,#00000080 55%,#000000E6 100%)}
+  .lgs .row.lead{position:relative;align-items:center;min-height:72px;padding:14px 16px;background:#FFFFFF14}   /* 1st place: a lighter row (no artwork) */
   .lgs .row.lead > *{position:relative;z-index:1}
   .lgs .row.lead .rank{color:var(--orange)}
   .lgs .row.lead .lbl{display:block;font-size:10.5px;letter-spacing:.14em;color:#FFFFFFB3;font-weight:700;margin-bottom:4px}
