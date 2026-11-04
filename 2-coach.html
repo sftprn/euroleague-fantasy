@@ -77,7 +77,7 @@
   .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
   .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(var(--navH, 0px) + 28px)}
   /* first slide: the league table (Start Round, standings) — tap a team to slide to it */
-  .lgs .list{background:var(--card);border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+  .lgs .list{background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}
   .lgs .row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
   .lgs .row:first-child{border-top:0}
   .lgs .row:active{background:#1F1F23}
@@ -113,7 +113,8 @@
   .lgs .seg button.on{background:#FFFFFF24;color:#fff}
   /* Edit: a quiet full-width button at the bottom of every Teams screen */
   .edit-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;margin-top:16px;border-radius:16px;border:1px solid #FFFFFF22;
-    background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#FFFFFFCC;font:700 14px Inter,system-ui,sans-serif;cursor:pointer}
+    background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#FFFFFFB3;font:500 14px Inter,system-ui,sans-serif;cursor:pointer}
+  .edit-btn .ic{margin-right:4px}                     /* with the 8px gap: a little more room between icon and word */
   .edit-btn.on{color:#fff;border-color:var(--orange);background:#FF6B1A26}
   /* Teams table: rank · team · ROUND │ TOTAL */
   .lgs .tbl .th{display:flex;align-items:center;gap:14px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--dim);border-bottom:1px solid var(--line)}
@@ -181,7 +182,7 @@
   .p.wc-card .tv{color:#fff}
 
   /* the single list */
-  .list{background:var(--card);border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+  .list{background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}   /* lists: the same see-through glass and corners as the tab groups */
   .zone{position:relative}
   .zone.drop{box-shadow:inset 0 0 0 2px var(--orange)}
   .gh{display:flex;justify-content:center;align-items:center;padding:11px 14px;background:var(--card-2);font-weight:800;font-size:15px;letter-spacing:.02em;border-top:1px solid var(--line)}
@@ -707,7 +708,7 @@ function renderHeader(){
   document.querySelectorAll("[data-edit]").forEach(b => {        // the Edit button at the bottom of each screen
     const isLg = !!b.closest(".lgs"), on = isLg ? lgEditing : editing;
     b.classList.toggle("on", on);
-    b.innerHTML = on ? "✓ Done" : isLg ? "✎ Edit names &amp; totals" : "✎ Edit team";
+    b.innerHTML = on ? '<span class="ic">✓</span>Done' : '<span class="ic">✎</span>Edit';
   });
   if (lg){
     $("#coachName").textContent = "Teams";

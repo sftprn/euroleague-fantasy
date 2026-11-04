@@ -47,10 +47,10 @@
 #psWrap .ph-pic{flex:none;width:140px;height:118px;margin:-22px 12px 0 0;align-self:flex-end;position:relative;overflow:hidden;pointer-events:none;user-select:none}
 #psWrap .ph-pic[hidden]{display:none}
 #psWrap .ph-img{position:absolute;top:0;left:50%;height:215%;width:auto;max-width:none;transform:translateX(-50%)}   /* head and shoulders: the rest is cut off at the header's edge */
-#psWrap .tabs{flex:none;margin:8px 16px;height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}   /* own row: never scrolls with the content */
+#psWrap .tabs{flex:none;display:flex;gap:4px;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px}   /* own row: never scrolls with the content */
 #psWrap .sheet.pm > .sh-body{padding-top:12px;overflow-x:hidden}
-#psWrap .tabs button{flex:1;height:36px;border:0;border-radius:13px;background:transparent;color:#FFFFFF99;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
-#psWrap .tabs button.on{background:#FFFFFF24;color:#fff}
+#psWrap .tabs button{flex:1;height:34px;border:0;border-radius:12px;background:transparent;color:var(--muted);font:700 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+#psWrap .tabs button.on{background:var(--card-2);color:#fff}
 #psWrap .pane{min-height:120px;will-change:transform}
 #psWrap .pane.sliding{transition:transform .18s ease,opacity .18s ease}
 #psWrap .pane .empty{color:var(--muted);font-size:13.5px;text-align:center;padding:26px 10px}
