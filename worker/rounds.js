@@ -16,12 +16,12 @@ const VOTES_NEEDED = 2;
 const season = () => { const d = new Date(); return "E" + (d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1); };
 const r2 = v => Math.round(v * 100) / 100;
 
-async function loadGames() {
+export async function loadGames() {
   const r = await fetch(`${EL_API}${season()}/games`, { headers: { accept: "application/json" } });
   if (!r.ok) throw new Error(`games ${r.status}`);
   return (await r.json()).data.map(x => ({ c: x.gameCode, r: x.round, u: Date.parse(x.utcDate), p: !!x.played, h: x.local.club.code, a: x.road.club.code }));
 }
-const firstTip = (games, round) => { const t = games.filter(g => g.r === round).map(g => g.u); return t.length ? Math.min(...t) : null; };
+export const firstTip = (games, round) => { const t = games.filter(g => g.r === round).map(g => g.u); return t.length ? Math.min(...t) : null; };
 
 async function loadBox(code) {
   const r = await fetch(`${EL_LIVE}Boxscore?gamecode=${code}&seasoncode=${season()}`, { headers: { accept: "application/json" } });

@@ -10,7 +10,8 @@
 //   POST /api/bn {run:true}       → import now (also overwrites hand edits made since the last import)
 //   POST /api/bn {prev:true}      → copy the previous (finished) round's lineups now, e.g. before this round unlocks
 //   POST /api/bn {dry:9}          → rebuild a finished round and return it, saving nothing (a health check)
-//   cron (every 10 min)           → import the current round once its lineups are visible, then stop until the next round
+//   cron (every 10 min)           → from 3 h before the round's first tip-off, check every 10 min until its lineups are in
+//                                   (BasketNews shows them at tip-off), then stop until the next round; nothing is asked earlier
 //
 // BasketNews ↔ app:
 //   round:   BasketNews `fantasyRound` is 0-based → app round = fantasyRound + 1
@@ -19,6 +20,7 @@
 //   players: matched to Euroleague person codes by surname + club (first name breaks ties); unmatched ones are reported
 // BasketNews has no official API, so if they change their site this stops working (the app itself keeps going).
 import { COACHES, json, newVersion, setup, cleanRoster, cleanChips } from "./state.js";
+import { loadGames, firstTip } from "./rounds.js";
 
 const GQL = "https://fantasy.basketnews.com/backend/graphql";
 const EL_PEOPLE = "https://api-live.euroleague.net/v2/competitions/E/seasons/";
@@ -189,9 +191,26 @@ async function run(env, force, dry = 0, prev = false) {   // prev = copy the fin
   return result;
 }
 
+const BEFORE = 3 * 3600e3, GIVE_UP = 24 * 3600e3;
 export async function scheduledBn(env) {
   if (!env.DB) return;
-  try { await importBn(env); } catch (e) { console.log("bn import failed", e); }
+  try {
+    await setup(env.DB);
+    const cfg = await readCfg(env.DB);
+    if (!cfg.team) return;
+    const round = JSON.parse((await env.DB.prepare("SELECT v FROM kv WHERE k = 'league'").first())?.v || "null")?.round;
+    if (!round || cfg.done === round) return;                 // this round's lineups are already in
+    cfg.tips = cfg.tips || {};
+    if (!cfg.tips[round]) {                                    // first tip-off of the round, looked up once and kept
+      const t = firstTip(await loadGames(), round);
+      if (!t) return;
+      cfg.tips = { [round]: t };
+      await writeCfg(env.DB, cfg);
+    }
+    const now = Date.now(), tip = cfg.tips[round];
+    if (now < tip - BEFORE || now > tip + GIVE_UP) return;      // only from 3 h before tip-off (and not forever after it)
+    await importBn(env);
+  } catch (e) { console.log("bn import failed", e); }
 }
 
 export async function handleBn(request, env) {
