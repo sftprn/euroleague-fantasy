@@ -667,6 +667,7 @@ function buildSlides(){
   $("#startBtn").onclick = startVote;
   wireLeagueList();
   built = true;
+  requestAnimationFrame(headIntro);
   render();
   goTo(cur, false);
 }
@@ -861,6 +862,18 @@ async function startVote(){
 }
 
 /* ───────── bottom navigation: Teams (this page) · Games · Players (league page) ───────── */
+/* entering Teams: the headline starts centred in the bar (row 2 not there yet), then the dots / "PIR" row fades in below
+   it as the headline (and points) move up into place — quick, every time Teams is opened */
+function headIntro(){
+  const up = [$("#coachName"), $("#hPirN")].filter(e => e && !e.hidden), row2 = [$("#meta"), $("#hPirL")].filter(e => e && !e.hidden);
+  if (!up[0]?.animate) return;
+  const r1 = up[0].getBoundingClientRect(), r2 = $("#meta").getBoundingClientRect();
+  const drop = Math.round((r2.bottom - r1.bottom) / 2);       // how far down the headline sits when centred alone
+  const ease = "cubic-bezier(.2,.8,.2,1)";
+  up.forEach(e => e.animate([{transform: `translateY(${drop}px)`}, {transform: "none"}], {duration: 280, delay: 60, easing: ease, fill: "backwards"}));
+  row2.forEach(e => e.animate([{opacity: 0, transform: "translateY(4px)"}, {opacity: 1, transform: "none"}], {duration: 220, delay: 120, easing: ease, fill: "backwards"}));
+}
+addEventListener("elf-msg", e => { if (e.detail?.elf === "slide" && e.detail.enter) headIntro(); });
 addEventListener("elf-msg", e => {                    // inside the app shell: Teams tapped while on Teams
   if (e.detail.elf !== "teams-top") return;
   if (cur !== LEAGUE) goTo(LEAGUE);
