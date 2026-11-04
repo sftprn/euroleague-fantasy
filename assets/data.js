@@ -57,6 +57,8 @@
   }
   const code = s => String(s || "").replace(/^P/, "").trim();
   const toMin = s => { const m = /^(\d+):(\d+)$/.exec(s || ""); return m ? +m[1] + +m[2] / 60 : 0; };
+  // the live game clock ("time left in the quarter"): "05:23", "5:23", "05:23.4", "00:05:23" → minutes left; null if unreadable
+  const clockLeft = s => { const m = String(s ?? "").trim().match(/(\d{1,2}):(\d{2})(?:[.,]\d+)?$/); return m ? +m[1] + +m[2] / 60 : null; };
 
   /* ── box score ── */
   const F = ["min", "pts", "fg2m", "fg2a", "fg3m", "fg3a", "ftm", "fta", "or", "dr", "tr", "ast", "stl", "to", "blk", "blka", "pf", "fd", "pm", "pir", "starter", "on", "no", "name"];
@@ -120,17 +122,28 @@
     // order by game clock (the feed sometimes appends late corrections with a high play number), then play number
     ev.forEach(x => x.t = x.e.MARKERTIME ? x.start + x.plen - toMin(x.e.MARKERTIME) : null);
     ev.sort((x, y) => (x.t ?? -1) - (y.t ?? -1) || x.e.NUMBEROFPLAY - y.e.NUMBEROFPLAY);
+    const seen = new Set();                           // players with a substitution logged so far
     for (const {e, t} of ev){
       if (t == null) continue;
       last = Math.max(last, t);
       const c = code(e.PLAYER_ID); if (!c) continue;
-      if (e.PLAYTYPE === "IN"){ if (on[c] == null) on[c] = t; }
-      else if (e.PLAYTYPE === "OUT"){ if (on[c] != null){ add(c, on[c], t); delete on[c]; } }
+      if (e.PLAYTYPE === "IN"){ if (on[c] == null) on[c] = t; seen.add(c); }
+      else if (e.PLAYTYPE === "OUT"){
+        if (on[c] != null){ add(c, on[c], t); delete on[c]; }
+        // first thing logged for him is going OFF: he was on since tip-off (the live box score doesn't always mark starters)
+        else if (!seen.has(c)) add(c, 0, t);
+        seen.add(c);
+      }
     }
     if (pbp?.Live && b?.q){                           // live: the game clock is more exact than the last logged play
-      const q = +String(b.q).replace(/\D/g, "") || 0, left = toMin(b.t);
-      const clock = q > 4 ? 40 + (q - 5) * 5 + 5 - left : (q - 1) * 10 + 10 - left;
-      if (q && clock > last) last = clock;
+      const q = +String(b.q).replace(/\D/g, "") || 0, left = clockLeft(b.t);
+      // only when the clock reads cleanly: a time we can't read used to count as 0:00 left, which ran everyone who's on
+      // court to the end of the quarter; and never further than the quarter's end
+      if (q && left != null){
+        const qEnd = q > 4 ? 40 + (q - 4) * 5 : q * 10, plen = q > 4 ? 5 : 10;
+        const clock = qEnd - Math.min(left, plen);
+        if (clock > last) last = clock;
+      }
       if (q > 4) len = Math.max(len, 40 + (q - 4) * 5);
     }
     const end = pbp?.Live ? last : len;
