@@ -140,8 +140,9 @@
   .pl .who small{color:var(--muted)}
   .pl .tv{font-weight:700;color:#C9C9CF}
   #topList .row.pl{cursor:pointer}
-  .vin{animation:vin .2s ease-out}                       /* Games ↔ Players: a quick fade-up */
-  @keyframes vin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  /* Games ↔ Players: the old view slides out to one side while the new one slides in from the other (Games is left of Players) */
+  .vslide{transition:transform .24s cubic-bezier(.2,.8,.2,1),opacity .24s ease}
+  .vgone{position:absolute;left:16px;right:16px;pointer-events:none}
   #topList .own{color:var(--orange);font-weight:700}      /* on someone's fantasy team */
   .pick{position:relative;display:block;margin-bottom:12px}                 /* Players tab: All teams / one Euroleague club */
   .pick select{appearance:none;-webkit-appearance:none;width:100%;height:46px;border:1px solid var(--line);border-radius:16px;background:var(--card);
@@ -539,7 +540,7 @@ function renderTop(){
     <div class="row pl" data-code="${esc(p.code)}" role="button" tabindex="0">
       <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
       <div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
-      <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span>${teams.length ? ` · <span class="own">${esc(teams.join(", "))}</span>` : ` · ${esc(p.clubName || "")}`}</small></div>
+      <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span>${teams.length ? ` · <span class="own">${esc(teams.join(", "))}</span>` : ""}</small></div>
       <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${fmtShort(s.f)}</div>
     </div>`).join("");
 }
@@ -703,12 +704,28 @@ addEventListener("elf-msg", e => {                    // inside the app shell: G
   if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); scrollTo({top: 0}); } else scrollTo({top: 0, behavior: "smooth"}); }
 });
 function playersDefault(){ setPTab("watch"); tRound = null; }
+let lastView = null;
+function slideViews(){
+  const inEl = $(view === "games" ? "#vGames" : "#vPlayers"), outEl = $(view === "games" ? "#vPlayers" : "#vGames");
+  if (!lastView || lastView === view){ lastView = view; return; }
+  const dir = view === "players" ? 1 : -1;              // going right in the bar → content comes in from the right
+  lastView = view;
+  // the old view stays on screen (lifted out of the flow) just long enough to slide away
+  outEl.hidden = false; outEl.classList.add("vgone"); outEl.style.top = inEl.offsetTop + "px";
+  for (const [el, x0] of [[inEl, dir * 30], [outEl, 0]]){ el.classList.remove("vslide"); el.style.transform = `translateX(${x0}%)`; el.style.opacity = el === inEl ? "0" : "1"; }
+  void inEl.offsetWidth;
+  for (const el of [inEl, outEl]) el.classList.add("vslide");
+  inEl.style.transform = ""; inEl.style.opacity = "";
+  outEl.style.transform = `translateX(${-dir * 30}%)`; outEl.style.opacity = "0";
+  clearTimeout(slideViews.t);
+  slideViews.t = setTimeout(() => { outEl.hidden = true; outEl.classList.remove("vgone", "vslide"); outEl.style.cssText = ""; inEl.classList.remove("vslide"); }, 260);
+}
 function showView(){
   if (view === "players") playersDefault();
   $("#pageTitle").textContent = view === "games" ? "Games" : "Players";
   $("#vGames").hidden = view !== "games";
   $("#vPlayers").hidden = view !== "players";
-  const shown = $(view === "games" ? "#vGames" : "#vPlayers"); shown.classList.remove("vin"); void shown.offsetWidth; shown.classList.add("vin");
+  slideViews();
   if (typeof render === "function" && round) render(); 
   document.title = `${view === "games" ? "Games" : "Players"} · EL Fantasy`;
   try{ localStorage.setItem("elf.leagueView", view); }catch{}
