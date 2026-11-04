@@ -50,8 +50,15 @@
   .pbtn.more{background:var(--card-2);color:#fff}
   .pbtn.del{background:var(--loss-soft);color:var(--loss)}
   .tg[disabled]{opacity:.35;pointer-events:none}
-  .title{text-align:left;min-width:0;flex:1;padding:0 12px 0 0;transition:opacity .16s ease,transform .16s ease}   /* same header on every screen: title + subtitle on the left */
-  .title.fade{opacity:0;transform:translateY(-2px)}
+  .title{text-align:left;min-width:0;flex:1;padding:0 12px 0 0}   /* same header on every screen: title + subtitle on the left */
+  .fx{transition:opacity .16s ease,transform .16s ease}
+  .fx.fade{opacity:0;transform:translateY(-2px)}                  /* header text dissolves into the next team (the dots stay put) */
+  #metaTxt{display:inline-flex;align-items:center;gap:6px;min-width:0}
+  /* the team's round PIR: big like the title, "PIR" underneath like the subtitle */
+  .hpir{flex:none;text-align:right;margin-right:12px;line-height:1}
+  .hpir b{display:block;font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:normal;color:#fff}
+  .hpir small{display:block;margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3}
+  .hpir.live b{color:var(--orange)}
   .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;justify-content:flex-start;align-items:center;gap:6px;white-space:nowrap}
   .meta b{color:#fff;font-weight:800}
@@ -63,7 +70,7 @@
   .track{position:fixed;inset:0;z-index:1;display:flex;   /* pinned to all screen edges, incl. behind the iPhone home indicator */overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
   .track::-webkit-scrollbar{display:none}
   .slide{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
-  .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(var(--navH, 0px) + 64px)}
+  .page{max-width:480px;margin:0 auto;padding:var(--headH) 16px calc(var(--navH, 0px) + 28px)}
   /* first slide: the league table (Start Round, standings) — tap a team to slide to it */
   .lgs .list{background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
   .lgs .row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
@@ -146,11 +153,11 @@
   .title.lg h1{font-size:20px;letter-spacing:.01em}            /* league table slide: EUROLEAGUE FANTASY fits */
 
   /* dots */
-  .dots{position:fixed;left:50%;bottom:calc(var(--navH, var(--sab, env(safe-area-inset-bottom))) + 10px);transform:translateX(-50%);display:flex;gap:7px;align-items:center;
-        padding:8px 12px;z-index:5}
+  .dots{display:flex;gap:5px;align-items:center;flex:none;margin-right:4px}     /* which page: in the header, left of "Round X" */
 
   .r .add.on{background:var(--card-2);color:var(--win);font-size:16px}
-  .dots button{width:7px;height:7px;border-radius:50%;border:0;background:#FFFFFF4D;cursor:pointer;transition:background .2s;padding:0}   /* every dot a plain circle */
+  .dots button{width:6px;height:6px;border-radius:50%;border:0;background:#FFFFFF4D;cursor:pointer;transition:background .2s;padding:0;position:relative}
+  .dots button::after{content:"";position:absolute;inset:-8px -3px}         /* bigger tap area */   /* every dot a plain circle */
   .dots button.on{background:var(--orange)}
 
   .banner{position:fixed;left:50%;top:calc(76px + var(--sat, env(safe-area-inset-top)));transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;z-index:6;
@@ -300,7 +307,8 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <div class="art" aria-hidden="true"></div>
 <header class="top" id="top">
   <div class="bar">
-    <div class="title" id="title"><h1 id="coachName">&nbsp;</h1><div class="meta" id="meta">Loading…</div></div>
+    <div class="title" id="title"><h1 id="coachName" class="fx">&nbsp;</h1><div class="meta" id="meta"><nav class="dots" id="dots" aria-label="Coaches"></nav><span id="metaTxt" class="fx">Loading…</span></div></div>
+    <div class="hpir fx" id="hPir" hidden><b id="hPirN">0.0</b><small>PIR</small></div>
     <button class="icon-btn" id="editBtn" aria-label="Edit players">✎</button>
   </div>
 </header>
@@ -310,7 +318,6 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
     <div class="list"><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>
   </div></section>
 </div>
-<nav class="dots" id="dots" aria-label="Coaches"></nav>
 <div class="banner" id="banner"><span>Couldn't reach the Euroleague API.</span><button id="retry">Retry</button></div>
 
 <!-- player options (edit mode ⋯): captain / triple captain (one at a time) + bench boost -->
@@ -690,15 +697,15 @@ function renderHeader(){
     $("#coachName").textContent = "Teams";
     document.title = "Teams · EL Fantasy";
     const live = COACHES.some(c => coachTotal(c.name).live);
-    $("#meta").innerHTML = round ? `${live ? '<i class="dot"></i>' : ""}Round ${round}${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}` : "Loading…";
+    $("#metaTxt").innerHTML = round ? `${live ? '<i class="dot"></i>' : ""}Round ${round}${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}` : "Loading…";
+    $("#hPir").hidden = true;
     return;
   }
   $("#coachName").textContent = teamOf(cur);
   document.title = `${teamOf(cur)} · EL Fantasy`;
   const {total, live} = coachTotal(cur);
-  $("#meta").innerHTML = round
-    ? `${live ? '<i class="dot"></i>' : ""}Round ${round} · <b>${fmtShort(total)} PIR</b>${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}`
-    : "Loading…";
+  $("#metaTxt").innerHTML = round ? `${live ? '<i class="dot"></i>' : ""}Round ${round}${DEMO ? ' <span class="demo-pill">DEMO</span>' : ""}` : "Loading…";
+  $("#hPir").hidden = !round; $("#hPirN").textContent = fmtShort(total); $("#hPir").classList.toggle("live", live);
   const wc = chipsOf(cur);
 }
 function render(){
@@ -873,9 +880,9 @@ function setCurrent(n, instant){
   history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
   if (!changed || instant){ renderHeader(); return; }
   // dissolve header text into the new coach while the art stays put
-  const t = $("#title"); t.classList.add("fade");
+  const fx = document.querySelectorAll("#top .fx"); fx.forEach(e => e.classList.add("fade"));
   clearTimeout(fadeT);
-  fadeT = setTimeout(() => { renderHeader(); t.classList.remove("fade"); }, 150);
+  fadeT = setTimeout(() => { renderHeader(); fx.forEach(e => e.classList.remove("fade")); }, 150);
 }
 function updateDots(){
   $("#dots").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.go === cur));
