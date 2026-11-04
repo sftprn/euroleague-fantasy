@@ -107,9 +107,14 @@
   .lgs .start-btn.voted{background:var(--card);border:2px solid var(--orange);color:var(--orange);box-shadow:none}
   .lgs .start-btn:disabled{opacity:.6}
   .lgs .start-note{text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin-top:8px}
-  .lgs .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px}
-  .lgs .seg button{flex:1;height:38px;border:0;border-radius:12px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
-  .lgs .seg button.on{background:var(--orange);color:#fff}
+  /* tab groups: the same see-through glass as the Games round picker, all 44px tall */
+  .lgs .seg{height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);margin-bottom:12px}
+  .lgs .seg button{flex:1;height:36px;border:0;border-radius:13px;background:transparent;color:#FFFFFF99;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .lgs .seg button.on{background:#FFFFFF24;color:#fff}
+  /* Edit: a quiet full-width button at the bottom of every Teams screen */
+  .edit-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;margin-top:16px;border-radius:16px;border:1px solid #FFFFFF22;
+    background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#FFFFFFCC;font:700 14px Inter,system-ui,sans-serif;cursor:pointer}
+  .edit-btn.on{color:#fff;border-color:var(--orange);background:#FF6B1A26}
   /* Teams table: rank · team · ROUND │ TOTAL */
   .lgs .tbl .th{display:flex;align-items:center;gap:14px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--dim);border-bottom:1px solid var(--line)}
   .lgs .tbl .th .who{font-size:10.5px}
@@ -316,7 +321,6 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
       <h1 id="coachName" class="fx">&nbsp;</h1><b class="hpn fx" id="hPirN" hidden>0.0</b>
       <div class="meta" id="meta"><nav class="dots" id="dots" aria-label="Coaches"></nav><span id="metaTxt" class="fx"></span></div><small class="hpl" id="hPirL" hidden>PIR</small>
     </div>
-    <button class="icon-btn" id="editBtn" aria-label="Edit players">✎</button>
   </div>
 </header>
 
@@ -659,9 +663,11 @@ function buildSlides(){
           <a class="row" href="${DIRECT ? "1-league.html" : "/1-league"}?demo=round&new"><div class="who"><b>Start new round</b><small>Round finished, try the Start Round button</small></div><div class="score"><span class="chev">›</span></div></a>
         </div>
       </div>
+      <button class="edit-btn" data-edit type="button"></button>
     </div></section>` : `
     <section class="slide" data-coach="${esc(n)}"><div class="page">
       <div class="list"></div>
+      <button class="edit-btn" data-edit type="button"></button>
     </div></section>`).join("");
   $("#dots").innerHTML = order.map(n => `<button data-go="${esc(n)}" class="${n === WATCH ? "w" : n === LEAGUE ? "l" : ""}" aria-label="${esc(teamOf(n))}"></button>`).join("");
   $("#startBtn").onclick = startVote;
@@ -698,9 +704,11 @@ function renderSlide(n){
 }
 function renderHeader(){
   const lg = cur === LEAGUE;
-  const eb = $("#editBtn"), on = lg ? lgEditing : editing;
-  eb.classList.toggle("on", on); eb.textContent = on ? "✓" : "✎";
-  eb.setAttribute("aria-label", on ? "Done editing" : lg ? "Edit team names and totals" : "Edit players");
+  document.querySelectorAll("[data-edit]").forEach(b => {        // the Edit button at the bottom of each screen
+    const isLg = !!b.closest(".lgs"), on = isLg ? lgEditing : editing;
+    b.classList.toggle("on", on);
+    b.innerHTML = on ? "✓ Done" : isLg ? "✎ Edit names &amp; totals" : "✎ Edit team";
+  });
   if (lg){
     $("#coachName").textContent = "Teams";
     document.title = "Teams · EL Fantasy";
@@ -1068,7 +1076,8 @@ GameSheet.init({games: () => games, people: () => people, owners(){             
 }});
 /* ───────── edit mode: ✕ removes a player, ⋯ opens captain / wild card options ───────── */
 let editing = false, opt = null;               // opt: {n, code} of the player whose options are open
-$("#editBtn").onclick = () => {
+track.addEventListener("click", e => { if (e.target.closest("[data-edit]")) toggleEdit(); });
+function toggleEdit(){
   if (cur === LEAGUE){
     lgEditing = !lgEditing;
     $("#lgList").innerHTML = "";
@@ -1079,7 +1088,7 @@ $("#editBtn").onclick = () => {
   editing = !editing;
   renderHeader();
   render();
-};
+}
 function removePlayer(n, code){
   const i = rosters[n].findIndex(x => x.code === code); if (i < 0) return;
   const [p] = rosters[n].splice(i, 1);

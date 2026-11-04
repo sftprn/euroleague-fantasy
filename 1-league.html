@@ -80,9 +80,9 @@
   .start-btn.voted{background:var(--card);border:2px solid var(--orange);color:var(--orange);box-shadow:none}
   .start-btn:disabled{opacity:.6}
   .start-note{text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin-top:8px}
-  .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px}
-  .seg button{flex:1;height:38px;border:0;border-radius:12px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
-  .seg button.on{background:var(--orange);color:#fff}
+  .seg{height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);margin-bottom:12px}
+  .seg button{flex:1;height:36px;border:0;border-radius:13px;background:transparent;color:#FFFFFF99;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .seg button.on{background:#FFFFFF24;color:#fff}
   /* Teams table: rank · team · ROUND │ TOTAL */
   .tbl .th{display:flex;align-items:center;gap:14px;padding:10px 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--dim);border-bottom:1px solid var(--line)}
   .tbl .th .who{font-size:10.5px}
@@ -158,13 +158,18 @@
   .rnav .rn-now{width:44px;padding:0}                 /* ↺ back to the current round: same glass as the ‹ N › control */
   .rnav button[hidden]{display:none}
   /* ‹ 10 › as one control */
-  .rgrp{display:flex;align-items:center;height:44px;box-sizing:border-box;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-  .rgrp .rn{width:38px;height:42px;min-height:0;max-height:none;border:0;border-radius:14px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
-  .rgrp .rnum{min-width:26px;text-align:center;font:800 17px/1 Inter,system-ui,sans-serif;color:#fff;font-variant-numeric:tabular-nums}
+  /* Games: ‹ Round N › above the list (tap "Round N" to jump back to the current round); same glass and height as the tab groups */
+  .rgrp{height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;margin-bottom:12px}
+  .rgrp[hidden]{display:none}
+  .rgrp button{-webkit-appearance:none;appearance:none;border:0;background:transparent;color:#fff;cursor:pointer;height:36px;border-radius:13px;padding:0}
+  .rgrp .rn{width:44px;font-size:24px;line-height:1;padding-bottom:3px}
+  .rgrp .rn:disabled{opacity:.3;cursor:default}
+  .rgrp .rnum{flex:1;font:700 15px Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  .rgrp .rnum.away{color:#FFFFFFCC}
   /* Players: Watchlist / Top Performers tabs (same switch as Round / Total on Teams) */
-  .seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px}
-  .seg button{flex:1;height:38px;border:0;border-radius:12px;background:transparent;color:var(--muted);font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
-  .seg button.on{background:var(--orange);color:#fff}
+  .seg{height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);margin-bottom:12px}
+  .seg button{flex:1;height:36px;border:0;border-radius:13px;background:transparent;color:#FFFFFF99;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
+  .seg button.on{background:#FFFFFF24;color:#fff}
   /* Watchlist rows look like a team's player list on Teams; "Empty slot" adds a player */
   .wl .gh{display:flex;justify-content:center;align-items:center;gap:6px;padding:11px 14px;background:var(--card-2);font-weight:800;font-size:15px;letter-spacing:.02em}
   .wl .gh span{color:var(--muted);font-weight:700}
@@ -234,11 +239,11 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <div class="art" aria-hidden="true"></div>
 <div class="app" data-slide>
   <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
-    <div class="rnav" id="rnav" hidden><button class="rn-now" id="rNow" hidden aria-label="Back to the current round" title="Current round"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button><div class="rgrp" role="group" aria-label="Round"><button class="rn" id="rPrev" aria-label="Previous round">‹</button><span class="rnum" id="rNum" aria-live="polite"></span><button class="rn" id="rNext" aria-label="Next round">›</button></div></div>
   </div></header>
 
   <!-- Games: this round's games (tap one to open it) — Teams is the team pages' first slide; the bottom bar switches -->
   <div id="vGames" hidden>
+    <div class="rgrp" id="rnav" role="group" aria-label="Round" hidden><button class="rn" id="rPrev" aria-label="Previous round">‹</button><button class="rnum" id="rNum" aria-live="polite" title="Back to the current round"></button><button class="rn" id="rNext" aria-label="Next round">›</button></div>
     <div id="gamesList"><div class="list"><div class="nolive">Loading…</div></div></div>
   </div>
 
@@ -412,10 +417,11 @@ let gRound = null;                                   // null = follow the curren
 const shownRound = () => gRound ?? round;
 const roundSpan = () => games.length ? [Math.min(...games.map(g => g.r)), Math.max(...games.map(g => g.r))] : [1, 1];
 function renderRnav(){
-  const nav = $("#rnav"); nav.hidden = view !== "games" || !round;
+  const nav = $("#rnav"); nav.hidden = !round;
   if (nav.hidden) return;
   const [lo, hi] = roundSpan(), r = shownRound();
-  $("#rPrev").disabled = r <= lo; $("#rNext").disabled = r >= hi; $("#rNow").hidden = r === round; $("#rNum").textContent = r;
+  $("#rPrev").disabled = r <= lo; $("#rNext").disabled = r >= hi;
+  $("#rNum").textContent = `Round ${r}`; $("#rNum").classList.toggle("away", r !== round);
 }
 async function goRound(r){
   const [lo, hi] = roundSpan(); r = Math.max(lo, Math.min(hi, r));
@@ -429,7 +435,7 @@ async function goRound(r){
 }
 $("#rPrev").addEventListener("click", () => goRound(shownRound() - 1));
 $("#rNext").addEventListener("click", () => goRound(shownRound() + 1));
-$("#rNow").addEventListener("click", () => goRound(round));
+$("#rNum").addEventListener("click", () => goRound(round));   // "Round N": back to the current round
 function renderGames(){
   if (!games.length) return;
   const now = Date.now();
