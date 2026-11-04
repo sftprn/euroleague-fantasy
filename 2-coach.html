@@ -79,7 +79,12 @@
   /* like Games / Players: any controls stay put, everything below them scrolls together when it doesn't fit */
   .pscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:12px}
   .pscroll > .list{overflow:clip}                      /* keeps the rounded corners without stopping the sticky headers */
-  .pscroll .gh{position:sticky;top:0;z-index:3}         /* 100% / 50% / 0% stay on top while their group scrolls past */
+  .pscroll .gh{position:sticky;top:0;z-index:3}
+  /* Teams list: Round / Total sits right on top of its scroll area (the 12 px gap is inside it), and its bottom corners
+     go square once the table has scrolled up to it */
+  #lgSeg .seg{margin-bottom:0;transition:border-bottom-left-radius .2s ease,border-bottom-right-radius .2s ease}
+  #lgSeg.stuck .seg{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  #lgScroll{padding-top:12px}         /* 100% / 50% / 0% stay on top while their group scrolls past */
   .page .edit-btn{margin-top:12px}
   /* first slide: the league table (Start Round, standings) — tap a team to slide to it */
   .lgs .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}
@@ -812,6 +817,7 @@ async function bnPost(body, btn){
   finally{ btn.textContent = label; btn.disabled = false; }
 }
 function wireLeagueList(){
+  $("#lgScroll").addEventListener("scroll", () => $("#lgSeg").classList.toggle("stuck", $("#lgScroll").scrollTop >= 12), {passive: true});
   $("#lgSeg").addEventListener("click", e => { const s = e.target.closest("[data-sort]"); if (s){ sortBy = s.dataset.sort; try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{} renderLeague(); } });
   $("#bnSave").onclick = () => bnPost({url: $("#bnUrl").value.trim()}, $("#bnSave"));
   $("#bnRun").onclick = () => bnPost({run: true}, $("#bnRun"));
