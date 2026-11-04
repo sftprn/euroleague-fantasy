@@ -115,9 +115,8 @@
     font:700 14px/1 Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;text-transform:none;white-space:nowrap;overflow:hidden}
   .day-h .lt,.wl .gh .lt,.lh .lt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* one line; cut off with … when it doesn't fit */
   .day-h .lx,.wl .gh .lx,.lh .lx{color:#FFFFFFB3}
-  .day-h .lt{flex:1 1 auto}
-  .day-h > .lx{flex:none}
-  .wl .gh{justify-content:center}
+  .day-h .lt,.wl .gh .lt{flex:1 1 auto}             /* Games days, Watchlist: title on the left, count on the right */
+  .day-h > .lx,.wl .gh > .lx{flex:none}
   .wl .gh svg,.lh img{flex:none}
   .day-h + .lg{border-top:0}
   #gamesList .list + .list{margin-top:12px}
@@ -692,7 +691,7 @@ function renderWatch(){
   rows.sort((a, b) => has(b) - has(a) || (has(a) ? b.s.val - a.s.val : 0) || (a.p.order ?? 0) - (b.p.order ?? 0));
   watchRows = rows;
   const ph = p => `<div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>`;
-  const html = `<div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="lt">Only on this phone <span class="lx">· ${list.length}/${WATCH_MAX}</span></span></div>`
+  const html = `<div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="lt">Only on this phone</span><span class="lx">${list.length}/${WATCH_MAX}</span></div>`
     + rows.map(r => `<div class="p ${r.kind}" data-code="${esc(r.p.code)}" role="button" tabindex="0">
         ${ph(r.p)}
         <div class="who"><b>${esc(r.p.name)}</b><small><span class="tv">${esc(r.p.tv || "")}</span> ${r.sub}</small></div>
