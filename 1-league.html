@@ -166,7 +166,6 @@
   .lh + .row{border-top:0}
   .tune{flex:none;width:32px;height:32px;border-radius:10px;border:1px solid #FFFFFF22;background:#00000059;color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
   .tune:active{background:#FFFFFF24}
-  .tune.set{border-color:var(--orange);color:var(--orange)}
   /* Top Performers settings sheet */
   #tfWrap .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
   #tfWrap .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
@@ -596,9 +595,9 @@ function renderTop(){
   const top = [...seen.values()].filter(x => (!pick || x.p.club === pick) && (free || x.teams.length)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
   // the list's header: what it shows on the left, the settings on the right
   const club = pick ? clubs.get(pick) : null;
-  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">Round ${tr} · ${esc(club ? club.n : "All teams")}`
-    + ` <span class="lx">· ${tr === round && roundLive() ? "Live · " : ""}${free ? "All players" : "Fantasy players only"}</span></span>`
-    + `<button class="tune${pick || !free || tRound != null ? " set" : ""}" data-tune aria-label="Choose what Top Performers shows"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg></button></div>`;
+  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">Round ${tr} · ${esc(club ? club.n : "All Teams")}`
+    + ` <span class="lx">· ${free ? "All Players" : "Fantasy Players"}${tr === round && roundLive() ? " · Live" : ""}</span></span>`
+    + `<button class="tune" data-tune aria-label="Filter Top Performers"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A1 1 0 0 0 18.95 4H5.04c-.83 0-1.3.95-.79 1.61z"/></svg></button></div>`;
   if (!top.length){
     topRows = [];
     $("#topList").innerHTML = head + `<div class="nolive">${topLoading.has(tr) || (!people.length && peopleLoad) ? "Loading…"
