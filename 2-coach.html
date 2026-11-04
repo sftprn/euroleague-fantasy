@@ -77,7 +77,7 @@
   .page{max-width:480px;margin:0 auto;height:100%;box-sizing:border-box;padding:0 16px;display:flex;flex-direction:column}
   .page > *{flex:none}
   /* like Games / Players: any controls stay put, everything below them scrolls together when it doesn't fit */
-  .pscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:12px}
+  .pscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;   /* only up/down: "contain" on both axes stops Android Chrome from passing a sideways swipe on to the team track */-webkit-overflow-scrolling:touch;padding-bottom:12px}
   .pscroll > .list{overflow:clip}                      /* keeps the rounded corners without stopping the sticky headers */
   .pscroll .gh{position:sticky;top:0;z-index:3}
   /* a team's roster: the scroll area is exactly the card's width and has the card's rounded top corners, so whatever is
