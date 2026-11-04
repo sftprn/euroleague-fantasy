@@ -140,6 +140,9 @@
   .pl .who small{color:var(--muted)}
   .pl .tv{font-weight:700;color:#C9C9CF}
   #topList .row.pl{cursor:pointer}
+  .vin{animation:vin .2s ease-out}                       /* Games ↔ Players: a quick fade-up */
+  @keyframes vin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  #topList .own{color:var(--orange);font-weight:700}      /* on someone's fantasy team */
   .pick{position:relative;display:block;margin-bottom:12px}                 /* Players tab: All teams / one Euroleague club */
   .pick select{appearance:none;-webkit-appearance:none;width:100%;height:46px;border:1px solid var(--line);border-radius:16px;background:var(--card);
     color:#fff;font:700 16px Inter,system-ui,sans-serif;padding:0 44px 0 16px;cursor:pointer}
@@ -499,13 +502,22 @@ function renderTop(){
   if (rs._opts !== ropts){ rs.innerHTML = rs._opts = ropts; }
   rs.value = String(tr);
   loadTopRound(tr);
-  COACHES.forEach(c => rosterOf(c.name).forEach(p => {
-    const s = games.length ? playerPir(p, tr) : null;
-    if (!s || !s.played) return;
-    const e = seen.get(p.code);
-    if (e) e.teams.push(teamOf(c)); else seen.set(p.code, {p, s, teams:[teamOf(c)]});
-  }));
-  // club picker: All teams (default) or one Euroleague club → the top 10 among that club's players on fantasy rosters; remembered on this phone
+  // every player who played in that round's games (not only fantasy rosters); a fantasy team that has him shows in orange
+  const own = owners(), pmap = new Map(people.map(x => [x.code, x])), rmap = new Map(COACHES.flatMap(c => rosterOf(c.name)).map(x => [x.code, x]));
+  if (!people.length) ensurePeople();
+  for (const g of games.filter(g => g.r === tr)){
+    const b = box[g.c]; if (!b || b.pending || !b.teams || b.teams.length < 2) continue;
+    b.teams.forEach((t, ti) => {
+      const side = ti === 0 ? g.h : g.a, them = b.teams[1 - ti];
+      for (const [code, st] of Object.entries(t.pl || {})){
+        if (!st || /dnp/i.test(st.min || "")) continue;
+        const who = pmap.get(code) || rmap.get(code); if (!who) continue;
+        const p = {...who, code, club: side.c, tv: side.tv || side.c, clubName: side.n || who.clubName};
+        seen.set(code, {p, s: {f: b.live ? st.pir : adjustPir(st.pir, t.pts > them.pts), live: b.live, played: true}, teams: own.get(code) || []});
+      }
+    });
+  }
+  // club picker: All teams (default) or one Euroleague club → that club's top 10
   const sel = $("#topTeam"), clubs = new Map();
   games.forEach(g => [g.h, g.a].forEach(t => { if (t?.c && !clubs.has(t.c)) clubs.set(t.c, t.n || t.tv || t.c); }));
   const list = [...clubs].sort((a, b) => a[1].localeCompare(b[1]));
@@ -516,11 +528,10 @@ function renderTop(){
   renderWatch();
   const top = [...seen.values()].filter(x => !pick || x.p.club === pick).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
   if (!top.length){
-    const name = esc(clubs.get(pick) || ""), owned = pick && COACHES.some(c => rosterOf(c.name).some(q => q.club === pick));
+    const name = esc(clubs.get(pick) || "");
     topRows = [];
-    $("#topList").innerHTML = `<div class="nolive">${pick && !owned ? `No one has any players from ${name}.`
-      : topLoading.has(tr) ? "Loading…"
-      : pick ? `No ${name} players on anyone's team have played ${tr === round ? "yet this round" : `in round ${tr}`}.` : tr === round ? "No live games yet — the round's top players show up once games start." : `No scores for round ${tr}.`}</div>`;
+    $("#topList").innerHTML = `<div class="nolive">${topLoading.has(tr) || (!people.length && peopleLoad) ? "Loading…"
+      : pick ? `No ${name} players have played ${tr === round ? "yet this round" : `in round ${tr}`}.` : tr === round ? "No live games yet — the round's top players show up once games start." : `No scores for round ${tr}.`}</div>`;
     return;
   }
   topRows = top;
@@ -528,7 +539,7 @@ function renderTop(){
     <div class="row pl" data-code="${esc(p.code)}" role="button" tabindex="0">
       <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
       <div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
-      <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span> · ${esc(teams.join(", "))}</small></div>
+      <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span>${teams.length ? ` · <span class="own">${esc(teams.join(", "))}</span>` : ` · ${esc(p.clubName || "")}`}</small></div>
       <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${fmtShort(s.f)}</div>
     </div>`).join("");
 }
@@ -588,7 +599,11 @@ $("#wList").addEventListener("keydown", e => {
   if (e.target.closest("[data-add]")){ e.preventDefault(); return openFinder(); }
   const r = e.target.closest("[data-code]"); if (r){ e.preventDefault(); openPlayer(r.dataset.code); }
 });
-let people = [];
+let people = [], peopleLoad = null;
+function ensurePeople(){                              // the Euroleague player list (names, photos) for Top Performers / the search
+  if (people.length || peopleLoad) return;
+  peopleLoad = loadPeople().then(v => { people = v || []; }).catch(() => {}).finally(() => { peopleLoad = null; renderTop(); });
+}
 const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 1600); }
 async function openFinder(){
@@ -693,6 +708,7 @@ function showView(){
   $("#pageTitle").textContent = view === "games" ? "Games" : "Players";
   $("#vGames").hidden = view !== "games";
   $("#vPlayers").hidden = view !== "players";
+  const shown = $(view === "games" ? "#vGames" : "#vPlayers"); shown.classList.remove("vin"); void shown.offsetWidth; shown.classList.add("vin");
   if (typeof render === "function" && round) render(); 
   document.title = `${view === "games" ? "Games" : "Players"} · EL Fantasy`;
   try{ localStorage.setItem("elf.leagueView", view); }catch{}
