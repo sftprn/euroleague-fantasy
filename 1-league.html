@@ -694,7 +694,7 @@ async function refresh(){
   timer = setTimeout(refresh, inPlay ? LIVE_POLL : next ? Math.min(IDLE_POLL, Math.max(10_000, next - now + 5_000)) : IDLE_POLL);
 }
 document.addEventListener("visibilitychange", () => document.hidden ? clearTimeout(timer) : refresh());
-addEventListener("elf-show", () => refresh());          // the shell switched back to this section
+addEventListener("elf-show", () => setTimeout(refresh, 250));   // shown again by the shell: refresh once its content has slid in
 
 
 

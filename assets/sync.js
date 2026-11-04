@@ -63,6 +63,6 @@
     flush();
   };
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
-  addEventListener("elf-show", () => poll());               // app shell: this section shown again
+  addEventListener("elf-show", () => setTimeout(poll, 250));   // app shell: shown again (after its content has slid in)
   window.Shared = S;
 })();

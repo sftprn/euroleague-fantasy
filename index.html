@@ -17,12 +17,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#000000;touch-action:manipulation;-webkit-text-size-adjust:100%}
-  iframe{position:fixed;top:0;left:0;width:100%;height:var(--appH, 100%);border:0;display:block;background:transparent;z-index:1}
+  iframe{position:fixed;top:0;left:0;width:100%;height:var(--appH, 100%);border:0;display:block;background:#000;z-index:1}
   /* the background artwork, drawn once here behind both sections (they're see-through), so it never moves when switching */
   .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none;background-color:#000;
        background-image:linear-gradient(180deg,#00000026 0px,#0000008C 140px,#000000E6 230px,#000000 300px), url("/assets/bg.jpg");
        background-size:100% 300px, max(100vw, 520px) auto;background-position:center top, center -30px;background-repeat:no-repeat}
-  iframe.off{visibility:hidden;pointer-events:none;z-index:0}           /* kept loaded (and scrolled where you left it), just not shown */
+  /* the other section stays drawn underneath (sections aren't see-through, so it can't show): bringing it back is just a
+     change of order, with nothing to redraw. Hiding it made iOS stop drawing it and rebuild it (blurs too) on the way back. */
+  iframe.off{pointer-events:none;z-index:0}
   /* switching sections: the new page cross-fades in on top (both have the same artwork in the same place, so the
      background stays still) while each page slides its own content sideways, in the bar's order (embed.js "slide") */
   /* sections switch instantly (same artwork in both, so nothing seems to change but the content, which slides in a little) */

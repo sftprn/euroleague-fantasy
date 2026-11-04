@@ -960,7 +960,7 @@ function schedule(){
   timer = setTimeout(refresh, wait);
 }
 document.addEventListener("visibilitychange", () => document.hidden ? clearTimeout(timer) : refresh());
-addEventListener("elf-show", () => refresh());          // the shell switched back to this section
+addEventListener("elf-show", () => setTimeout(refresh, 250));   // shown again by the shell: refresh once its content has slid in
 
 function currentRound(){         // the league's round (shared, moves on when "Start Round X" is pressed); else latest that has tipped off
   if (!DEMO && Shared.league?.round) return Shared.league.round;
