@@ -81,7 +81,7 @@
     const m = {elf: "insets", top: parseFloat(p.paddingTop) || 0, bottom: parseFloat(p.paddingBottom) || 0};
     post("teams", m); post("league", m);
   }
-  let xfade = 0;
+  let xfade = 0, waitSlid = 0, onSlid = null;
   function show(t){
     const from = tab;
     tab = t;
@@ -92,9 +92,15 @@
     for (const k in frames){ frames[k].classList.remove("top", "enter"); frames[k].style.transform = frames[k].style.opacity = ""; }
     if (prev && f.classList.contains("off")){             // slide: old out to one side, new in from the other
       const dir = TABS.indexOf(t) > TABS.indexOf(from) ? 1 : -1, old = frames[prev];
-      post(sec, {elf: "slide", dir, enter: true});         // the new page's content slides in from that side
-      f.classList.add("top"); f.classList.remove("off");
-      xfade = setTimeout(() => { old.classList.add("off"); f.classList.remove("top"); }, 30);
+      // ask the new page to start its slide, and bring it to the front once it says it has ("slid"; 120 ms at the most),
+      // so its content is never seen sitting still for a moment and then jumping aside to slide in
+      let up = false;
+      const raise = () => { if (up || tab !== t) return; up = true; clearTimeout(waitSlid);
+        f.classList.add("top"); f.classList.remove("off");
+        xfade = setTimeout(() => { old.classList.add("off"); f.classList.remove("top"); }, 30); };
+      onSlid = src => { if (src === f.contentWindow) raise(); };
+      clearTimeout(waitSlid); waitSlid = setTimeout(raise, 120);
+      post(sec, {elf: "slide", dir, enter: true});
     } else for (const k in frames) frames[k].classList.toggle("off", k !== sec);
     for (const k in frames) post(k, {elf: "show", on: k === sec});
     document.getElementById("elfNav")?.classList.remove("cover");
@@ -106,6 +112,7 @@
   }
   addEventListener("message", e => {                      // a section finished loading: give it the safe areas and tell it if it's shown
     if (e.origin !== location.origin) return;
+    if (e.data?.elf === "slid"){ onSlid?.(e.source); return; }   // the section has started its slide: show it
     if (e.data?.elf === "cover"){                         // a bottom sheet opened / closed in the shown section: bar out of the way / back
       const shown = frames[secOf(tab)]; if (!shown || shown.contentWindow === e.source) document.getElementById("elfNav")?.classList.toggle("cover", !!e.data.on);
       return;

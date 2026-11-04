@@ -27,15 +27,18 @@
     if (d.elf === "slide") slide(d.dir, d.enter);
     dispatchEvent(new CustomEvent("elf-msg", {detail: d}));
   });
-  // switching sections: only the content ([data-slide]) moves sideways, a little; the header artwork stays where it is
-  // switching sections: the new page's content slides in a little. Movement only, no fading: a fade would switch the
-  // glass blurs off until it ends (they'd pop in late)
+  // switching sections: the new page's content slides in a little. Movement only, no fading (a fade would switch the
+  // glass blurs off until it ends). The slide starts here first, and only then does the shell bring this page to the
+  // front ("slid"), so the content is never seen in place for a moment before jumping aside to slide in (the jiggle).
   let anim = null;
   function slide(dir, enter){
     if (!enter) return;
-    const el = window.ELF_SLIDE_TARGET?.() || document.querySelector("[data-slide]"); if (!el || !el.animate) return;   // Teams: just the page in view
-    anim?.cancel();
-    anim = el.animate([{transform: `translateX(${dir * 12}px)`}, {transform: "none"}], {duration: 180, easing: "cubic-bezier(.2,.8,.2,1)"});
+    const el = window.ELF_SLIDE_TARGET?.() || document.querySelector("[data-slide]");   // Teams: just the page in view
+    if (el?.animate){
+      anim?.cancel();
+      anim = el.animate([{transform: `translateX(${dir * 12}px)`}, {transform: "none"}], {duration: 180, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards"});
+    }
+    try{ parent.postMessage({elf: "slid"}, location.origin); }catch{}
   }
   try{ parent.postMessage({elf: "ready", page: location.pathname}, location.origin); }catch{}
   // a bottom sheet / the player search is open → ask the shell to move its bar out of the way (it sits above this frame)
