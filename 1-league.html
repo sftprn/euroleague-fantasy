@@ -810,7 +810,7 @@ addEventListener("elf-show", () => setTimeout(refresh, 250));   // shown again b
 
 /* Games / Players / Watchlist (bottom bar; Teams is the team pages) — ?view=games|players|watchlist, else the last one used on this phone */
 const VIEWS = ["games", "players", "watchlist"];
-const VIEW_EL = {games: "#vGames", players: "#vPlayers", watchlist: "#vWatch"}, VIEW_TITLE = {games: "Games", players: "Players", watchlist: "Watchlist"};
+const VIEW_EL = {games: "#vGames", players: "#vPlayers", watchlist: "#vWatch"}, VIEW_TITLE = {games: "Games", players: "Leaderboard", watchlist: "Watchlist"};
 let view = "games";
 try{ const v = new URLSearchParams(location.search).get("view") || localStorage.getItem("elf.leagueView"); if (VIEWS.includes(v)) view = v; }catch{}
 function sizeHeader(){
