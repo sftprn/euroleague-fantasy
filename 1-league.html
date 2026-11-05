@@ -212,6 +212,12 @@
   /* Games: ‹ Round N › above the list (tap "Round N" to jump back to the current round); same glass and height as the tab groups */
   .rgrp{height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;margin-bottom:12px}
   .rgrp[hidden]{display:none}
+  .top .rgrp,.top .seg{flex:none;margin:0 0 0 12px}
+  .top .rgrp .rn{width:34px}
+  .top .rgrp .rnum{flex:none;min-width:58px;padding:0 4px;font-size:14px}
+  .top .seg.ic button{flex:none;width:44px;display:grid;place-items:center;padding:0}
+  .top .seg[hidden]{display:none}
+  .ctrl:empty{display:none}
   .rgrp button{-webkit-appearance:none;appearance:none;border:0;background:transparent;color:#fff;cursor:pointer;height:36px;border-radius:13px;padding:0}
   .rgrp .rn{width:44px;font-size:24px;line-height:1;padding-bottom:3px}
   .rgrp .rn:disabled{opacity:.3;cursor:default}
@@ -287,12 +293,14 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <body>
 <div class="art" aria-hidden="true"></div>
 <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
-</div></header>
-<!-- the screen's controls stay put under the top bar; only the area below them scrolls -->
-<div class="ctrl" id="ctrl">
+  <!-- the screen's controls sit on the right of the top bar: Games ‹ RD 10 ›, Players Watchlist / Top Performers -->
   <div class="rgrp" id="rnav" role="group" aria-label="Round" hidden><button class="rn" id="rPrev" aria-label="Previous round">‹</button><button class="rnum" id="rNum" aria-live="polite" title="Back to the current round"></button><button class="rn" id="rNext" aria-label="Next round">›</button></div>
-  <div class="seg" id="pSeg" hidden role="tablist"><button data-pt="watch" class="on" role="tab">Watchlist</button><button data-pt="top" role="tab">Top Performers</button></div>
-</div>
+  <div class="seg ic" id="pSeg" hidden role="tablist">
+    <button data-pt="watch" class="on" role="tab" aria-label="Watchlist" title="Watchlist"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></button>
+    <button data-pt="top" role="tab" aria-label="Top Performers" title="Top Performers"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg></button>
+  </div>
+</div></header>
+<div class="ctrl" id="ctrl"></div>
 <div class="scroller" id="scroller"><div class="app" data-slide>
 
   <!-- Games: this round's games (tap one to open it) — Teams is the team pages' first slide; the bottom bar switches -->
@@ -488,7 +496,7 @@ function renderRnav(){
   if (nav.hidden) return;
   const [lo, hi] = roundSpan(), r = shownRound();
   $("#rPrev").disabled = r <= lo; $("#rNext").disabled = r >= hi;
-  $("#rNum").textContent = `Round ${r}`; $("#rNum").classList.toggle("away", r !== round);
+  $("#rNum").textContent = `RD ${r}`; $("#rNum").setAttribute("aria-label", `Round ${r}${r !== round ? " — back to the current round" : ""}`); $("#rNum").classList.toggle("away", r !== round);
 }
 async function goRound(r){
   const [lo, hi] = roundSpan(); r = Math.max(lo, Math.min(hi, r));

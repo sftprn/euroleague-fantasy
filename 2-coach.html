@@ -53,16 +53,16 @@
   .fx{transition:opacity .16s ease,transform .16s ease}
   .fx.fade{opacity:0;transform:translateY(-2px)}                  /* header text dissolves into the next team (the dots stay put) */
   #metaTxt{display:inline-flex;align-items:center;gap:6px;min-width:0}
-  /* two rows: team name │ points, then dots │ "PIR" (each pair on one line) */
-  .title{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center}
+  /* one row: team name │ points, as tall as the other pages' top bars (the headline in the middle) */
+  .title{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center;min-height:50px}
   .hpn{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:normal;color:#fff;display:flex;align-items:center;justify-content:flex-end;gap:8px}
   .hpn .dot{width:8px;height:8px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}   /* live: pulsing dot left of the points */
   .hpn.live{color:var(--orange);text-shadow:0 1px 3px #000000CC,0 4px 24px #000,0 6px 48px #000000E6}   /* live orange points: a big, very soft black shadow so they read over the artwork */
-  .hpl{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;text-align:right;min-height:1.3em;display:flex;align-items:center;justify-content:flex-end}
-  .hpn[hidden],.hpl[hidden]{display:none}
+  .hpl{display:none!important}                           /* no "PIR" row any more */
+  .hpn[hidden]{display:none}
   .hpl.appear{animation:hplIn .2s ease-out}            /* "PIR" fades in when a team page first shows it, then stays put between teams */
   @keyframes hplIn{from{opacity:0}to{opacity:1}}
-  #coachName{grid-area:1/1} .hpn{grid-area:1/2} #meta{grid-area:2/1} .hpl{grid-area:2/2}   /* fixed places: the dots stay on row 2 even with no points */
+  #coachName{grid-area:1/1} .hpn{grid-area:1/2}
   .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;justify-content:flex-start;align-items:center;gap:6px;white-space:nowrap;min-height:1.3em}
   .meta b{color:#fff;font-weight:800}
@@ -77,7 +77,7 @@
   .page{max-width:480px;margin:0 auto;height:100%;box-sizing:border-box;padding:0 16px;display:flex;flex-direction:column}
   .page > *{flex:none}
   /* like Games / Players: any controls stay put, everything below them scrolls together when it doesn't fit */
-  .pscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;   /* only up/down: "contain" on both axes stops Android Chrome from passing a sideways swipe on to the team track */-webkit-overflow-scrolling:touch;padding-bottom:12px}
+  .pscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;   /* only up/down: "contain" on both axes stops Android Chrome from passing a sideways swipe on to the team track */-webkit-overflow-scrolling:touch;padding-bottom:56px}
   .pscroll > .list{overflow:clip}                      /* keeps the rounded corners without stopping the sticky headers */
   .pscroll .gh{position:sticky;top:0;z-index:3}
   /* a team's roster: the scroll area is exactly the card's width and has the card's rounded top corners, so whatever is
@@ -85,9 +85,10 @@
   .slide:not([data-coach="league"]) .pscroll{border-radius:16px 16px 0 0;isolation:isolate}
   /* Teams list: Round / Total sits right on top of its scroll area (the 12 px gap is inside it), and its bottom corners
      go square once the table has scrolled up to it */
-  #lgSeg .seg{margin-bottom:0;transition:border-bottom-left-radius .2s ease,border-bottom-right-radius .2s ease}
-  #lgSeg.stuck .seg{border-bottom-left-radius:0;border-bottom-right-radius:0}
-  #lgScroll{padding-top:12px}         /* 100% / 50% / 0% stay on top while their group scrolls past */
+  .lgs .tbl .th{padding-right:6px}
+  .lgs .tbl .th .lt{flex:1 1 auto}
+  .hd-btn{flex:none;height:32px;padding:0 12px;border-radius:10px;border:1px solid #FFFFFF22;background:#00000059;color:#fff;font:700 13px/1 Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+  .hd-btn:active{background:#FFFFFF24}
   .page .edit-btn{margin-top:12px}
   /* first slide: the league table (Start Round, standings) — tap a team to slide to it */
   .lgs .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}
@@ -130,9 +131,6 @@
   .edit-btn.on{color:#fff;border-color:var(--orange);background:#FF6B1A26}
   /* Teams table: rank · team · ROUND │ TOTAL */
   .lgs .tbl .th .who{font:inherit;overflow:hidden;text-overflow:ellipsis}
-  .lgs .tbl .th button{all:unset;cursor:pointer;color:#FFFFFF99;white-space:nowrap}
-  .lgs .tbl .th button.on{color:#fff}
-  .lgs .tbl .th button.on::after{content:" ▾"}
   .lgs .tbl .th + .row{border-top:0}
   .lgs .tbl .row,.lgs .tbl .th{gap:10px}
   .lgs .tbl .who b{font-size:15.5px}
@@ -175,11 +173,14 @@
   .title.lg h1{font-size:20px;letter-spacing:.01em}            /* league table slide: EUROLEAGUE FANTASY fits */
 
   /* dots */
-  .dots{display:flex;gap:5px;align-items:center;flex:none;margin-right:4px}     /* which page: in the header, left of "Round X" */
+  .dotbar{position:fixed;left:50%;bottom:calc(var(--navH, var(--sab, env(safe-area-inset-bottom))) + 10px);transform:translateX(-50%);display:flex;gap:8px;align-items:center;
+          padding:8px 12px;border-radius:999px;background:#000000B3;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #FFFFFF14;z-index:5}
+  .dotbar #metaTxt:empty{display:none}
+  .dots{display:flex;gap:7px;align-items:center;flex:none}
 
   .r .add.on{background:var(--card-2);color:var(--win);font-size:16px}
-  .dots button{width:6px;height:6px;border-radius:50%;border:0;background:#FFFFFF4D;cursor:pointer;transition:background .2s;padding:0;position:relative}
-  .dots button::after{content:"";position:absolute;inset:-8px -3px}         /* bigger tap area */   /* every dot a plain circle */
+  .dots button{width:7px;height:7px;border-radius:50%;border:0;background:#FFFFFF4D;cursor:pointer;transition:background .2s;padding:0;position:relative}
+  .dots button::after{content:"";position:absolute;inset:-10px -4px}         /* bigger tap area */   /* every dot a plain circle */
   .dots button.on{background:var(--orange)}
 
   .banner{position:fixed;left:50%;top:calc(76px + var(--sat, env(safe-area-inset-top)));transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;z-index:6;
@@ -334,11 +335,13 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 </head>
 <body>
 <div class="art" aria-hidden="true"></div>
+<!-- which page: dots in a small glass pill above the bottom bar (tap one to go there) -->
+<div class="dotbar" id="dotbar"><span id="metaTxt"></span><nav class="dots" id="dots" aria-label="Teams"></nav></div>
 <header class="top" id="top">
   <div class="bar">
     <div class="title" id="title">
       <h1 id="coachName" class="fx">&nbsp;</h1><b class="hpn fx" id="hPirN" hidden>0.0</b>
-      <div class="meta" id="meta"><nav class="dots" id="dots" aria-label="Coaches"></nav><span id="metaTxt" class="fx"></span></div><small class="hpl" id="hPirL" hidden>PIR</small>
+<small class="hpl" id="hPirL" hidden>PIR</small>
     </div>
   </div>
 </header>
@@ -665,7 +668,6 @@ function buildSlides(){
   track.innerHTML = order.map(n => n === LEAGUE ? `
     <section class="slide" data-coach="${LEAGUE}"><div class="page lgs">
       <div class="start" id="startWrap" hidden><button class="start-btn" id="startBtn"></button><div class="start-note" id="startNote"></div></div>
-      <div id="lgSeg"></div>
       <div class="pscroll" id="lgScroll">
       <div id="lgList"></div>
       <div id="bnBox" hidden>
@@ -772,7 +774,6 @@ function renderLeague(){
   renderStart();
   if (lgEditing && list.querySelector(".team-input")) return;          // don't redraw under the keyboard
   if (lgEditing){                                                      // edit names and totals-before-this-round in one list
-    setHTML($("#lgSeg"), "");
     list._html = null;                                   // edit mode writes the list itself
     list.innerHTML = `<div class="list tbl">` + rows.map((c, i) => `
     <div class="row editing${i === 0 ? " lead" : ""}">
@@ -783,10 +784,9 @@ function renderLeague(){
     </div>`).join("") + `</div>`;
     return;
   }
-  // Round / Total tabs over one list (the choice is remembered on this phone)
-  const tot = sortBy === "total";
-  setHTML($("#lgSeg"), `<div class="seg" role="tablist"><button data-sort="round" class="${tot ? "" : "on"}" role="tab">Round${round ? " " + round : ""}</button><button data-sort="total" class="${tot ? "on" : ""}" role="tab">Total</button></div>`);
-  setHTML(list, `<div class="list tbl">${rows.map((c, i) => `
+  // the list's header says what it shows; "Show …" on the right switches Round ⇄ Total (remembered on this phone)
+  const tot = sortBy === "total", rd = `Round${round ? " " + round : ""}`;
+  setHTML(list, `<div class="list tbl"><div class="th"><span class="lt">${tot ? "Total" : rd}</span><button class="hd-btn" type="button" data-sort="${tot ? "round" : "total"}">Show ${tot ? rd : "Total"}</button></div>${rows.map((c, i) => `
     <div class="row${i === 0 ? " lead" : ""}" data-team="${esc(c.name)}" role="button" tabindex="0">
       <div class="rank">${i + 1}</div>
       <div class="who"><b>${esc(c.team)}</b></div>
@@ -826,8 +826,7 @@ async function bnPost(body, btn){
   finally{ btn.textContent = label; btn.disabled = false; }
 }
 function wireLeagueList(){
-  $("#lgScroll").addEventListener("scroll", () => $("#lgSeg").classList.toggle("stuck", $("#lgScroll").scrollTop >= 12), {passive: true});
-  $("#lgSeg").addEventListener("click", e => { const s = e.target.closest("[data-sort]"); if (s){ sortBy = s.dataset.sort; try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{} renderLeague(); } });
+  $("#lgList").addEventListener("click", e => { const s = e.target.closest("[data-sort]"); if (s){ e.stopPropagation(); sortBy = s.dataset.sort; try{ localStorage.setItem("elf.teamsSort", sortBy); }catch{} renderLeague(); } }, true);
   $("#bnSave").onclick = () => bnPost({url: $("#bnUrl").value.trim()}, $("#bnSave"));
   $("#bnRun").onclick = () => bnPost({run: true}, $("#bnRun"));
   $("#bnPrev").onclick = () => bnPost({prev: true}, $("#bnPrev"));
