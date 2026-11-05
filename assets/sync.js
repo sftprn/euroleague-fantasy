@@ -7,7 +7,7 @@
   const qs = new URLSearchParams(location.search);
   const enabled = location.protocol !== "file:" && (!qs.has("demo") || !!window.ELF_DEMO);
   const POLL = 2500;
-  const S = {enabled, ready:!enabled, v:null, coaches:{}, league:null, online:true};
+  const S = {enabled, ready:!enabled, v:null, coaches:{}, league:null, settings:{}, online:true};
   const listeners = [];
   let timer = 0, editSeq = 0, inflight = 0, polling = false;
   const queue = {};                         // coach → data still waiting to be saved
@@ -43,7 +43,7 @@
         // ignore answers that started before a local edit (they'd briefly undo it)
         if (seq === editSeq && !inflight && !Object.keys(queue).length){
           const first = !S.ready;
-          S.v = d.v; S.coaches = d.coaches || {}; S.league = d.league || null; S.ready = true; S.online = true;
+          S.v = d.v; S.coaches = d.coaches || {}; S.league = d.league || null; S.settings = d.settings || {}; S.ready = true; S.online = true;
           emit(first);
         }
       } else if (r.status === 204){ S.online = true; }
@@ -60,6 +60,13 @@
     editSeq++;
     S.coaches[coach] = {...(S.coaches[coach] || {}), ...data};
     queue[coach] = {...(queue[coach] || {}), ...data};
+    flush();
+  };
+  S.setSettings = data => {                  // league-wide settings (the Teams headline), saved for everyone
+    if (!enabled) return;
+    editSeq++;
+    S.settings = {...S.settings, ...data};
+    queue._settings = {...(queue._settings || {}), ...data};
     flush();
   };
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });

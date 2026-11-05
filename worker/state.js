@@ -1,5 +1,5 @@
 // Shared league state for everyone who opens the site (Cloudflare Worker + D1).
-// GET  /api/state[?since=<v>]  → {v, coaches:{name:{roster, chips, team, base}}, league:{round, votes, …}}  (204 if nothing changed)
+// GET  /api/state[?since=<v>]  → {v, coaches:{name:{roster, chips, team, base}}, league:{round, votes, …}, settings:{title}}  (204 if nothing changed)
 // POST /api/state {coach, data:{roster?, chips?, team?, base?}}  → updates just those fields of that coach, bumps the version
 // Round voting / banking lives in rounds.js.
 // Needs a D1 database bound as `DB` (see wrangler.jsonc). The table is created on first use, and the
@@ -71,14 +71,15 @@ export async function getState(request, env) {
   const meta = JSON.parse((await env.DB.prepare("SELECT v FROM kv WHERE k = 'meta'").first())?.v || '{"v":"0"}');
   const since = new URL(request.url).searchParams.get("since");
   if (since && since === meta.v) return new Response(null, { status: 204, headers: NO_CACHE });
-  const { results } = await env.DB.prepare("SELECT k, v FROM kv WHERE k LIKE 'coach/%' OR k = 'league'").all();
+  const { results } = await env.DB.prepare("SELECT k, v FROM kv WHERE k LIKE 'coach/%' OR k = 'league' OR k = 'settings'").all();
   const coaches = Object.fromEntries(COACHES.map(n => [n, null]));
-  let league = null;
+  let league = null, settings = {};
   for (const row of results) {
     if (row.k === "league") { league = JSON.parse(row.v); continue; }
+    if (row.k === "settings") { settings = JSON.parse(row.v); continue; }
     const n = row.k.slice(6); if (n in coaches) coaches[n] = JSON.parse(row.v);
   }
-  return json({ v: meta.v, coaches, league });
+  return json({ v: meta.v, coaches, league, settings });
 }
 
 // Each field is written on its own inside the database (json_set), so two saves at the same moment —
@@ -89,8 +90,18 @@ export async function postState(request, env) {
   let body;
   try { body = await request.json(); } catch { return new Response("Bad JSON", { status: 400 }); }
   const coach = body?.coach;
+  const d = body?.data || {};
+  if (coach === "_settings") {                   // league-wide settings: the Teams page headline ("title")
+    const t = str(d.title, 40).trim(), v = newVersion();
+    await env.DB.batch([
+      env.DB.prepare("INSERT OR IGNORE INTO kv (k, v) VALUES ('settings', '{}')"),
+      t ? env.DB.prepare("UPDATE kv SET v = json_set(v, '$.title', ?) WHERE k = 'settings'").bind(t)
+        : env.DB.prepare("UPDATE kv SET v = json_remove(v, '$.title') WHERE k = 'settings'"),
+      env.DB.prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('meta', ?)").bind(JSON.stringify({ v })),
+    ]);
+    return json({ v });
+  }
   if (!COACHES.includes(coach)) return new Response("Unknown coach", { status: 400 });
-  const d = body.data || {};
   const sets = [], args = [], removes = [];
   const roster = cleanRoster(d.roster); if (roster) { sets.push("'$.roster', json(?)"); args.push(JSON.stringify(roster)); }
   const chips = cleanChips(d.chips);    if (chips)  { sets.push("'$.chips', json(?)");  args.push(JSON.stringify(chips)); }

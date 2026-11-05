@@ -223,6 +223,7 @@
   function postState(body){
     const {coach, data} = body || {};
     if (!coach || !data) return json({error: "bad"}, 400);
+    if (coach === "_settings"){ W.state.settings = {...(W.state.settings || {}), ...data}; if (!data.title) delete W.state.settings.title; bump(); return json({ok: true, v: W.state.v}); }
     const d = W.state.coaches[coach] = W.state.coaches[coach] || {};
     for (const k of ["roster", "chips", "team", "base"]) if (k in data){ if (data[k] === "" || data[k] == null) delete d[k]; else d[k] = data[k]; }
     bump();

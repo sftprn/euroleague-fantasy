@@ -63,6 +63,10 @@
   .hpl.appear{animation:hplIn .2s ease-out}            /* "PIR" fades in when a team page first shows it, then stays put between teams */
   @keyframes hplIn{from{opacity:0}to{opacity:1}}
   #coachName{grid-area:1/1} .hpn{grid-area:1/2}
+  /* Teams table screen: the EuroLeague logo in white on the right, on the same light glass as the list headers */
+  .hd-logo{grid-area:1/2;width:44px;height:44px;box-sizing:border-box;border-radius:16px;border:1px solid #FFFFFF22;background:#FFFFFF14;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center}
+  .hd-logo[hidden]{display:none}
+  .hd-logo img{width:30px;height:30px;display:block;filter:brightness(0) invert(1)}
   .title h1{font-size:24px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .meta{margin-top:4px;font-size:13px;font-weight:600;color:#FFFFFFB3;display:flex;justify-content:flex-start;align-items:center;gap:6px;white-space:nowrap;min-height:1.3em}
   .meta b{color:#fff;font-weight:800}
@@ -333,6 +337,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
   <div class="bar">
     <div class="title" id="title">
       <h1 id="coachName" class="fx">&nbsp;</h1><b class="hpn fx" id="hPirN" hidden>0.0</b>
+      <div class="hd-logo" id="hdLogo" hidden><img src="assets/euroleague.svg" alt="EuroLeague"></div>
 <small class="hpl" id="hPirL" hidden>PIR</small>
     </div>
   </div>
@@ -726,12 +731,14 @@ function renderHeader(){
     b.innerHTML = on ? '<span class="ic">✓</span>Done' : '<span class="ic">✎</span>Edit';
   });
   if (lg){
-    $("#coachName").textContent = "Teams";
+    $("#coachName").textContent = pageTitle();
     document.title = "Teams · EL Fantasy";
+    $("#hdLogo").hidden = false;
     $("#metaTxt").innerHTML = DEMO ? '<span class="demo-pill">DEMO</span>' : "";   // just the page dots (the live dot shows next to a team's points only)
     $("#hPirN").hidden = $("#hPirL").hidden = true;
     return;
   }
+  $("#hdLogo").hidden = true;
   $("#coachName").textContent = teamOf(cur);
   document.title = `${teamOf(cur)} · EL Fantasy`;
   const {total, live} = coachTotal(cur);
@@ -751,6 +758,8 @@ function render(){
 }
 
 /* ───────── league table slide (was the League page's Teams tab) ───────── */
+// the headline of this screen (set in Edit, shared with everyone); "Teams" when none is set
+const pageTitle = () => ((Shared.enabled && Shared.ready ? Shared.settings?.title : store.get("elf.title", "")) || "").trim() || "Teams";
 let lgEditing = false, sortBy = "round";
 try{ sortBy = localStorage.getItem("elf.teamsSort") === "total" ? "total" : "round"; }catch{}
 // custom PIR (set by hand in edit mode): Total = custom PIR + this round's PIR
@@ -765,7 +774,10 @@ function renderLeague(){
   if (lgEditing && list.querySelector(".team-input")) return;          // don't redraw under the keyboard
   if (lgEditing){                                                      // edit names and totals-before-this-round in one list
     list._html = null;                                   // edit mode writes the list itself
-    list.innerHTML = `<div class="list tbl">` + rows.map((c, i) => `
+    list.innerHTML = `<div class="sec-t">HEADLINE</div><div class="list"><div class="row editing"><div class="who">
+        <input class="team-input title-input" value="${esc(pageTitle())}" placeholder="Teams" maxlength="40" autocomplete="off" aria-label="Teams page headline">
+        <span class="plus-rd">Shown in the top bar of this page, for everyone</span></div></div></div>
+      <div class="sec-t">TEAMS</div><div class="list tbl">` + rows.map((c, i) => `
     <div class="row editing${i === 0 ? " lead" : ""}">
       <div class="rank">${i + 1}</div>
       <div class="who"><input class="team-input" data-coach="${esc(c.name)}" value="${esc(c.team)}" maxlength="40" autocomplete="off" aria-label="Team name">
@@ -832,6 +844,13 @@ function wireLeagueList(){
     const t = e.target.closest("[data-team]"); if (t && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); goTo(t.dataset.team); }
   });
   list.addEventListener("input", e => {
+    const hl = e.target.closest(".title-input");
+    if (hl){                               // the Teams headline: shows right away, saved for everyone shortly after typing stops
+      const v = hl.value.trim();
+      store.set("elf.title", v); $("#coachName").textContent = v || "Teams";
+      clearTimeout(hl._t); hl._t = setTimeout(() => Shared.setSettings({title: v}), 400);
+      return;
+    }
     const ti = e.target.closest(".team-input");
     if (ti){
       const names = store.get("elf.teams", {}), v = ti.value.trim(), def = COACHES.find(c => c.name === ti.dataset.coach)?.team;
