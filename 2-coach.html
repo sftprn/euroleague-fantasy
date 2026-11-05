@@ -89,7 +89,7 @@
   .hd-btn:active{background:#FFFFFF24}
   .page .edit-btn{margin-top:12px}
   /* first slide: the league table (Start Round, standings) — tap a team to slide to it */
-  .lgs .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;overflow:clip;border:1px solid #FFFFFF22}
+  .lgs .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}
   .lgs .row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
   .lgs .row:first-child{border-top:0}
   .lgs .row:active{background:#1F1F23}
@@ -192,19 +192,17 @@
   .p.wc-card .tv{color:#fff}
 
   /* the single list */
-  .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;overflow:clip;border:1px solid #FFFFFF22}   /* lists: the same see-through glass and corners as the tab groups */
-   /* RULE: every list starts with a header (one 44px line), and the header sticks to the top of the scroll area while
-     its list scrolls past. Lists clip with overflow:clip (not hidden) so sticky works; headers are solid so rows never show through. */
+  .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}   /* lists: the same see-through glass and corners as the tab groups */
   .zone{position:relative}
   .zone.drop{box-shadow:inset 0 0 0 2px var(--orange)}
   /* a team's roster: 100% / 50% / 0% as three separate lists, each with its own header (the outer .list is just a holder) */
   .slide:not([data-coach="league"]) .page > .list{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border:0;border-radius:0;overflow:visible}
-  .slide:not([data-coach="league"]) .zone{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;overflow:clip;border:1px solid #FFFFFF22}
+  .slide:not([data-coach="league"]) .zone{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}
   .slide:not([data-coach="league"]) .zone + .zone{margin-top:12px}
   .slide:not([data-coach="league"]) .zone .gh{border-top:0}
   /* list headers (100% / 50% / 0%, the Teams table — and the same on Games / Players): one height, one type style, one line,
      in the lighter glass of the 1st place on the Teams table */
-  .gh,.lgs .tbl .th{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;height:44px;min-height:44px;box-sizing:border-box;padding:0 16px;background:#1F1F22;border-bottom:1px solid var(--line);
+  .gh,.lgs .tbl .th{display:flex;align-items:center;gap:8px;height:44px;min-height:44px;box-sizing:border-box;padding:0 16px;background:#FFFFFF14;border-bottom:1px solid var(--line);
     font:700 14px/1 Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;text-transform:none;white-space:nowrap;overflow:hidden}
   .gh{justify-content:center;border-top:1px solid var(--line)}
   .gh .lt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* one line; cut off with … when it doesn't fit */
