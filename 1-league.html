@@ -127,9 +127,8 @@
   .lg{flex-direction:column;align-items:stretch;padding:12px 16px;cursor:pointer}
   .lg .mid{display:flex;flex-direction:column;align-items:center;gap:6px}
   .lg .gst{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);min-height:16px}
+  .lg .gst:empty{display:none}
   .lg .gst .s{display:flex;align-items:center;gap:6px;white-space:nowrap}
-  .lg .gst i{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}
-  .lg.live{background:linear-gradient(90deg,#FF6B1A33 0%,#FF6B1A00 100%)}   /* the same live fade as player cards */
   .lg.live .gst .s{color:var(--orange);font-weight:800}
   .lg .gm{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
   /* each side: crest with the name under it, so the whole side's width is there for the name */
@@ -142,8 +141,11 @@
   .lg .sb span{min-width:44px;padding:0 8px;box-sizing:border-box;display:grid;place-items:center;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
   .lg .sb span + span{border-left:1px solid #FFFFFF22}
   .lg .sb span.lose{color:var(--muted);font-weight:700}
-  .lg .sb span.win{background:linear-gradient(135deg,#3DDC8459,#3DDC8426);color:#fff}
-  .lg.live .sb span.win{background:linear-gradient(135deg,#FF6B1A59,#FF6B1A26)}
+  /* the bigger score in a solid colour, and the box's border in the same colour: green once final, orange while live */
+  .lg .sb.w{border-color:var(--win)} .lg .sb.w span + span{border-left-color:var(--win)}
+  .lg .sb span.win{background:var(--win);color:#0B0B0C}
+  .lg.live .sb.w{border-color:var(--orange)} .lg.live .sb.w span + span{border-left-color:var(--orange)}
+  .lg.live .sb span.win{background:var(--orange);color:#fff}
   .lg .sb.vs span{min-width:88px;font-size:14px;font-weight:700;color:var(--muted)}
   .all-games{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;margin-top:10px;border-radius:16px;border:1px solid var(--line);
              background:var(--card);color:#fff;font-weight:700;font-size:15px;text-decoration:none}
@@ -543,10 +545,9 @@ function renderGames(){
     const hw = has && hp > ap, aw = has && ap > hp;            // leader (live) / winner (final)
     const fin = s.k === 3;                                      // the loser's score is dimmed only once it's final
     const side = (t, cls, lose) => `<div class="side ${cls}${lose ? " lose" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}<b>${esc(t.n || t.tv)}</b></div>`;
-    const sb = has ? `<div class="sb"><span class="${hw ? "win" : aw && fin ? "lose" : ""}">${hp}</span><span class="${aw ? "win" : hw && fin ? "lose" : ""}">${ap}</span></div>`
+    const sb = has ? `<div class="sb${hw || aw ? " w" : ""}"><span class="${hw ? "win" : aw && fin ? "lose" : ""}">${hp}</span><span class="${aw ? "win" : hw && fin ? "lose" : ""}">${ap}</span></div>`
                    : `<div class="sb vs"><span>${esc(new Date(g.u).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}))}</span></div>`;
-    const st = s.live ? `<span class="s"><i></i>${esc(clockOf(s.b))}</span>`
-             : `<span class="s">${s.k === 3 ? "Final" : s.k === 1 ? "Starting" : esc(new Date(g.u).toLocaleDateString([], {weekday: "long"}))}</span>`;
+    const st = s.live ? `<span class="s">${esc(clockOf(s.b))}</span>` : s.k === 1 ? `<span class="s">Starting</span>` : "";   // finished / upcoming: nothing under the box
     return `<div class="lg${s.live ? " live" : ""}" data-game="${g.c}" role="button" tabindex="0">
       <div class="gm">${side(g.h, "h", s.k === 3 && aw)}<div class="mid">${sb}<div class="gst">${st}</div></div>${side(g.a, "a", s.k === 3 && hw)}</div></div>`;
   };
