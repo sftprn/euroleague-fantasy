@@ -37,9 +37,6 @@
   .ctrl{position:fixed;left:0;right:0;top:var(--headH, 76px);z-index:3;padding:0 16px}
   .ctrl > *{max-width:448px;margin:0 auto !important}
   .ctrl > [hidden]{display:none !important}
-  /* once the scrolled content reaches the control, its bottom corners go square so the two join up */
-  .ctrl > *{transition:border-bottom-left-radius .2s ease,border-bottom-right-radius .2s ease}
-  .ctrl.stuck > *{border-bottom-left-radius:0;border-bottom-right-radius:0}
   .top .bar{max-width:448px;margin:0 auto;display:flex;align-items:center;min-height:44px}
   .top .title{text-align:left;min-width:0;flex:1;padding:0;min-height:50px;display:flex;flex-direction:column;justify-content:center}   /* as tall as Teams' title + dots; a lone headline sits in the middle */
   .top .meta:empty{display:none}
@@ -824,7 +821,6 @@ function sizeHeader(){
   document.documentElement.style.setProperty("--headH", h + "px");
   document.documentElement.style.setProperty("--listTop", (h + (c ? Math.round(c) : 0)) + "px");
 }
-$("#scroller").addEventListener("scroll", () => $("#ctrl").classList.toggle("stuck", $("#scroller").scrollTop >= 12), {passive: true});
 sizeHeader(); addEventListener("resize", sizeHeader);
 addEventListener("elf-msg", e => {                    // inside the app shell: Games / Players picked in the bar
   const d = e.detail;

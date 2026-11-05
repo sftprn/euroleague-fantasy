@@ -74,17 +74,10 @@
   .track{position:fixed;left:0;right:0;top:var(--headH);bottom:var(--navH, 0px);z-index:1;display:flex;   /* pinned to all screen edges, incl. behind the iPhone home indicator */overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
   .track::-webkit-scrollbar{display:none}
   .slide{flex:0 0 100%;width:100%;height:100%;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always}
-  .page{max-width:480px;margin:0 auto;height:100%;box-sizing:border-box;padding:12px 16px 0;display:flex;flex-direction:column}   /* lists start 12px under the top bar, like Games / Players */
-  .page > *{flex:none}
-  /* like Games / Players: any controls stay put, everything below them scrolls together when it doesn't fit */
-  .pscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;   /* only up/down: "contain" on both axes stops Android Chrome from passing a sideways swipe on to the team track */-webkit-overflow-scrolling:touch;padding-bottom:56px}
-  .pscroll > .list{overflow:clip}                      /* keeps the rounded corners without stopping the sticky headers */
-  .pscroll .gh{position:sticky;top:0;z-index:3}
-  /* a team's roster: the scroll area is exactly the card's width and has the card's rounded top corners, so whatever is
-     at the top while scrolling (the card, or a sticky 100% / 50% / 0% header) keeps the rounded top-left / top-right */
-  .slide:not([data-coach="league"]) .pscroll{border-radius:16px 16px 0 0;isolation:isolate}
-  /* Teams list: Round / Total sits right on top of its scroll area (the 12 px gap is inside it), and its bottom corners
-     go square once the table has scrolled up to it */
+  /* each screen is one scroll area from the top bar to the bottom bar, like Games / Players: everything on it scrolls together */
+  .page{max-width:480px;margin:0 auto;box-sizing:border-box;padding:12px 16px 56px}   /* lists start 12px under the top bar; room at the end to scroll clear of the dots */
+  .pscroll{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}   /* only up/down: "contain" on both axes stops Android Chrome from passing a sideways swipe on to the team track */
+  /* Teams table header: "Round 10" … "Show Total" */
   .lgs .tbl .th{padding-right:6px}
   .lgs .tbl .th .lt{flex:1 1 auto}
   .hd-btn{flex:none;height:32px;padding:0 12px;border-radius:10px;border:1px solid #FFFFFF22;background:#00000059;color:#fff;font:700 13px/1 Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
@@ -204,7 +197,6 @@
   .gh{justify-content:center;border-top:1px solid var(--line)}
   .gh .lt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* one line; cut off with … when it doesn't fit */
   .gh svg{flex:none}
-  .pscroll .gh{background:#222225}   /* sticky: a solid grey of the same shade, so rows scrolling underneath never show through */
   .zone:first-child .gh{border-top:0}
   .zone.z-zero .gh{color:var(--muted)}
 
@@ -666,9 +658,8 @@ const WC_NAMES = {tc:"Triple Captain", bb:"Bench Boost"};
 
 function buildSlides(){
   track.innerHTML = order.map(n => n === LEAGUE ? `
-    <section class="slide" data-coach="${LEAGUE}"><div class="page lgs">
+    <section class="slide" data-coach="${LEAGUE}"><div class="pscroll" id="lgScroll"><div class="page lgs">
       <div class="start" id="startWrap" hidden><button class="start-btn" id="startBtn"></button><div class="start-note" id="startNote"></div></div>
-      <div class="pscroll" id="lgScroll">
       <div id="lgList"></div>
       <div id="bnBox" hidden>
         <div class="sec-t">BASKETNEWS IMPORT</div>
@@ -687,9 +678,8 @@ function buildSlides(){
         </div>
       </div>
       <button class="edit-btn" data-edit type="button"></button>
-      </div>
-    </div></section>` : `
-    <section class="slide" data-coach="${esc(n)}"><div class="page"><div class="pscroll">
+    </div></div></section>` : `
+    <section class="slide" data-coach="${esc(n)}"><div class="pscroll"><div class="page">
       <div class="list"></div>
       <button class="edit-btn" data-edit type="button"></button>
     </div></div></section>`).join("");
