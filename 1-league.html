@@ -156,12 +156,16 @@
   .vgone{position:absolute;left:16px;right:16px;pointer-events:none}
   #topList .own{color:var(--orange);font-weight:700}      /* on someone's fantasy team */
   /* list headers: the same lighter glass as the 1st place on the Teams table */
-  .lh{padding-right:6px}
   .lh .lt{flex:1 1 auto}
   .lh img{width:18px;height:18px;object-fit:contain}
   .lh + .row{border-top:0}
-  .tune{flex:none;width:32px;height:32px;border-radius:10px;border:1px solid #FFFFFF22;background:#00000059;color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
-  .tune:active{background:#FFFFFF24}
+  /* icon buttons on the right of the top bar: the round switcher's glass (Watchlist's add: brand orange) */
+  .hbtn{flex:none;margin-left:12px;width:44px;height:44px;box-sizing:border-box;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+        color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+  .hbtn[hidden]{display:none}
+  .hbtn:active{transform:scale(.95)}
+  .hbtn.add{background:var(--orange);border-color:var(--orange)}
+  .hbtn:disabled{opacity:.35;cursor:default}
   /* Top Performers settings sheet */
   #tfWrap .scrim{position:fixed;inset:0;background:#000000A6;opacity:0;pointer-events:none;transition:.2s;z-index:10}
   #tfWrap .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:480px;background:var(--bg);border:1px solid var(--line);border-bottom:0;
@@ -288,7 +292,9 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <body>
 <div class="art" aria-hidden="true"></div>
 <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
-  <!-- Games: ‹ RD 10 › on the right of the top bar -->
+  <!-- on the right of the top bar: Games ‹ RD 10 ›, Players filter, Watchlist add -->
+  <button class="hbtn" id="topFilter" type="button" aria-label="Filter Top Performers" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A1 1 0 0 0 18.95 4H5.04c-.83 0-1.3.95-.79 1.61z"/></svg></button>
+  <button class="hbtn add" id="wAddBtn" type="button" aria-label="Add players to your watchlist" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
   <div class="rgrp" id="rnav" role="group" aria-label="Round" hidden><button class="rn" id="rPrev" aria-label="Previous round">‹</button><button class="rnum" id="rNum" aria-live="polite" title="Back to the current round"></button><button class="rn" id="rNext" aria-label="Next round">›</button></div>
 </div></header>
 <div class="ctrl" id="ctrl"></div>
@@ -591,11 +597,10 @@ function renderTop(){
   renderWatch();
   if ($("#tfWrap").classList.contains("open")) renderTopSheet();
   const top = [...seen.values()].filter(x => (!pick || x.p.club === pick) && (free || x.teams.length)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
-  // the list's header: what it shows on the left, the settings on the right
+  // the list's header: what it shows (the filter button is in the top bar)
   const club = pick ? clubs.get(pick) : null;
   const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">Round ${tr} · ${esc(club ? club.n : "All Teams")}`
-    + ` <span class="lx">· ${free ? "All Players" : "Fantasy Players"}${tr === round && roundLive() ? " · Live" : ""}</span></span>`
-    + `<button class="tune" data-tune aria-label="Filter Top Performers"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A1 1 0 0 0 18.95 4H5.04c-.83 0-1.3.95-.79 1.61z"/></svg></button></div>`;
+    + ` <span class="lx">· ${free ? "All Players" : "Fantasy Players"}${tr === round && roundLive() ? " · Live" : ""}</span></span></div>`;
   if (!top.length){
     topRows = [];
     $("#topList").innerHTML = head + `<div class="nolive">${topLoading.has(tr) || (!people.length && peopleLoad) ? "Loading…"
@@ -644,7 +649,7 @@ tfWrap.addEventListener("click", e => {
   if (c){ topPick = c.dataset.club; renderTop(); renderTopSheet(); return; }
   if (e.target.closest("#tfFree")){ store.set("elf.topFree", !topFree()); renderTop(); renderTopSheet(); }
 });
-$("#topList").addEventListener("click", e => { if (e.target.closest("[data-tune]")){ e.stopPropagation(); openTopSheet(); } }, true);
+$("#topFilter").addEventListener("click", openTopSheet);
 { // swipe the sheet down to close: from its grab bar / header, or anywhere once its content is at the top
   const sh = tfWrap.querySelector(".sheet");
   SheetDrag.attach(sh, closeTopSheet);
@@ -696,12 +701,14 @@ function renderWatch(){
         <div class="who"><b>${esc(r.p.name)}</b><small><span class="tv">${esc(r.p.tv || "")}</span> ${r.sub}</small></div>
         <div class="val">${has(r) && !r.s.dnp ? fmtShort(r.s.val) : "–"}</div>
       </div>`).join("")
-    + (list.length < WATCH_MAX ? `<div class="p empty" data-add role="button" tabindex="0"><div class="ph">+</div><div class="who"><b>Empty slot</b></div></div>` : "");
+    + (list.length ? "" : `<div class="nolive">No players yet. Tap + at the top to add some.</div>`);
+  $("#wAddBtn").disabled = list.length >= WATCH_MAX;
   if ($("#wList")._html !== html) $("#wList").innerHTML = $("#wList")._html = html;
 }
 function setPTab(t){ pTab = t; }
 addEventListener("elf-watch", () => { renderWatch(); refresh(); });          // star in the player sheet
 addEventListener("storage", e => { if (e.key === "elf.watch"){ renderWatch(); refresh(); } });   // starred on the Teams page
+$("#wAddBtn").addEventListener("click", () => openFinder());
 $("#wList").addEventListener("click", e => {
   if (e.target.closest("[data-add]")) return openFinder();
   const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code);
@@ -832,7 +839,8 @@ function showView(){
   setPTab(view === "watchlist" ? "watch" : "top");
   $("#pageTitle").textContent = VIEW_TITLE[view];
   for (const k of VIEWS) $(VIEW_EL[k]).hidden = k !== view;
-  $("#rnav").hidden = view !== "games" || !round; sizeHeader();
+  $("#rnav").hidden = view !== "games" || !round;
+  $("#topFilter").hidden = view !== "players"; $("#wAddBtn").hidden = view !== "watchlist"; sizeHeader();
   slideViews();
   if (typeof render === "function" && round) render(); 
   document.title = `${VIEW_TITLE[view]} · EL Fantasy`;
