@@ -726,8 +726,12 @@ function ensurePeople(){                              // the Euroleague player l
 const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 1600); }
 async function openFinder(){
-  $("#finder").classList.add("open"); $("#q").value = ""; renderResults();
-  setTimeout(() => $("#q").focus(), 260);
+  $("#finder").classList.add("open");
+  // focus right away, inside the tap itself: iPhone only opens the keyboard for a focus that happens during the tap
+  // (the old delayed focus left the field unfocused there); the sheet is already visible as it starts sliding in
+  const q = $("#q"); q.value = ""; q.focus({preventScroll: true});
+  setTimeout(() => { if (document.activeElement !== q) q.focus({preventScroll: true}); }, 260);   // fallback once it's in place
+  renderResults();
   if (!people.length){ try{ people = await loadPeople(); }catch{} renderResults(); }
 }
 function closeFinder(){ $("#finder").classList.remove("open"); $("#q").blur(); renderTop(); }

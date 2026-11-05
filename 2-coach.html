@@ -1164,8 +1164,11 @@ function openFinder(n, slot){
   if (!slot){ toast("Roster is full (13/13)"); return; }
   target = {n, slot};
   finder.classList.add("open");
+  // focus right away, inside the tap itself: iPhone only opens the keyboard for a focus that happens during the tap
+  // (the old delayed focus left the field unfocused there); the sheet is already visible as it starts sliding in
+  const q = $("#q"); q.value = ""; q.focus({preventScroll: true});
+  setTimeout(() => { if (document.activeElement !== q) q.focus({preventScroll: true}); }, 260);   // fallback once it's in place
   renderResults();
-  setTimeout(() => $("#q").focus(), 260);
 }
 function closeFinder(){
   finder.classList.remove("open");
