@@ -49,15 +49,17 @@
   .pbtn.more{background:var(--card-2);color:#fff}
   .pbtn.del{background:var(--loss-soft);color:var(--loss)}
   .tg[disabled]{opacity:.35;pointer-events:none}
-  .title{text-align:left;min-width:0;flex:1;padding:0 12px 0 0}   /* same header on every screen: title + subtitle on the left */
+  .title{text-align:left;min-width:0;flex:1;padding:0}   /* right edge lines up with the lists below */   /* same header on every screen: title + subtitle on the left */
   .fx{transition:opacity .16s ease,transform .16s ease}
   .fx.fade{opacity:0;transform:translateY(-2px)}                  /* header text dissolves into the next team (the dots stay put) */
   #metaTxt{display:inline-flex;align-items:center;gap:6px;min-width:0}
   /* one row: team name │ points, as tall as the other pages' top bars (the headline in the middle) */
   .title{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center;min-height:50px}
-  .hpn{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:normal;color:#fff;display:flex;align-items:center;justify-content:flex-end;gap:8px}
+  /* a team's points: in the same light glass box as the EuroLeague logo; live → orange border and number */
+  .hpn{height:44px;box-sizing:border-box;padding:0 12px;border-radius:16px;border:1px solid #FFFFFF22;background:#FFFFFF14;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+       font-size:20px;font-weight:800;letter-spacing:-.01em;line-height:1;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-variant-numeric:tabular-nums;transition:border-color .2s,color .2s}
   .hpn .dot{width:8px;height:8px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}   /* live: pulsing dot left of the points */
-  .hpn.live{color:var(--orange);text-shadow:0 1px 3px #000000CC,0 4px 24px #000,0 6px 48px #000000E6}   /* live orange points: a big, very soft black shadow so they read over the artwork */
+  .hpn.live{color:var(--orange);border-color:var(--orange)}
   .hpl{display:none!important}                           /* no "PIR" row any more */
   .hpn[hidden]{display:none}
   .hpl.appear{animation:hplIn .2s ease-out}            /* "PIR" fades in when a team page first shows it, then stays put between teams */
@@ -82,7 +84,7 @@
   .page{max-width:480px;margin:0 auto;box-sizing:border-box;padding:12px 16px 56px}   /* lists start 12px under the top bar; room at the end to scroll clear of the dots */
   .pscroll{height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}   /* only up/down: "contain" on both axes stops Android Chrome from passing a sideways swipe on to the team track */
   /* Teams table header: "Round 10" … "Show Total" */
-  .lgs .tbl .th{padding-right:6px}
+  .lgs .list.tbl .th{padding-right:6px}            /* "Show …" sits 6px from the edge, like the filter button on Players */
   .lgs .tbl .th .lt{flex:1 1 auto}
   .hd-btn{flex:none;height:32px;padding:0 12px;border-radius:10px;border:1px solid #FFFFFF22;background:#00000059;color:#fff;font:700 13px/1 Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
   .hd-btn:active{background:#FFFFFF24}
