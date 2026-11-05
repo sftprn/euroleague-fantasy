@@ -577,7 +577,7 @@ async function loadBox(g){
   const b = {live: !!d.Live, final: !d.Live && tot > 0, pending: !d.Live && tot === 0, teams};
   if (DEMO){ Object.assign(b, {live:true, final:false, pending:false, q:"4", t:"03:21"}); }
   else if (b.live){
-    try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${g.c}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = h?.RemainingPartialTime; }catch{}
+    try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${g.c}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = (v => /^\d{1,2}:\d{2}$/.test(String(v ?? "").trim()) ? String(v).trim() : null)(h?.RemainingPartialTime); /* game clock "MM:SS" only: the feed sometimes sends "??.?", which then shows no clock */ }catch{}
   }
   if (b.final){ const v = ElData.stamp(c, b); store.set(key, v); return v; }
   return b;

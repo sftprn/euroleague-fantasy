@@ -94,7 +94,7 @@
       const tot = teams[0].pts + teams[1].pts;
       const b = {live: !!d.Live, final: !d.Live && tot > 0, pending: !d.Live && tot === 0, teams};
       if (b.live){
-        try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${gc}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = h?.RemainingPartialTime; }catch{}
+        try{ const h = await getJSON(`${LIVE_API}/Header?gamecode=${gc}&seasoncode=${SEASON}`); b.q = h?.Quarter; b.t = (v => /^\d{1,2}:\d{2}$/.test(String(v ?? "").trim()) ? String(v).trim() : null)(h?.RemainingPartialTime); /* game clock "MM:SS" only: the feed sometimes sends "??.?", which then shows no clock */ }catch{}
       }
       if (b.final) store.set(key, stamp(c, pack(b)));
       return b;
