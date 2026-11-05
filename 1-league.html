@@ -133,7 +133,7 @@
   .lg .st i{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}
   .nolive{padding:22px 16px;text-align:center;color:var(--muted);font-size:14px}
   .lg .st{color:var(--muted);font-weight:700}
-  .lg.live{background:linear-gradient(90deg,#FF6B1A1A,transparent 70%)}
+  .lg.live{background:linear-gradient(90deg,#FF6B1A33 0%,#FF6B1A00 100%)}   /* the same live fade as player cards */
   .lg.live .st{color:var(--orange);font-weight:800}
   .lg .st .fan{display:block;font-size:11px;color:var(--orange);font-weight:700;margin-top:3px;letter-spacing:0}
   .lg .st{flex-direction:column;align-items:flex-end;justify-content:center;gap:0}
@@ -150,7 +150,10 @@
   .base-input{width:104px;height:42px;border:1.5px solid var(--line);border-radius:16px;background:var(--card-2);color:#fff;
               font:800 18px Inter,system-ui,sans-serif;padding:0 12px;text-align:right;flex:none}
   .base-input:focus{outline:none;border-color:var(--orange)}
-  .pl .ph{width:38px;height:38px;border-radius:50%;background:var(--card-2);flex:none;overflow:hidden;position:relative;display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--muted)}
+  .pl .ph{width:46px;height:46px;border-radius:50%;background:var(--card-2);flex:none;overflow:hidden;position:relative;display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--muted)}
+  #topList .row.pl{padding:12px 16px;gap:12px}
+  #topList .who b{display:block;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #topList .who small{display:block;margin-top:3px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pl .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
   .pl .who small{color:var(--muted)}
   .pl .tv{font-weight:700;color:#C9C9CF}
@@ -242,11 +245,13 @@
   .wl .who b{font-size:15px}
   .wl .who small{margin-top:3px;display:flex;align-items:center;gap:6px}
   .wl .tv{font-weight:700;color:#C9C9CF}
-  .wl .val{min-width:56px;text-align:right;font-size:20px;font-weight:800;flex:none}
+  /* player cards (same on Teams, Players, Watchlist): 70px tall, 46px round photo, 20px PIR; live → soft orange fade, orange PIR with a pulsing dot */
+  .wl .val,#topList .val{min-width:56px;text-align:right;font-size:20px;font-weight:800;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:8px}
   .wl .p.up .val,.wl .p.soon .val,.wl .p.none .val{color:var(--dim);font-weight:700}
-  .wl .p.live{background:linear-gradient(90deg,#FF6B1A1F,transparent 75%)}
-  .wl .p.live::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--orange)}
-  .wl .p.live .val{color:var(--orange)}
+  .wl .p.live,#topList .row.pl.live{background:linear-gradient(90deg,#FF6B1A33 0%,#FF6B1A00 100%)}
+  #topList .row.pl{position:relative}
+  .wl .p.live::before,#topList .row.pl.live::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--orange)}
+  .wl .p.live .val,#topList .row.pl.live .val{color:var(--orange)}
   .wl .p.empty .ph{background:transparent;border:1.5px dashed #46464D;color:var(--orange);font-size:22px;font-weight:500}
   .wl .p.empty .who b{color:var(--dim);font-weight:600}
   .wl .sc{font-weight:700;color:#fff} .wl .sc.ahead{color:var(--win)} .wl .sc.behind{color:var(--loss)} .wl .sc.fin{font-weight:600}
@@ -617,11 +622,11 @@ function renderTop(){
   }
   topRows = top;
   $("#topList").innerHTML = head + top.map(({p, s, teams}, i) => `
-    <div class="row pl" data-code="${esc(p.code)}" role="button" tabindex="0">
+    <div class="row pl${s.live ? " live" : ""}" data-code="${esc(p.code)}" role="button" tabindex="0">
       <div class="rank"${i === 0 ? ' style="color:var(--orange)"' : ""}>${i + 1}</div>
       <div class="phw"><div class="ph">${esc((p.name || "").split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>${s.on ? '<i class="oc" title="On court"></i>' : ""}</div>
       <div class="who"><b>${esc(p.name)}</b><small><span class="tv">${esc(p.tv || "")}</span>${teams.length ? ` · <span class="own">${esc(teams.join(", "))}</span>` : ""}</small></div>
-      <div class="score">${s.live ? '<i class="live-dot"></i>' : ""}${fmtShort(s.f)}</div>
+      <div class="val">${s.live ? '<i class="live-dot"></i>' : ""}${fmtShort(s.f)}</div>
     </div>`).join("");
 }
 
@@ -705,7 +710,7 @@ function renderWatch(){
     + rows.map(r => `<div class="p ${r.kind}" data-code="${esc(r.p.code)}" role="button" tabindex="0">
         <div class="phw">${ph(r.p)}${r.s.on ? '<i class="oc" title="On court"></i>' : ""}</div>
         <div class="who"><b>${esc(r.p.name)}</b><small><span class="tv">${esc(r.p.tv || "")}</span> ${r.sub}</small></div>
-        <div class="val">${has(r) && !r.s.dnp ? fmtShort(r.s.val) : "–"}</div>
+        <div class="val">${r.kind === "live" ? '<i class="live-dot"></i>' : ""}${has(r) && !r.s.dnp ? fmtShort(r.s.val) : "–"}</div>
       </div>`).join("")
     + (list.length ? "" : `<div class="nolive">No players yet. Tap + at the top to add some.</div>`);
   $("#wAddBtn").disabled = list.length >= WATCH_MAX;

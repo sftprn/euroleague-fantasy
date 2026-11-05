@@ -233,13 +233,15 @@
   .res.inj[data-s="1"]{--c:#3DDC84} .res.inj[data-s="2"]{--c:#2EC4C4} .res.inj[data-s="3"]{--c:#5AA2FF} .res.inj[data-s="4"]{--c:#FFC247}
   .res.inj[data-s="5"]{--c:#FF8C69} .res.inj[data-s="6"]{--c:#FF5A4E}
   .p.benched .val{color:var(--dim);font-weight:700}
-  .val{min-width:56px;text-align:right;font-size:20px;font-weight:800}
+  /* player cards (same on Teams, Players, Watchlist): 70px tall, 46px round photo, 20px PIR; live → soft orange fade, orange PIR with a pulsing dot */
+  .val{min-width:56px;text-align:right;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:none}
+  .val .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}
   .p.up .val,.p.soon .val,.p.none .val{color:var(--dim);font-weight:700}
   .z-zero .p .val{color:var(--dim)}
   .val.struck{text-decoration:line-through;text-decoration-thickness:2px;color:var(--dim)!important}   /* 0% group: full PIR shown, not counted */
   .z-zero .p .phw,.z-zero .p .who{opacity:.7}
 
-  .p.live{background:linear-gradient(90deg,#FF6B1A4D 0%,#FF6B1A1F 100%)}   /* playing now: a clearly orange card */
+  .p.live{background:linear-gradient(90deg,#FF6B1A33 0%,#FF6B1A00 100%)}   /* his team is playing: orange fading out to the right */
   .p.live::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--orange)}
   .p.live .val{color:var(--orange)}
   .lchip{display:inline-flex;align-items:center;gap:4px;background:var(--orange);color:#fff;font-size:10.5px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.03em}
@@ -647,7 +649,7 @@ function rowHTML({p, i, s}, n){
     <div class="phw">${photo(p)}${capt}${s.on ? '<i class="oc" title="On court"></i>' : ""}</div>
     <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
     ${editing ? `<div class="pbtns">${n === WATCH ? "" : `<button class="pbtn more" data-opt="${i}" aria-label="Captain and wild cards">⋯</button>`}<button class="pbtn del" data-del="${i}" aria-label="Remove ${esc(p.name)}">✕</button></div>`
-              : `<div class="val${has && p.slot === "zero" ? " struck" : ""}">${has ? fmtShort(s.shown) : "–"}</div>`}
+              : `<div class="val${has && p.slot === "zero" ? " struck" : ""}">${s.kind === "live" ? '<i class="live-dot"></i>' : ""}${has ? fmtShort(s.shown) : "–"}</div>`}
   </div>`;
 }
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
