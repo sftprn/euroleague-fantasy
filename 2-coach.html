@@ -195,6 +195,11 @@
   .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}   /* lists: the same see-through glass and corners as the tab groups */
   .zone{position:relative}
   .zone.drop{box-shadow:inset 0 0 0 2px var(--orange)}
+  /* a team's roster: 100% / 50% / 0% as three separate lists, each with its own header (the outer .list is just a holder) */
+  .slide:not([data-coach="league"]) .page > .list{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border:0;border-radius:0;overflow:visible}
+  .slide:not([data-coach="league"]) .zone{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}
+  .slide:not([data-coach="league"]) .zone + .zone{margin-top:12px}
+  .slide:not([data-coach="league"]) .zone .gh{border-top:0}
   /* list headers (100% / 50% / 0%, the Teams table — and the same on Games / Players): one height, one type style, one line,
      in the lighter glass of the 1st place on the Teams table */
   .gh,.lgs .tbl .th{display:flex;align-items:center;gap:8px;height:44px;min-height:44px;box-sizing:border-box;padding:0 16px;background:#FFFFFF14;border-bottom:1px solid var(--line);
