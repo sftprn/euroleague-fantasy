@@ -724,7 +724,7 @@ function renderWatch(){
         <div class="who"><b>${esc(r.p.name)}</b><small><span class="tv">${esc(r.p.tv || "")}</span> ${r.sub}</small></div>
         <div class="val">${r.kind === "live" ? '<i class="live-dot"></i>' : ""}${has(r) && !r.s.dnp ? fmtShort(r.s.val) : "–"}</div>
       </div>`).join("")
-    + (list.length ? "" : `<div class="nolive">No players yet. Tap + at the top to add some.</div>`);
+    + (list.length ? "" : `<div class="p empty" data-add role="button" tabindex="0"><div class="ph">+</div><div class="who"><b>Empty slot</b></div></div>`);   // empty Watchlist: the tap-to-add slot
   $("#wAddBtn").disabled = list.length >= WATCH_MAX;
   if ($("#wList")._html !== html) $("#wList").innerHTML = $("#wList")._html = html;
 }
