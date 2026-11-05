@@ -116,7 +116,8 @@
     font:700 14px/1 Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;text-transform:none;white-space:nowrap;overflow:hidden}
   .day-h .lt,.wl .gh .lt,.lh .lt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* one line; cut off with … when it doesn't fit */
   .day-h .lx,.wl .gh .lx,.lh .lx{color:#FFFFFFB3}
-  .day-h .lt,.wl .gh .lt{flex:1 1 auto}             /* Games days, Watchlist: title on the left, count on the right */
+  .wl .gh .lt{flex:1 1 auto}
+  .day-h{justify-content:center}                    /* Games: the day, centred */             /* Games days, Watchlist: title on the left, count on the right */
   .day-h > .lx,.wl .gh > .lx,.lh > .lx{flex:none}
   .wl .gh svg,.lh img{flex:none}
   .day-h + .lg{border-top:0}
@@ -126,8 +127,7 @@
      — like euroleaguebasketball.net */
   .lg{flex-direction:column;align-items:stretch;padding:12px 16px;cursor:pointer}
   .lg .mid{display:flex;flex-direction:column;align-items:center;gap:6px}
-  .lg .gst{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);min-height:16px}
-  .lg .gst:empty{display:none}
+  .lg .gst{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);height:16px}   /* always there (empty when there's nothing to say), so every card is the same height */
   .lg .gst .s{display:flex;align-items:center;gap:6px;white-space:nowrap}
   .lg.live .gst .s{color:var(--orange);font-weight:800}
   .lg .gm{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
@@ -548,7 +548,7 @@ function renderGames(){
     const fin = s.k === 3;                                      // the loser's score is dimmed only once it's final
     const side = (t, cls, lose) => `<div class="side ${cls}${lose ? " lose" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}<b>${esc(t.n || t.tv)}</b></div>`;
     const sb = has ? `<div class="sb${hw || aw ? " w" : ""}"><span class="${hw ? "win" : aw && fin ? "lose" : ""}">${hp}</span><span class="${aw ? "win" : hw && fin ? "lose" : ""}">${ap}</span></div>`
-                   : `<div class="sb vs"><span>${esc(new Date(g.u).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}))}</span></div>`;
+                   : `<div class="sb vs"><span>${esc(new Date(g.u).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", hourCycle: "h23"}))}</span></div>`;
     const st = s.live ? `<span class="s">${esc(clockOf(s.b))}</span>` : s.k === 1 ? `<span class="s">Starting</span>` : "";   // finished / upcoming: nothing under the box
     return `<div class="lg${s.live ? " live" : ""}" data-game="${g.c}" role="button" tabindex="0">
       <div class="gm">${side(g.h, "h", s.k === 3 && aw)}<div class="mid">${sb}<div class="gst">${st}</div></div>${side(g.a, "a", s.k === 3 && hw)}</div></div>`;
@@ -557,12 +557,11 @@ function renderGames(){
   const dayKey = u => { const d = new Date(u); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const dayDone = k => rg.filter(x => dayKey(x.g.u) === k).every(x => x.s.k === 3);     // every game that day final
   const days = [...new Set(rg.map(x => dayKey(x.g.u)))].sort((a, b) => dayDone(a) - dayDone(b) || a.localeCompare(b));   // finished days go to the bottom
-  const html = days.length < 2 ? `<div class="list">${rg.map(row).join("")}</div>`
-    : days.map(k => { const list = rg.filter(x => dayKey(x.g.u) === k);
-        return `<div class="list"><div class="day-h"><span class="lt">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}))}</span><span class="lx">${list.length} game${list.length === 1 ? "" : "s"}</span></div>${list.map(row).join("")}</div>`; }).join("");
+  const html = days.map(k => { const list = rg.filter(x => dayKey(x.g.u) === k);
+        return `<div class="list"><div class="day-h"><span class="lt">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long", year: "numeric"}))}</span></div>${list.map(row).join("")}</div>`; }).join("");
   if ($("#gamesList")._html !== html) $("#gamesList").innerHTML = $("#gamesList")._html = html;
 }
-const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
+const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23"});
 
 /* game sheet (assets/game-sheet.js): tap a game in the Games tab, or the score box in a player sheet */
 const loadPeople = () => cached(`elf.people.${SEASON}`, 12 * 3600e3, async () => {     // same list + cache as the coach page

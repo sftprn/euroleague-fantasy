@@ -99,7 +99,7 @@ border:2px solid #FFFFFF33}
   let wrap, gOpen = null, gView = null, gSort = {k: "pir", dir: -1}, peopleMap = null, gSeq = 0;
   const $ = s => wrap.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-  const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
+  const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23"});
   const clockOf = b => { const q = String(b.q || "").replace(/\D/g, ""); return (q ? (+q > 4 ? "OT" : "Q" + q) : "LIVE") + (b.t && b.t !== "00:00" ? " " + String(b.t).replace(/^0/, "") : ""); };
   const sign = v => v > 0 ? "+" + v : String(v);
   const shortName = n => { const w = String(n || "").split(" "); return w.length > 1 ? `${w[0][0]}. ${w.slice(1).join(" ")}` : n; };

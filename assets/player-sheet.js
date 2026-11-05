@@ -232,7 +232,7 @@
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const r1 = v => Math.round(v * 100) / 100;
   const fmtFull = v => r1(v).toFixed(2);
-  const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
+  const when = u => new Date(u).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23"});
   const pct = (m, a) => a ? Math.round(m / a * 100) + "%" : "–";
   const sign = v => v > 0 ? "+" + v : String(v);
   const mmss = m => { const sec = Math.round(m * 60); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`; };

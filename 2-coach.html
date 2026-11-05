@@ -618,7 +618,7 @@ function coachTotal(n){
 }
 
 /* ───────── rendering ───────── */
-const when = u => new Date(u).toLocaleString([], {weekday:"short", hour:"2-digit", minute:"2-digit"});
+const when = u => new Date(u).toLocaleString([], {weekday:"short", hour:"2-digit", minute:"2-digit", hourCycle:"h23"});
 const photo = p => `<div class="ph">${esc(p.name.split(" ").map(w => w[0]).slice(0, 2).join(""))}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>`;
 function liveClock(s){
   const q = String(s.q || "").replace(/\D/g, "");
@@ -804,7 +804,7 @@ function renderLeague(){
     </div>`).join("")}</div>`);
 }
 /* BasketNews import (worker/bn.js): the saved team link, the last import, Save / Import now */
-const bnTime = t => new Date(t).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit"});
+const bnTime = t => new Date(t).toLocaleString([], {weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23"});
 function bnStatus(d){
   const el = $("#bnStatus"), L = d?.last;
   if (DEMO){ el.innerHTML = "Not available in the demo."; $("#bnRun").disabled = $("#bnSave").disabled = $("#bnPrev").disabled = true; return; }
