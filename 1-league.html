@@ -145,7 +145,7 @@
   .lg .sb span.lose{color:var(--muted);font-weight:700}
   /* the bigger score in colour: green once final, orange while live (with an orange border) */
   .lg .sb span.win{background:linear-gradient(135deg,#3DDC84D9 0%,#3DDC844D 100%);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff}   /* see-through, blurred, fading diagonally */
-  .lg.live .sb.w::after{border-color:var(--orange)} .lg.live .sb.w span + span{border-left-color:var(--orange)}   /* live: orange border; final: the usual light grey */
+  .lg.live .sb::after{border-color:var(--orange)} .lg.live .sb span + span{border-left-color:var(--orange)}   /* live: orange border; final: the usual light grey */
   .lg.live .sb span.win{background:linear-gradient(135deg,#FF6B1AD9 0%,#FF6B1A4D 100%)}
   .lg .sb.vs span{min-width:88px;font-size:14px;font-weight:700;color:var(--muted)}
   .all-games{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;margin-top:10px;border-radius:16px;border:1px solid var(--line);
