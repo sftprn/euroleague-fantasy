@@ -105,7 +105,7 @@
     for (const k in frames) post(k, {elf: "show", on: k === sec});
     document.getElementById("elfNav")?.classList.remove("cover");
     if (sec === "league") post("league", {elf: "view", view: t});
-    document.title = {teams: "Teams", games: "Games", players: "Leaderboard", watchlist: "Watchlist"}[t] + " · EL Fantasy";
+    document.title = {teams: "Teams", games: "Games", players: "Players", watchlist: "Watchlist"}[t] + " · EL Fantasy";
     const u = new URL(location.href); ["tab", "new", "coach"].forEach(k => u.searchParams.delete(k));   // keep the address plain, so the app reopens on Teams
     history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
     fitScreen();

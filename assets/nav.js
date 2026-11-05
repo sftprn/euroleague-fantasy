@@ -17,7 +17,7 @@
     players: `<svg class="o" viewBox="0 0 24 24" fill="currentColor"><path d="M4,19H8V11H4v8Zm6,0h4V5H10V19Zm6,0h4V13H16v6ZM2,21V9H8V3h8v8h6V21H2Z"/></svg><svg class="f" viewBox="0 0 24 24" fill="currentColor"><path d="M2,21V9H7.5V21H2Zm7.25,0V3h5.5V21H9.25Zm7.25,0V11H22V21H16.5Z"/></svg>`,
     watchlist: `<svg class="o" viewBox="0 0 24 24" fill="currentColor"><path d="M9.73,14L12,12.63L14.28,14l-0.6-2.6l2-1.72L13.05,9.45L12,7L10.95,9.45L8.33,9.67l2,1.72L9.73,14ZM5,21V5Q5,4.17 5.59,3.59T7,3H17q0.82,0 1.41,0.59T19,5V21l-7-3L5,21Zm2-3.05l5-2.15l5,2.15V5H7V17.95ZM7,5H17H12H7Z"/></svg><svg class="f" viewBox="0 0 24 24" fill="currentColor"><path d="M9.73,14L12,12.63L14.28,14l-0.6-2.6l2-1.72L13.05,9.45L12,7L10.95,9.45L8.33,9.67l2,1.72L9.73,14ZM5,21V5Q5,4.17 5.59,3.59T7,3H17q0.82,0 1.41,0.59T19,5V21l-7-3L5,21Z"/></svg>`,
   };
-  const LABEL = {teams: "Teams", games: "Games", players: "Leaderboard", watchlist: "Watchlist"};
+  const LABEL = {teams: "Teams", games: "Games", players: "Players", watchlist: "Watchlist"};
   // Bottom bar: pinned to the bottom, see-through black with a blur (like the round arrows on Games); the current tab is brand orange.
   // In the app shell it slides away while a bottom sheet is open in the page below (.cover).
   const CSS = `:root{--navH:calc(66px + var(--sab, env(safe-area-inset-bottom)))}
