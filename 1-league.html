@@ -122,15 +122,15 @@
   .day-h + .lg{border-top:0}
   #gamesList .list + .list{margin-top:12px}
   .lg:active{background:#1F1F23}
-  /* a game: status on top (live clock / time / Final, fantasy players on the right), then
-     home name + crest │ score box │ crest + away name — like euroleaguebasketball.net */
-  .lg{flex-direction:column;align-items:stretch;gap:8px;padding:10px 16px 12px;cursor:pointer}
-  .lg .gst{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:700;color:var(--muted);min-height:16px}
+  /* a game: home crest + name │ score box with the status under it (live clock / day / Final) │ away crest + name
+     — like euroleaguebasketball.net */
+  .lg{flex-direction:column;align-items:stretch;padding:12px 16px;cursor:pointer}
+  .lg .mid{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .lg .gst{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);min-height:16px}
   .lg .gst .s{display:flex;align-items:center;gap:6px;white-space:nowrap}
   .lg .gst i{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;flex:none}
   .lg.live{background:linear-gradient(90deg,#FF6B1A33 0%,#FF6B1A00 100%)}   /* the same live fade as player cards */
   .lg.live .gst .s{color:var(--orange);font-weight:800}
-  .lg .gst .fan{color:var(--orange);font-size:11.5px;white-space:nowrap}
   .lg .gm{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
   /* each side: crest with the name under it, so the whole side's width is there for the name */
   .lg .side{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;text-align:center}
@@ -538,7 +538,6 @@ function renderGames(){
   const rg = games.filter(g => g.r === shownRound()).map(g => ({g, s: stOf(g)}))
                   .sort((x, y) => x.s.k - y.s.k || Date.parse(x.g.u) - Date.parse(y.g.u));   // live, starting, upcoming, finished
   if (!rg.length){ $("#gamesList").innerHTML = `<div class="list"><div class="nolive">No games this round.</div></div>`; $("#gamesList")._html = null; return; }
-  const fans = g => new Set(COACHES.flatMap(c => rosterOf(c.name)).filter(p => p.club === g.h.c || p.club === g.a.c).map(p => p.code)).size;
   const row = ({g, s}) => {
     const has = !!s.b, hp = has ? s.b.teams[0].pts : 0, ap = has ? s.b.teams[1].pts : 0;
     const hw = has && hp > ap, aw = has && ap > hp;            // leader (live) / winner (final)
@@ -548,10 +547,8 @@ function renderGames(){
                    : `<div class="sb vs"><span>${esc(new Date(g.u).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}))}</span></div>`;
     const st = s.live ? `<span class="s"><i></i>${esc(clockOf(s.b))}</span>`
              : `<span class="s">${s.k === 3 ? "Final" : s.k === 1 ? "Starting" : esc(new Date(g.u).toLocaleDateString([], {weekday: "long"}))}</span>`;
-    const f = fans(g);
     return `<div class="lg${s.live ? " live" : ""}" data-game="${g.c}" role="button" tabindex="0">
-      <div class="gst">${st}${f ? `<span class="fan">${f} fantasy</span>` : ""}</div>
-      <div class="gm">${side(g.h, "h", s.k === 3 && aw)}${sb}${side(g.a, "a", s.k === 3 && hw)}</div></div>`;
+      <div class="gm">${side(g.h, "h", s.k === 3 && aw)}<div class="mid">${sb}<div class="gst">${st}</div></div>${side(g.a, "a", s.k === 3 && hw)}</div></div>`;
   };
   // games on several days → a list per day (in date order) under a headline like "27 October 2026"
   const dayKey = u => { const d = new Date(u); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
