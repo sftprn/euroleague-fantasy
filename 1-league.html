@@ -27,16 +27,17 @@
   html{background:var(--bg)}
   .scroller{position:fixed;left:0;right:0;top:0;bottom:var(--navH, 0px);z-index:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
   body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
-  .app{max-width:480px;margin:0 auto;padding:calc(var(--listTop, 76px) + 12px) 16px 16px;position:relative}   /* starts 12px under the top bar; scrolls up under it */
+  .app{max-width:480px;margin:0 auto;padding:var(--listTop, 88px) 16px 16px;position:relative}   /* starts right under the top bar's fade (12px below its controls' area); scrolls up under it */
   /* header: the same as on Teams — art backdrop, title + subtitle on the left; content scrolls under it */
   .art, .top{background-color:var(--bg);
        background-image:linear-gradient(180deg,#00000026 0px,#0000008C 140px,#000000E6 230px,#000000 300px), url("assets/bg.jpg");
        background-size:100% 300px, max(100vw, 520px) auto;background-position:center top, center -30px;background-repeat:no-repeat}
   .art{position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}
-  /* the top bar draws its own copy of the artwork (lined up with the one behind) and its last 10px fade out,
-     so content scrolling up under it dissolves into the bar */
-  .top{position:fixed;left:0;right:0;top:0;z-index:4;padding:calc(12px + var(--sat, env(safe-area-inset-top))) 16px 14px;margin:0;
-       -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent)}
+  /* the top bar draws its own copy of the artwork (lined up with the one behind); its last 26px (below the controls,
+     down to where the lists start) fade out, so content scrolling up under it dissolves into the bar */
+  .top{position:fixed;left:0;right:0;top:0;z-index:4;padding:calc(12px + var(--sat, env(safe-area-inset-top))) 16px 26px;margin:0;pointer-events:none;
+       -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 26px),transparent)}
+  .top .bar{pointer-events:auto}
   .ctrl{position:fixed;left:0;right:0;top:var(--headH, 76px);z-index:3;padding:0 16px}
   .ctrl > *{max-width:448px;margin:0 auto !important}
   .ctrl > [hidden]{display:none !important}
