@@ -113,7 +113,7 @@
   .day-h .lt,.wl .gh .lt,.lh .lt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* one line; cut off with … when it doesn't fit */
   .day-h .lx,.wl .gh .lx,.lh .lx{color:#FFFFFFB3}
   .day-h .lt,.wl .gh .lt{flex:1 1 auto}             /* Games days, Watchlist: title on the left, count on the right */
-  .day-h > .lx,.wl .gh > .lx{flex:none}
+  .day-h > .lx,.wl .gh > .lx,.lh > .lx{flex:none}
   .wl .gh svg,.lh img{flex:none}
   .day-h + .lg{border-top:0}
   #gamesList .list + .list{margin-top:12px}
@@ -330,9 +330,9 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <!-- Top Performers: what the list shows (round, club, players nobody owns) -->
 <div id="tfWrap">
   <div class="scrim" data-tfclose></div>
-  <div class="sheet" role="dialog" aria-label="Top Performers settings">
+  <div class="sheet" role="dialog" aria-label="Filter Players">
     <div class="grab" aria-hidden="true"></div>
-    <div class="sh-head"><div><b>Top Performers</b><small>Choose what the list shows</small></div><button class="tf-done" data-tfclose>Done</button></div>
+    <div class="sh-head"><div><b>Filter Players</b></div><button class="tf-done" data-tfclose>Done</button></div>
     <div class="sh-body">
       <div class="tf-l">Round</div>
       <div class="tf-rds" id="tfRounds"></div>
@@ -599,8 +599,7 @@ function renderTop(){
   const top = [...seen.values()].filter(x => (!pick || x.p.club === pick) && (free || x.teams.length)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
   // the list's header: what it shows (the filter button is in the top bar)
   const club = pick ? clubs.get(pick) : null;
-  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">Round ${tr} · ${esc(club ? club.n : "All Teams")}`
-    + ` <span class="lx">· ${free ? "All Players" : "Fantasy Players"}${tr === round && roundLive() ? " · Live" : ""}</span></span></div>`;
+  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">${esc(club ? club.n : "All Teams")}</span><span class="lx">Round ${tr}</span></div>`;   // team on the left, round (dimmed) on the right
   if (!top.length){
     topRows = [];
     $("#topList").innerHTML = head + `<div class="nolive">${topLoading.has(tr) || (!people.length && peopleLoad) ? "Loading…"
