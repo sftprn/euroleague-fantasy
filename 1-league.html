@@ -131,10 +131,10 @@
   .lg.live .gst .s{color:var(--orange);font-weight:800}
   .lg .gst .fan{color:var(--orange);font-size:11.5px;white-space:nowrap}
   .lg .gm{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
-  .lg .side{display:flex;align-items:center;gap:8px;min-width:0}
-  .lg .side.h{justify-content:flex-end;text-align:right}
+  /* each side: crest with the name under it, so the whole side's width is there for the name */
+  .lg .side{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;text-align:center}
   .lg .side img{width:28px;height:28px;object-fit:contain;flex:none}
-  .lg .side b{min-width:0;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lg .side b{max-width:100%;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lg .side.lose b{color:var(--muted);font-weight:600}
   /* the score box: two halves; the leader (live) or winner (final) is highlighted */
   .lg .sb{display:flex;height:40px;border-radius:12px;border:1px solid #FFFFFF22;overflow:hidden;background:#00000059}
@@ -542,7 +542,7 @@ function renderGames(){
     const has = !!s.b, hp = has ? s.b.teams[0].pts : 0, ap = has ? s.b.teams[1].pts : 0;
     const hw = has && hp > ap, aw = has && ap > hp;            // leader (live) / winner (final)
     const fin = s.k === 3;                                      // the loser's score is dimmed only once it's final
-    const side = (t, cls, lose) => `<div class="side ${cls}${lose ? " lose" : ""}">${cls === "h" ? `<b>${esc(t.n || t.tv)}</b>` : ""}${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}${cls === "a" ? `<b>${esc(t.n || t.tv)}</b>` : ""}</div>`;
+    const side = (t, cls, lose) => `<div class="side ${cls}${lose ? " lose" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="" loading="lazy">` : ""}<b>${esc(t.n || t.tv)}</b></div>`;
     const sb = has ? `<div class="sb"><span class="${hw ? "win" : aw && fin ? "lose" : ""}">${hp}</span><span class="${aw ? "win" : hw && fin ? "lose" : ""}">${ap}</span></div>`
                    : `<div class="sb vs"><span>${esc(new Date(g.u).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}))}</span></div>`;
     const st = s.live ? `<span class="s"><i></i>${esc(clockOf(s.b))}</span>`
