@@ -50,7 +50,9 @@
   .icon-btn.on{background:var(--orange);border-color:var(--orange);font-size:20px;font-weight:800}
 
   /* standings */
-  .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;border:1px solid #FFFFFF22}   /* lists: the same see-through glass and corners as the tab groups and round picker */
+  .list{background:#000000A6;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;overflow:clip;border:1px solid #FFFFFF22}   /* lists: the same see-through glass and corners as the tab groups and round picker */
+   /* RULE: every list starts with a header (one 44px line), and the header sticks to the top of the scroll area while
+     its list scrolls past. Lists clip with overflow:clip (not hidden) so sticky works; headers are solid so rows never show through. */
   .row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
   .row:first-child{border-top:0}
   .row:active{background:#1F1F23}
@@ -108,7 +110,7 @@
   .lg:first-child{border-top:0}
   /* list headers (Games days, Watchlist, Top Performers — and the same on Teams): one height, one type style, one line,
      in the lighter glass of the 1st place on the Teams table */
-  .day-h,.wl .gh,.lh{display:flex;align-items:center;gap:8px;height:44px;min-height:44px;box-sizing:border-box;padding:0 16px;background:#FFFFFF14;border-bottom:1px solid var(--line);
+  .day-h,.wl .gh,.lh{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;height:44px;min-height:44px;box-sizing:border-box;padding:0 16px;background:#1F1F22;border-bottom:1px solid var(--line);
     font:700 14px/1 Inter,system-ui,sans-serif;letter-spacing:.01em;color:#fff;text-transform:none;white-space:nowrap;overflow:hidden}
   .day-h .lt,.wl .gh .lt,.lh .lt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* one line; cut off with … when it doesn't fit */
   .day-h .lx,.wl .gh .lx,.lh .lx{color:#FFFFFFB3}
@@ -518,7 +520,7 @@ function renderGames(){
     return {k: 2}; };
   const rg = games.filter(g => g.r === shownRound()).map(g => ({g, s: stOf(g)}))
                   .sort((x, y) => x.s.k - y.s.k || Date.parse(x.g.u) - Date.parse(y.g.u));   // live, starting, upcoming, finished
-  if (!rg.length){ $("#gamesList").innerHTML = `<div class="list"><div class="nolive">No games this round.</div></div>`; $("#gamesList")._html = null; return; }
+  if (!rg.length){ $("#gamesList").innerHTML = `<div class="list"><div class="day-h"><span class="lt">Round ${shownRound()}</span></div><div class="nolive">No games this round.</div></div>`; $("#gamesList")._html = null; return; }
   const fans = g => new Set(COACHES.flatMap(c => rosterOf(c.name)).filter(p => p.club === g.h.c || p.club === g.a.c).map(p => p.code)).size;
   const row = ({g, s}) => {
     const has = !!s.b, hp = has ? s.b.teams[0].pts : "", ap = has ? s.b.teams[1].pts : "";
@@ -533,8 +535,7 @@ function renderGames(){
   const dayKey = u => { const d = new Date(u); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const dayDone = k => rg.filter(x => dayKey(x.g.u) === k).every(x => x.s.k === 3);     // every game that day final
   const days = [...new Set(rg.map(x => dayKey(x.g.u)))].sort((a, b) => dayDone(a) - dayDone(b) || a.localeCompare(b));   // finished days go to the bottom
-  const html = days.length < 2 ? `<div class="list">${rg.map(row).join("")}</div>`
-    : days.map(k => { const list = rg.filter(x => dayKey(x.g.u) === k);
+  const html = days.map(k => { const list = rg.filter(x => dayKey(x.g.u) === k);
         return `<div class="list"><div class="day-h"><span class="lt">${esc(new Date(list[0].g.u).toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}))}</span><span class="lx">${list.length} game${list.length === 1 ? "" : "s"}</span></div>${list.map(row).join("")}</div>`; }).join("");
   if ($("#gamesList")._html !== html) $("#gamesList").innerHTML = $("#gamesList")._html = html;
 }
