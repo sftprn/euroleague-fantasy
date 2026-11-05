@@ -57,7 +57,7 @@
   addEventListener("resize", fitScreen); addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
   addEventListener("load", fitScreen); setTimeout(fitScreen, 400); setTimeout(fitScreen, 1500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(fitScreen, 100); });
-  const TABS = ["teams", "games", "players"];
+  const TABS = ["teams", "games", "players", "watchlist"];
   const q = new URLSearchParams(location.search);
   const demo = q.has("demo") ? "&demo" + (q.get("demo") ? "=" + q.get("demo") : "") : "";
   let tab = !APP && TABS.includes(q.get("tab")) ? q.get("tab") : "teams";          // the home-screen app always opens on Teams
@@ -69,7 +69,7 @@
     f.title = sec === "teams" ? "Teams" : "Games and players";
     const extra = demo + (fresh ? "&new" : ""); fresh = false;
     f.src = sec === "teams" ? `/2-coach?coach=${encodeURIComponent(q.get("coach") || "league")}&embed${extra}`
-                            : `/1-league?view=${tab === "players" ? "players" : "games"}&embed${extra}`;
+                            : `/1-league?view=${tab === "teams" ? "games" : tab}&embed${extra}`;
     f.className = "off";
     document.body.insertBefore(f, document.getElementById("probe"));
     return frames[sec] = f;
@@ -105,7 +105,7 @@
     for (const k in frames) post(k, {elf: "show", on: k === sec});
     document.getElementById("elfNav")?.classList.remove("cover");
     if (sec === "league") post("league", {elf: "view", view: t});
-    document.title = t === "teams" ? "Teams · EL Fantasy" : t === "games" ? "Games · EL Fantasy" : "Players · EL Fantasy";
+    document.title = {teams: "Teams", games: "Games", players: "Players", watchlist: "Watchlist"}[t] + " · EL Fantasy";
     const u = new URL(location.href); ["tab", "new", "coach"].forEach(k => u.searchParams.delete(k));   // keep the address plain, so the app reopens on Teams
     history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
     fitScreen();

@@ -209,11 +209,9 @@
   /* Games: ‹ Round N › above the list (tap "Round N" to jump back to the current round); same glass and height as the tab groups */
   .rgrp{height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;margin-bottom:12px}
   .rgrp[hidden]{display:none}
-  .top .rgrp,.top .seg{flex:none;margin:0 0 0 12px}
+  .top .rgrp{flex:none;margin:0 0 0 12px}
   .top .rgrp .rn{width:34px}
   .top .rgrp .rnum{flex:none;min-width:58px;padding:0 4px;font-size:14px}
-  .top .seg.ic button{flex:none;width:44px;display:grid;place-items:center;padding:0}
-  .top .seg[hidden]{display:none}
   .ctrl:empty{display:none}
   .rgrp button{-webkit-appearance:none;appearance:none;border:0;background:transparent;color:#fff;cursor:pointer;height:36px;border-radius:13px;padding:0}
   .rgrp .rn{width:44px;font-size:24px;line-height:1;padding-bottom:3px}
@@ -290,12 +288,8 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <body>
 <div class="art" aria-hidden="true"></div>
 <header class="top" id="top"><div class="bar"><div class="title"><h1 id="pageTitle">Games</h1><div class="meta" id="roundTxt"></div></div>
-  <!-- the screen's controls sit on the right of the top bar: Games ‹ RD 10 ›, Players Watchlist / Top Performers -->
+  <!-- Games: ‹ RD 10 › on the right of the top bar -->
   <div class="rgrp" id="rnav" role="group" aria-label="Round" hidden><button class="rn" id="rPrev" aria-label="Previous round">‹</button><button class="rnum" id="rNum" aria-live="polite" title="Back to the current round"></button><button class="rn" id="rNext" aria-label="Next round">›</button></div>
-  <div class="seg ic" id="pSeg" hidden role="tablist">
-    <button data-pt="watch" class="on" role="tab" aria-label="Watchlist" title="Watchlist"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></button>
-    <button data-pt="top" role="tab" aria-label="Top Performers" title="Top Performers"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg></button>
-  </div>
 </div></header>
 <div class="ctrl" id="ctrl"></div>
 <div class="scroller" id="scroller"><div class="app" data-slide>
@@ -305,10 +299,10 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
     <div id="gamesList"><div class="list"><div class="nolive">Loading…</div></div></div>
   </div>
 
-  <!-- Players: top 10 of the round among everyone's rosters -->
+  <!-- Players: the round's top performers · Watchlist: players followed on this phone (two pages in the bottom bar) -->
+  <div id="vWatch" hidden><div class="list wl" id="wList"></div></div>
   <div id="vPlayers" hidden>
-    <div id="pWatch"><div class="list wl" id="wList"></div></div>
-    <div id="pTop" hidden>
+    <div id="pTop">
       <div class="list" id="topList"></div>
     </div>
   </div>
@@ -669,7 +663,7 @@ $("#topList").addEventListener("click", e => { if (e.target.closest("[data-tune]
 
 /* Watchlist: any players, followed privately — saved only on this phone (elf.watch, the old Watch team), never shared or counted */
 const WATCH = "__watch", WATCH_MAX = 20;
-var topPick = "", pTab = "watch";                     // Players always opens on the Watchlist tab; Top Performers: All teams or one club
+var topPick = "", pTab = "top";                       // which list a tapped player came from: "top" (Players) or "watch" (Watchlist)
 const watchList = () => store.get("elf.watch", []);
 let watchRows = [];
 function watchInfo(p){                         // his game this round, for the line under his name
@@ -705,14 +699,9 @@ function renderWatch(){
     + (list.length < WATCH_MAX ? `<div class="p empty" data-add role="button" tabindex="0"><div class="ph">+</div><div class="who"><b>Empty slot</b></div></div>` : "");
   if ($("#wList")._html !== html) $("#wList").innerHTML = $("#wList")._html = html;
 }
-function setPTab(t){
-  pTab = t;
-  $("#pWatch").hidden = t !== "watch"; $("#pTop").hidden = t !== "top";
-  $("#pSeg").querySelectorAll("[data-pt]").forEach(b => b.classList.toggle("on", b.dataset.pt === t));
-}
+function setPTab(t){ pTab = t; }
 addEventListener("elf-watch", () => { renderWatch(); refresh(); });          // star in the player sheet
 addEventListener("storage", e => { if (e.key === "elf.watch"){ renderWatch(); refresh(); } });   // starred on the Teams page
-$("#pSeg").addEventListener("click", e => { const b = e.target.closest("[data-pt]"); if (b && b.dataset.pt !== pTab){ setPTab(b.dataset.pt); $("#scroller").scrollTo({top: 0}); } });
 $("#wList").addEventListener("click", e => {
   if (e.target.closest("[data-add]")) return openFinder();
   const r = e.target.closest("[data-code]"); if (r) openPlayer(r.dataset.code);
@@ -812,8 +801,9 @@ addEventListener("elf-show", () => setTimeout(refresh, 250));   // shown again b
 
 
 
-/* Games / Players (bottom bar; Teams is the team pages) — ?view=games|players, else the last one used on this phone */
-const VIEWS = ["games", "players"];
+/* Games / Players / Watchlist (bottom bar; Teams is the team pages) — ?view=games|players|watchlist, else the last one used on this phone */
+const VIEWS = ["games", "players", "watchlist"];
+const VIEW_EL = {games: "#vGames", players: "#vPlayers", watchlist: "#vWatch"}, VIEW_TITLE = {games: "Games", players: "Players", watchlist: "Watchlist"};
 let view = "games";
 try{ const v = new URLSearchParams(location.search).get("view") || localStorage.getItem("elf.leagueView"); if (VIEWS.includes(v)) view = v; }catch{}
 function sizeHeader(){
@@ -827,29 +817,29 @@ addEventListener("elf-msg", e => {                    // inside the app shell: G
   if (d.elf === "view" && d.view === "players") playersDefault();
   if (d.elf === "view" && VIEWS.includes(d.view)){ if (d.view !== view){ view = d.view; showView(); $("#scroller").scrollTo({top: 0}); } else $("#scroller").scrollTo({top: 0, behavior: "smooth"}); }
 });
-function playersDefault(){ setPTab("watch"); tRound = null; }
-window.ELF_SLIDE_TARGET = () => $(view === "games" ? "#vGames" : "#vPlayers");   // arriving from Teams: slide only the view, never the header
+function playersDefault(){ tRound = null; }          // Players opens on the current round each time
+window.ELF_SLIDE_TARGET = () => $(VIEW_EL[view]);   // arriving from Teams: slide only the view, never the header
 let lastView = null;
 function slideViews(){                                // Games ↔ Players: swap at once, the new view slides in a little (no fade: blurs stay on)
-  const inEl = $(view === "games" ? "#vGames" : "#vPlayers");
+  const inEl = $(VIEW_EL[view]);
   if (!lastView || lastView === view){ lastView = view; return; }
-  const dir = view === "players" ? 1 : -1; lastView = view;
+  const dir = VIEWS.indexOf(view) > VIEWS.indexOf(lastView) ? 1 : -1; lastView = view;
   if (!window.ELF_PAGE_SLIDE) return;                   // switched off for now (assets/embed.js)
   inEl.animate?.([{transform: `translateX(${dir * 12}px)`}, {transform: "none"}], {duration: 180, easing: "cubic-bezier(.2,.8,.2,1)"});
 }
 function showView(){
   if (view === "players") playersDefault();
-  $("#pageTitle").textContent = view === "games" ? "Games" : "Players";
-  $("#vGames").hidden = view !== "games";
-  $("#vPlayers").hidden = view !== "players";
-  $("#pSeg").hidden = view !== "players"; $("#rnav").hidden = view !== "games" || !round; sizeHeader();
+  setPTab(view === "watchlist" ? "watch" : "top");
+  $("#pageTitle").textContent = VIEW_TITLE[view];
+  for (const k of VIEWS) $(VIEW_EL[k]).hidden = k !== view;
+  $("#rnav").hidden = view !== "games" || !round; sizeHeader();
   slideViews();
   if (typeof render === "function" && round) render(); 
-  document.title = `${view === "games" ? "Games" : "Players"} · EL Fantasy`;
+  document.title = `${VIEW_TITLE[view]} · EL Fantasy`;
   try{ localStorage.setItem("elf.leagueView", view); }catch{}
   const u = new URL(location.href); u.searchParams.set("view", view); history.replaceState(null, "", u.pathname + u.search.replace(/demo=(&|$)/, "demo$1"));
 }
-/* swipe sideways on the screen: Players → Watchlist / Top Performers, Games → the round before / after */
+/* swipe sideways on Games: the round before / after */
 function nudge(el, dir){ el?.animate?.([{transform: `translateX(${dir * 28}px)`}, {transform: "none"}], {duration: 200, easing: "cubic-bezier(.2,.8,.2,1)"}); }   // transform only: fading would switch the blurs off on iPhone
 {
   let sw = null;
@@ -870,11 +860,7 @@ function nudge(el, dir){ el?.animate?.([{transform: `translateX(${dir * 28}px)`}
     if (Math.abs(dx) < 60 && !(Math.abs(dx) > 30 && Math.abs(dx) / Math.max(1, e.timeStamp - s.t) > 0.4)) return;   // far enough, or a quick flick
     if (Math.abs(dy) > Math.abs(dx)) return;
     const dir = dx < 0 ? 1 : -1;                         // swipe left → the next one (right side), swipe right → the one before
-    if (view === "players"){
-      const order = ["watch", "top"], i = order.indexOf(pTab) + dir;
-      if (i < 0 || i >= order.length) return;
-      setPTab(order[i]); $("#scroller").scrollTo({top: 0}); nudge($("#vPlayers"), dir);
-    } else if (view === "games" && round){
+    if (view === "games" && round){
       const [lo, hi] = roundSpan(), r = shownRound() + dir;
       if (r < lo || r > hi) return;
       goRound(r); nudge($("#vGames"), dir);
