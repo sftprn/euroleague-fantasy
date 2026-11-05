@@ -253,7 +253,7 @@
   .w-add:active{background:#141417}
   #topList .score.dim{color:var(--muted);font-size:14px;font-weight:700}
   .finder{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;transform:translateY(100%);visibility:hidden;transition:transform .25s ease,visibility .25s}
-  .finder.open{transform:none;visibility:visible}
+  .finder.open{transform:none;visibility:visible;transition:transform .25s ease,visibility 0s}   /* visible at once (not after the slide), so the search field can take focus during the tap */
   .finder-in{width:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;height:100%;padding:calc(14px + var(--sat, env(safe-area-inset-top))) 16px 0}
   .s-row{display:flex;gap:10px;align-items:center;width:100%}
   .searchbox{flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:50px;border:1.5px solid var(--line);border-radius:16px;padding:0 14px;background:var(--card)}
