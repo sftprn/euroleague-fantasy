@@ -337,7 +337,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <header class="top" id="top">
   <div class="bar">
     <div class="title" id="title">
-      <img class="hd-logo" id="hdLogo" src="assets/euroleague.svg" alt="EuroLeague" hidden><h1 id="coachName" class="fx">&nbsp;</h1><b class="hpn fx" id="hPirN" hidden>0.0</b>
+      <img class="hd-logo fx" id="hdLogo" src="assets/euroleague.svg" alt="EuroLeague" hidden><h1 id="coachName" class="fx">&nbsp;</h1><b class="hpn fx" id="hPirN" hidden>0.0</b>
 <small class="hpl" id="hPirL" hidden>PIR</small>
     </div>
   </div>
@@ -936,7 +936,11 @@ function setCurrent(n, instant){
   // dissolve header text into the new coach while the art stays put
   const fx = document.querySelectorAll("#top .fx"); fx.forEach(e => e.classList.add("fade"));
   clearTimeout(fadeT);
-  fadeT = setTimeout(() => { renderHeader(); fx.forEach(e => e.classList.remove("fade")); }, 150);
+  fadeT = setTimeout(() => {
+    renderHeader();
+    void $("#top").offsetWidth;          // anything that just appeared (the logo, the points) starts faded out, so it fades in with the headline
+    fx.forEach(e => e.classList.remove("fade"));
+  }, 150);
 }
 function updateDots(){
   $("#dots").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.go === cur));
