@@ -63,6 +63,26 @@
   .hpn.live{border-color:var(--orange)}
   .hpl{display:none!important}                           /* no "PIR" row any more */
   .hpn[hidden]{display:none}
+  button.hpn{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;padding-right:8px;gap:6px}
+  button.hpn:active{transform:scale(.97)}
+  .hpn .chev{flex:none;opacity:.75;margin-left:-2px;transition:transform .2s}
+  .hpn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+  /* the team switcher: a glass menu under the points box */
+  .tmenu{position:fixed;z-index:6;right:16px;min-width:230px;max-width:calc(100vw - 32px);max-height:60vh;overflow-y:auto;box-sizing:border-box;padding:6px;border-radius:16px;
+         border:1px solid #FFFFFF22;background:#0B0B0CE6;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 12px 40px #000000B3;
+         transform-origin:top right;animation:tmIn .14s ease-out}
+  .tmenu[hidden]{display:none}
+  @keyframes tmIn{from{opacity:0;transform:translateY(-4px) scale(.98)}}
+  .tmenu button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:11px;background:none;color:#fff;
+                font:700 15px Inter,system-ui,sans-serif;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .tmenu button:active{background:#FFFFFF1A}
+  .tmenu button.cur{background:#FFFFFF14;color:var(--orange)}
+  .tmenu .n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tmenu .v{flex:none;font-size:14px;font-weight:800;color:#FFFFFFB3;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+  .tmenu .v i{width:6px;height:6px;border-radius:50%;background:var(--orange)}
+  .tmenu .v.live{color:var(--orange)}
+  .tmenu img{width:22px;height:22px;flex:none}
+  .tmenu hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
   .hpl.appear{animation:hplIn .2s ease-out}            /* "PIR" fades in when a team page first shows it, then stays put between teams */
   @keyframes hplIn{from{opacity:0}to{opacity:1}}
   .hd-logo{grid-area:1/1} #coachName{grid-area:1/2} .hpn{grid-area:1/3}
@@ -342,10 +362,12 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
 <div class="art" aria-hidden="true"></div>
 <!-- which page: dots in a small glass pill above the bottom bar (tap one to go there) -->
 <div class="dotbar" id="dotbar"><span id="metaTxt"></span><nav class="dots" id="dots" aria-label="Teams"></nav></div>
+<!-- team switcher: opened from the points box (the chevron) on a team's screen -->
+<div class="tmenu" id="tMenu" role="menu" hidden></div>
 <header class="top" id="top">
   <div class="bar">
     <div class="title" id="title">
-      <img class="hd-logo fx" id="hdLogo" src="assets/euroleague.svg" alt="EuroLeague" hidden><h1 id="coachName" class="fx">&nbsp;</h1><b class="hpn fx" id="hPirN" hidden>0.0</b>
+      <img class="hd-logo fx" id="hdLogo" src="assets/euroleague.svg" alt="EuroLeague" hidden><h1 id="coachName" class="fx">&nbsp;</h1><button class="hpn fx" id="hPirN" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Go to another team" hidden>0.0</button>
 <small class="hpl" id="hPirL" hidden>PIR</small>
     </div>
   </div>
@@ -754,7 +776,7 @@ function renderHeader(){
   const L = $("#hPirL"), was = L.hidden;
   $("#hPirN").hidden = L.hidden = !round;
   if (was && !L.hidden){ L.classList.remove("appear"); void L.offsetWidth; L.classList.add("appear"); }
-  $("#hPirN").innerHTML = `${live ? '<i class="dot" title="Live"></i>' : ""}${fmtShort(total)}`; $("#hPirN").classList.toggle("live", live);
+  $("#hPirN").innerHTML = `${live ? '<i class="dot" title="Live"></i>' : ""}${fmtShort(total)}<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 15.4 6.6 10l1.4-1.4 4 4 4-4 1.4 1.4z"/></svg>`; $("#hPirN").classList.toggle("live", live);
   const wc = chipsOf(cur);
 }
 function render(){
@@ -963,6 +985,25 @@ track.addEventListener("scroll", () => {
 }, {passive:true});
 addEventListener("resize", () => { if (built) track.scrollTo({left: order.indexOf(cur) * track.clientWidth, behavior:"instant"}); });
 $("#dots").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) goTo(b.dataset.go); });
+/* team switcher: tap the points box → a menu of the Teams table and every team (with this round's points) → go there */
+{
+  const menu = $("#tMenu"), btn = $("#hPirN");
+  const close = () => { if (menu.hidden) return; menu.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+  const open = () => {
+    menu.innerHTML = order.map(n => {
+      if (n === LEAGUE) return `<button type="button" role="menuitem" data-go="${esc(n)}"><img src="assets/euroleague.svg" alt=""><span class="n">${esc(pageTitle())}</span></button><hr>`;
+      const {total, live} = coachTotal(n);
+      return `<button type="button" role="menuitem" data-go="${esc(n)}" class="${n === cur ? "cur" : ""}"><span class="n">${esc(teamOf(n))}</span>${round ? `<span class="v${live ? " live" : ""}">${live ? "<i></i>" : ""}${fmtShort(total)}</span>` : ""}</button>`;
+    }).join("");
+    menu.style.top = (btn.getBoundingClientRect().bottom + 8) + "px";
+    menu.hidden = false; btn.setAttribute("aria-expanded", "true");
+  };
+  btn.addEventListener("click", e => { e.stopPropagation(); menu.hidden ? open() : close(); });
+  menu.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (!b) return; close(); if (b.dataset.go !== cur) goTo(b.dataset.go); });
+  document.addEventListener("pointerdown", e => { if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) close(); }, true);
+  track.addEventListener("scroll", close, {passive: true});
+  addEventListener("elf-show", close);
+}
 document.addEventListener("keydown", e => {
   if ($("#finder").classList.contains("open") || document.activeElement?.tagName === "INPUT") return;
   const i = order.indexOf(cur);
