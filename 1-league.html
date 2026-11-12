@@ -369,6 +369,7 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
       <div class="tf-clubs" id="tfClubs"></div>
       <div class="tf-l">Players</div>
       <button class="tg" id="tfFree" type="button" role="switch"><div class="txt"><b>Players not on any team</b><small>Also list players nobody in the league has picked</small></div><i class="sw"></i></button>
+      <button class="tg" id="tfActive" type="button" role="switch"><div class="txt"><b>Active players only</b><small>Only players whose games are live right now</small></div><i class="sw"></i></button>
     </div>
   </div>
 </div>
@@ -623,17 +624,18 @@ function renderTop(){
     });
   }
   // clubs: all (default) or any number of Euroleague clubs → their top 10; players nobody owns can be left out
-  const clubs = topClubs(), picks = [...topPicks].filter(c => clubs.has(c)), free = topFree();
+  const clubs = topClubs(), picks = [...topPicks].filter(c => clubs.has(c)), free = topFree(), act = topActive();
   renderWatch();
   if ($("#tfWrap").classList.contains("open")) renderTopSheet();
-  const top = [...seen.values()].filter(x => (!picks.length || picks.includes(x.p.club)) && (free || x.teams.length)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
+  const top = [...seen.values()].filter(x => (!picks.length || picks.includes(x.p.club)) && (free || x.teams.length) && (!act || x.s.live)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
   // the list's header: which clubs on the left, the round (and day) dimmed on the right (the filter button is in the top bar)
   const club = picks.length === 1 ? clubs.get(picks[0]) : null;
   const who = !picks.length ? "All Teams" : picks.map(c => clubs.get(c).n).sort((a, b) => a.localeCompare(b)).join(", ");
-  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">${esc(who)}</span><span class="lx">Round ${tr}${day ? ` · Day ${day}` : ""}</span></div>`;
+  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">${esc(who)}</span><span class="lx">Round ${tr}${day ? ` · Day ${day}` : ""}${act ? " · Live" : ""}</span></div>`;
   if (!top.length){
     topRows = [];
     $("#topList").innerHTML = head + `<div class="nolive">${topLoading.has(tr) || (!people.length && peopleLoad) ? "Loading…"
+      : act && ![...seen.values()].some(x => x.s.live) ? "No games are live right now — turn off Active players only to see everyone."
       : picks.length ? `No ${picks.length === 1 ? esc(club.n) + " " : ""}${free ? "" : "fantasy "}players from ${picks.length === 1 ? "that team" : "these teams"} have played ${day ? `on day ${day}` : tr === round ? "yet this round" : `in round ${tr}`}${day && tr === round ? " yet" : ""}.`
       : day && !seen.size ? `No scores for day ${day} of round ${tr}${tr === round ? " yet" : ""}.`
       : !free && seen.size ? `No fantasy players have played ${tr === round ? "yet this round" : `in round ${tr}`}.`
@@ -659,6 +661,7 @@ function topDayOf(r){                                 // the chosen day, if that
 }
 const tfWrap = $("#tfWrap");
 const topFree = () => store.get("elf.topFree", true);
+const topActive = () => store.get("elf.topActive", false);    // only players whose game is live
 function topClubs(){                                  // code → {n, cr}, by name
   const m = new Map();
   games.forEach(g => [g.h, g.a].forEach(t => { if (t?.c && !m.has(t.c)) m.set(t.c, {n: t.n || t.tv || t.c, tv: t.tv || t.c, cr: t.cr || ""}); }));
@@ -678,6 +681,7 @@ function renderTopSheet(){
   if ($("#tfRounds")._html !== rds) $("#tfRounds").innerHTML = $("#tfRounds")._html = rds;
   if ($("#tfClubs")._html !== cl) $("#tfClubs").innerHTML = $("#tfClubs")._html = cl;
   const f = $("#tfFree"); f.classList.toggle("on", topFree()); f.setAttribute("aria-checked", String(topFree()));
+  const a = $("#tfActive"); a.classList.toggle("on", topActive()); a.setAttribute("aria-checked", String(topActive()));
 }
 function openTopSheet(){ renderTopSheet(); tfWrap.classList.add("open");
   requestAnimationFrame(() => $("#tfRounds .on")?.scrollIntoView({block: "nearest"})); }
@@ -694,7 +698,8 @@ tfWrap.addEventListener("click", e => {
   }
   const d = e.target.closest("[data-day]");
   if (d){ topDay = +d.dataset.day; topDayRound = topRound(); renderTop(); renderTopSheet(); return; }
-  if (e.target.closest("#tfFree")){ store.set("elf.topFree", !topFree()); renderTop(); renderTopSheet(); }
+  if (e.target.closest("#tfFree")){ store.set("elf.topFree", !topFree()); renderTop(); renderTopSheet(); return; }
+  if (e.target.closest("#tfActive")){ store.set("elf.topActive", !topActive()); renderTop(); renderTopSheet(); }
 });
 $("#topFilter").addEventListener("click", openTopSheet);
 { // swipe the sheet down to close: from its grab bar / header, or anywhere once its content is at the top
