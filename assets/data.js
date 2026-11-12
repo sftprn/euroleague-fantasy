@@ -5,6 +5,7 @@
                                          blk, blka, pf, fd, pm, pir, starter, on, no, name}
      line(gameCode, code)     → that player's line (or null)
      stretches(gameCode)      → {len, now, live, pl:{personCode: [[fromMin, toMin], …]}}   (game minutes, 0 … 40 + 5 per OT)
+     plays(gameCode, code)    → that player's play-by-play, newest first: [{per, clock, type, info, team, a, b, n}]
      history(code, club, games, onRow) → rows [{r, c, u, home, opp, pts, oppPts, win, live, played, min, mins, pir, adj}]
                                  games = the page's schedule list ({c, r, u, p, h:{c}, a:{c}}); onRow fires as each game arrives
    Finished games are kept on this phone (compact form) and re-checked once an hour, because Euroleague sometimes corrects
@@ -172,13 +173,25 @@
     for (const l of Object.values(pl)) l.forEach(s => { s[0] = Math.round(s[0] * 100) / 100; s[1] = Math.round(s[1] * 100) / 100; });
     return {len, now: pbp?.Live ? last : len, live: !!pbp?.Live, pl};
   }
+  // the raw play-by-play (shared by stretches and plays; re-read at most every 15 s)
+  const rawPbp = gc => once("pbpraw" + gc, LIVE_TTL, () => getJSON(`${LIVE_API}/PlayByPlay?gamecode=${gc}&seasoncode=${SEASON}`));
+  async function plays(gc, pc){
+    const pbp = await rawPbp(gc); if (!pbp) return [];
+    const out = [];
+    PERIODS.forEach((k, qi) => (pbp[k] || []).forEach(e => out.push({e, per: "Q" + (qi + 1)})));
+    let ot = 0; (pbp.ExtraTime || []).forEach(e => { if (e.PLAYTYPE === "BP") ot++; out.push({e, per: "OT" + Math.max(1, ot)}); });
+    return out.filter(({e}) => code(e.PLAYER_ID) === pc).map(({e, per}) => ({
+      per, clock: /^\d{1,2}:\d{2}$/.test(String(e.MARKERTIME ?? "").trim()) ? String(e.MARKERTIME).trim().replace(/^0(?=\d:)/, "") : "",
+      type: e.PLAYTYPE, info: String(e.PLAYINFO || "").trim(), team: String(e.CODETEAM || "").trim(),
+      a: e.POINTS_A, b: e.POINTS_B, n: e.NUMBEROFPLAY})).reverse();
+  }
   function stretches(gc){
     const key = `elf.stints2.${SEASON}.${gc}`;
     const c = store.get(key);
     if (keep(c)) return Promise.resolve(c);
     return once("pbp" + gc, LIVE_TTL, async () => {
       let pbp, b;
-      try{ [pbp, b] = await Promise.all([getJSON(`${LIVE_API}/PlayByPlay?gamecode=${gc}&seasoncode=${SEASON}`), box(gc)]); }
+      try{ [pbp, b] = await Promise.all([rawPbp(gc), box(gc)]); }
       catch(e){ if (c) return c; throw e; }
       if (!pbp) return {len: 40, now: 0, live: false, pl: {}, pending: true};
       const s = buildStretches(pbp, b);
@@ -215,5 +228,5 @@
     return rows;
   }
 
-  window.ElData = {SEASON, box, line, stretches, history, buildStretches, keep, stamp};
+  window.ElData = {SEASON, box, line, stretches, plays, history, buildStretches, keep, stamp};
 })();

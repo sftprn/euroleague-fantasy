@@ -90,7 +90,20 @@
 #psWrap .inj-more a small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
 #psWrap .inj-more li{font-size:12.5px;color:#D6D6DC;margin:4px 0 0 16px;line-height:1.4}
 #psWrap .inj-more p{font-size:11.5px;color:var(--dim);margin-top:10px}
-#psWrap .mn{background:var(--card-2);border-radius:16px;padding:12px 14px 4px;margin-bottom:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#psWrap .mn{background:var(--card-2);border-radius:16px;padding:12px 20px 6px;margin-bottom:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#psWrap .mn:active{background:#2A2A2F}
+/* his play-by-play (a sheet on top, opened from the minutes block) */
+#psWrap .pbp{margin:0 -4px}
+#psWrap .pbp .ph-h{position:relative;display:flex;align-items:center;justify-content:center;height:36px;margin-top:6px;font-size:12px;font-weight:800;letter-spacing:.12em;color:#FFFFFFB3}
+#psWrap .pbp .ev{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 4px;border-top:1px solid var(--line)}
+#psWrap .pbp .ph-h + .ev{border-top:0}
+#psWrap .pbp .ck{width:44px;flex:none;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+#psWrap .pbp .tx{flex:1;min-width:0;font-size:14.5px;font-weight:600}
+#psWrap .pbp .tx small{display:block;color:var(--muted);font-size:12px;font-weight:600;margin-top:2px}
+#psWrap .pbp .sc{flex:none;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+#psWrap .pbp .pt{flex:none;min-width:30px;text-align:right;font-size:15px;font-weight:800;color:var(--win)}
+#psWrap .pbp .ev.sub .tx{color:var(--muted)}
+#psWrap .pbp .ev.miss .tx{color:#FFFFFFB3}
 #psWrap .mn-top{display:flex;align-items:center;gap:10px}
 #psWrap .mn-top b{font-size:20px;font-weight:800}
 #psWrap .mn-top .ct{color:var(--muted);font-size:12.5px;margin-left:auto;text-align:right}
@@ -333,7 +346,7 @@
     el.pane.addEventListener("click", e => {
       const rd = e.target.closest(".rds [data-rd]"); if (rd){ pickRound(+rd.dataset.rd); return; }             // Game tab: another round
       const hr = e.target.closest(".hist tr[data-rd]"); if (hr){ pickRound(+hr.dataset.rd, true); return; }    // Season tab: that round in the Game tab
-      if (e.target.closest(".mn")){ minsOpen = !minsOpen; renderTab(); return; }     // minutes: tap to show / hide each stint
+      if (e.target.closest(".mn")){ openTeam("pbp"); return; }                       // minutes block: his play-by-play in a sheet on top
       if (e.target.closest(".inj") && !e.target.closest("a")){ injOpen = !injOpen; renderTab(); return; }   // injury card: tap for sources
       const tb = e.target.closest(".tsb");                 // Team stats → the game sheet on his team's tab; News → a sheet on top
       if (tb){ const g = gameOf(cur); if (tb.dataset.top === "team" && g && window.GameSheet) GameSheet.open(g.c, {club: cur.club}); else openTeam(tb.dataset.top); }
@@ -563,7 +576,7 @@
       </div>` : ""}
     </div>`;
   }
-  function minsBlock(st, l, p, b){                        // boxed: minutes, stints and the on-court bar; tap to list each stint
+  function minsBlock(st, l, p, b){                        // boxed: minutes, stints and the on-court bar; tap for his play-by-play
     const mine = st && !st.pending ? st.pl[p.code] || [] : [];
     const len = st?.len || 40, x = m => (m / len * 100).toFixed(2) + "%";
     const total = mine.reduce((a, [f, t]) => a + t - f, 0);
@@ -573,14 +586,13 @@
     for (let o = 0; 40 + o * 5 < len; o++) labels.push([42.5 + o * 5, "OT" + (o + 1)]);
     const extra = [mine.length ? `${mine.length} stint${mine.length > 1 ? "s" : ""}` : "", l.starter ? "starter" : "",
                    onNow || (l.on && b.live && !st) ? `<span style="color:var(--win)">on court</span>` : ""].filter(Boolean).join(" · ");
-    return `<div class="mn${minsOpen && mine.length ? " open" : ""}" role="button" tabindex="0" aria-expanded="${minsOpen}">
-      <div class="mn-top"><b>${esc(l.min && l.min !== "DNP" ? l.min : mmss(total))}</b><span class="ct">${extra}</span>${mine.length ? `<span class="chev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></span>` : ""}</div>
+    return `<div class="mn" role="button" tabindex="0" aria-label="Play-by-play">
+      <div class="mn-top"><b>${esc(l.min && l.min !== "DNP" ? l.min : mmss(total))}</b><span class="ct">${extra}</span></div>
       <div class="tl">
         ${mine.map(([f, t]) => `<div class="sg" style="left:${x(f)};width:calc(${x(t - f)} - 1px)"></div>`).join("")}
         ${marks.map(m => `<div class="q" style="left:${x(m)}"></div>`).join("")}
         ${st?.live ? `<div class="fut" style="left:${x(st.now)}"></div><div class="now" style="left:${x(st.now)}"></div>` : ""}
       </div><div class="tl-lab">${labels.map(([m, t]) => `<span style="left:${x(m)}">${t}</span>`).join("")}</div>
-      ${minsOpen ? mine.map(([f, t], i) => `<div class="stint">${clockOf(f, len)} → ${onNow && i === mine.length - 1 ? "now" : clockOf(t, len)}<span>${mmss(t - f)}</span></div>`).join("") : ""}
     </div>`;
   }
 
@@ -606,9 +618,38 @@
       </tbody></table></div>
       <div class="tm-note">Tap a column to sort. <i class="fan"></i> on someone's fantasy roster.</div>`;
   }
+  // his plays in the game, newest first, under a header per quarter
+  const PBP_TXT = {IN: "Checked in", OUT: "Checked out", "2FGM": "2-pointer made", "2FGA": "2-pointer missed", "3FGM": "3-pointer made", "3FGA": "3-pointer missed",
+    FTM: "Free throw made", FTA: "Free throw missed", D: "Defensive rebound", O: "Offensive rebound", AS: "Assist", ST: "Steal", TO: "Turnover",
+    FV: "Block", AG: "Shot blocked", CM: "Foul", RV: "Foul drawn", CMT: "Technical foul", CMU: "Unsportsmanlike foul", OF: "Offensive foul", CMD: "Disqualifying foul", B: "Bench foul"};
+  const PBP_PTS = {"2FGM": 2, "3FGM": 3, FTM: 1};
+  async function pbpPane(p, g){
+    if (!g || Date.parse(g.u) > Date.now()) return `<div class="empty">The play-by-play shows up once the game starts.</div>`;
+    const list = await ElData.plays(g.c, p.code);
+    if (!list.length) return `<div class="empty">No plays for ${esc(p.name)} yet.</div>`;
+    let per = null, html = "";
+    for (const e of list){
+      if (e.per !== per){ per = e.per; html += `<div class="ph-h">${esc(per === "Q1" ? "1ST QUARTER" : per === "Q2" ? "2ND QUARTER" : per === "Q3" ? "3RD QUARTER" : per === "Q4" ? "4TH QUARTER" : "OVERTIME " + per.slice(2))}</div>`; }
+      const txt = PBP_TXT[e.type] || e.info || e.type, pts = PBP_PTS[e.type];
+      const sub = e.type === "IN" || e.type === "OUT", miss = /^(2FGA|3FGA|FTA)$/.test(e.type);
+      const extra = e.info && PBP_TXT[e.type] && !/^(IN|OUT)$/.test(e.type) ? e.info.replace(/^.*?\(/, "(") : "";
+      html += `<div class="ev${sub ? " sub" : ""}${miss ? " miss" : ""}"><span class="ck">${esc(e.clock || "")}</span>
+        <span class="tx">${esc(txt)}${extra && extra !== e.info ? `<small>${esc(extra)}</small>` : ""}</span>
+        ${e.a != null && e.b != null && pts ? `<span class="sc">${esc(e.a)}–${esc(e.b)}</span>` : ""}${pts ? `<span class="pt">+${pts}</span>` : ""}</div>`;
+    }
+    return `<div class="pbp">${html}</div>`;
+  }
   async function renderTeam(){
     const p = cur; if (!p || !tsOpen) return;
     const s = ++tsSeq, body = el.tsbody;
+    if (topMode === "pbp"){
+      const g = gameOf(p), opp = g ? (g.h.c === p.club ? g.a : g.h) : null;
+      el.tshead.innerHTML = `<div><b>Play-by-play</b><small>${esc(p.name)}${opp ? ` · vs ${esc(opp.n || opp.tv)}` : ""}</small></div>`;
+      let html;
+      try{ html = await pbpPane(p, g); }catch{ html = `<div class="empty">Couldn't load the play-by-play right now. Try again in a moment.</div>`; }
+      if (s === tsSeq && tsOpen && body._html !== html) body.innerHTML = body._html = html;
+      return;
+    }
     if (topMode === "news"){
       el.tshead.innerHTML = `<div><b>News</b><small>Latest stories about ${esc(p.name)}</small></div>`;
       let html;
@@ -725,7 +766,7 @@
     info = {...info, ...inf};
     fillHead(false);
     if (tab === "game") renderTab();
-    if (tsOpen && topMode === "team") renderTeam();
+    if (tsOpen && (topMode === "team" || topMode === "pbp")) renderTeam();   // live: keep it current
   }
   function close(){ closeTeam(); if (wrap) wrap.classList.remove("open"); }
   window.PlayerSheet = {
