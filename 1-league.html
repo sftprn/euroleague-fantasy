@@ -202,6 +202,9 @@
   .tf-done{flex:none;height:36px;padding:0 14px;border-radius:13px;border:0;background:#FFFFFF24;color:#fff;font:700 14px Inter,system-ui,sans-serif;cursor:pointer}
   .tf-l{font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#FFFFFFB3;text-transform:uppercase;margin:18px 4px 10px}
   .tf-rds{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px}
+  .tf-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
+  .tf-days button{height:40px;border-radius:13px;border:1px solid #FFFFFF22;background:var(--card);color:#FFFFFFCC;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .tf-days button.on{background:var(--orange);border-color:var(--orange);color:#fff}
   .tf-clubs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
   .tf-rds button,.tf-clubs button{height:40px;border-radius:13px;border:1px solid #FFFFFF22;background:var(--card);color:#FFFFFFCC;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;
     display:flex;align-items:center;justify-content:center;gap:6px;padding:0 8px;min-width:0;-webkit-tap-highlight-color:transparent}
@@ -360,7 +363,9 @@ document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preven
     <div class="sh-body">
       <div class="tf-l">Round</div>
       <div class="tf-rds" id="tfRounds"></div>
-      <div class="tf-l">Team</div>
+      <div class="tf-l">Day</div>
+      <div class="tf-days" id="tfDays"></div>
+      <div class="tf-l">Teams</div>
       <div class="tf-clubs" id="tfClubs"></div>
       <div class="tf-l">Players</div>
       <button class="tg" id="tfFree" type="button" role="switch"><div class="txt"><b>Players not on any team</b><small>Also list players nobody in the league has picked</small></div><i class="sw"></i></button>
@@ -604,7 +609,8 @@ function renderTop(){
   // every player who played in that round's games (not only fantasy rosters); a fantasy team that has him shows in orange
   const own = owners(), pmap = new Map(people.map(x => [x.code, x])), rmap = new Map(COACHES.flatMap(c => rosterOf(c.name)).map(x => [x.code, x]));
   if (!people.length) ensurePeople();
-  for (const g of games.filter(g => g.r === tr)){
+  const day = topDayOf(tr), dayKey = day ? roundDays(tr)[day - 1] : null;
+  for (const g of games.filter(g => g.r === tr && (!dayKey || dayOf(g.u) === dayKey))){
     const b = box[g.c]; if (!b || b.pending || !b.teams || b.teams.length < 2) continue;
     b.teams.forEach((t, ti) => {
       const side = ti === 0 ? g.h : g.a, them = b.teams[1 - ti];
@@ -616,18 +622,20 @@ function renderTop(){
       }
     });
   }
-  // club: All teams (default) or one Euroleague club → that club's top 10; players nobody owns can be left out
-  const clubs = topClubs(), pick = clubs.has(topPick) ? topPick : "", free = topFree();
+  // clubs: all (default) or any number of Euroleague clubs → their top 10; players nobody owns can be left out
+  const clubs = topClubs(), picks = [...topPicks].filter(c => clubs.has(c)), free = topFree();
   renderWatch();
   if ($("#tfWrap").classList.contains("open")) renderTopSheet();
-  const top = [...seen.values()].filter(x => (!pick || x.p.club === pick) && (free || x.teams.length)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
-  // the list's header: what it shows (the filter button is in the top bar)
-  const club = pick ? clubs.get(pick) : null;
-  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">${esc(club ? club.n : "All Teams")}</span><span class="lx">Round ${tr}</span></div>`;   // team on the left, round (dimmed) on the right
+  const top = [...seen.values()].filter(x => (!picks.length || picks.includes(x.p.club)) && (free || x.teams.length)).sort((a, b) => b.s.f - a.s.f).slice(0, 10);
+  // the list's header: which clubs on the left, the round (and day) dimmed on the right (the filter button is in the top bar)
+  const club = picks.length === 1 ? clubs.get(picks[0]) : null;
+  const who = !picks.length ? "All Teams" : picks.map(c => clubs.get(c).n).sort((a, b) => a.localeCompare(b)).join(", ");
+  const head = `<div class="lh">${club?.cr ? `<img src="${esc(club.cr)}" alt="">` : ""}<span class="lt">${esc(who)}</span><span class="lx">Round ${tr}${day ? ` · Day ${day}` : ""}</span></div>`;
   if (!top.length){
     topRows = [];
     $("#topList").innerHTML = head + `<div class="nolive">${topLoading.has(tr) || (!people.length && peopleLoad) ? "Loading…"
-      : pick ? `No ${esc(club.n)}${free ? "" : " fantasy"} players have played ${tr === round ? "yet this round" : `in round ${tr}`}.`
+      : picks.length ? `No ${picks.length === 1 ? esc(club.n) + " " : ""}${free ? "" : "fantasy "}players from ${picks.length === 1 ? "that team" : "these teams"} have played ${day ? `on day ${day}` : tr === round ? "yet this round" : `in round ${tr}`}${day && tr === round ? " yet" : ""}.`
+      : day && !seen.size ? `No scores for day ${day} of round ${tr}${tr === round ? " yet" : ""}.`
       : !free && seen.size ? `No fantasy players have played ${tr === round ? "yet this round" : `in round ${tr}`}.`
       : tr === round ? "No live games yet — the round's top players show up once games start." : `No scores for round ${tr}.`}</div>`;
     return;
@@ -642,7 +650,13 @@ function renderTop(){
     </div>`).join("");
 }
 
-/* Top Performers settings (the ⚙ in the list's header): round, club, players nobody owns */
+/* Players filter (the funnel in the top bar): round, day of the round, clubs (any number), players nobody owns */
+const dayOf = u => { const d = new Date(u); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const roundDays = r => [...new Set(games.filter(g => g.r === r).map(g => dayOf(g.u)))].sort();   // "Day 1", "Day 2", … of a round
+function topDayOf(r){                                 // the chosen day, if that round has it (a new round starts on all days)
+  if (topDayRound !== r){ topDayRound = r; topDay = 0; }
+  return topDay && topDay <= roundDays(r).length ? topDay : 0;
+}
 const tfWrap = $("#tfWrap");
 const topFree = () => store.get("elf.topFree", true);
 function topClubs(){                                  // code → {n, cr}, by name
@@ -654,9 +668,13 @@ function renderTopSheet(){
   const last = roundLive() ? round : round - 1, tr = topRound();
   const rds = Array.from({length: Math.max(0, last)}, (_, i) => i + 1)
     .map(r => `<button type="button" data-r="${r}" class="${r === tr ? "on" : ""}">${r}${r === round && roundLive() ? "<i></i>" : ""}</button>`).join("");
-  const clubs = topClubs(), pick = clubs.has(topPick) ? topPick : "";
-  const cl = `<button type="button" class="all${pick ? "" : " on"}" data-club="">All teams</button>`
-    + [...clubs].map(([c, t]) => `<button type="button" data-club="${esc(c)}" class="${c === pick ? "on" : ""}">${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}<span>${esc(t.n)}</span></button>`).join("");
+  const nd = roundDays(tr).length, day = topDayOf(tr);
+  const dy = [0, ...Array.from({length: nd}, (_, i) => i + 1)]
+    .map(d => `<button type="button" data-day="${d}" class="${d === day ? "on" : ""}">${d ? `Day ${d}` : "All Days"}</button>`).join("");
+  const clubs = topClubs(), picks = new Set([...topPicks].filter(c => clubs.has(c)));
+  const cl = `<button type="button" class="all${picks.size ? "" : " on"}" data-club="">All teams</button>`
+    + [...clubs].map(([c, t]) => `<button type="button" data-club="${esc(c)}" class="${picks.has(c) ? "on" : ""}" aria-pressed="${picks.has(c)}">${t.cr ? `<img src="${esc(t.cr)}" alt="">` : ""}<span>${esc(t.n)}</span></button>`).join("");
+  if ($("#tfDays")._html !== dy) $("#tfDays").innerHTML = $("#tfDays")._html = dy;
   if ($("#tfRounds")._html !== rds) $("#tfRounds").innerHTML = $("#tfRounds")._html = rds;
   if ($("#tfClubs")._html !== cl) $("#tfClubs").innerHTML = $("#tfClubs")._html = cl;
   const f = $("#tfFree"); f.classList.toggle("on", topFree()); f.setAttribute("aria-checked", String(topFree()));
@@ -669,7 +687,13 @@ tfWrap.addEventListener("click", e => {
   const r = e.target.closest("[data-r]");
   if (r){ const v = +r.dataset.r; tRound = v === (roundLive() || round <= 1 ? round : round - 1) ? null : v; renderTop(); renderTopSheet(); return; }
   const c = e.target.closest("[data-club]");
-  if (c){ topPick = c.dataset.club; renderTop(); renderTopSheet(); return; }
+  if (c){                                              // All teams clears the choice; a club is added / taken off (several at once)
+    const k = c.dataset.club;
+    if (!k) topPicks.clear(); else if (topPicks.has(k)) topPicks.delete(k); else topPicks.add(k);
+    renderTop(); renderTopSheet(); return;
+  }
+  const d = e.target.closest("[data-day]");
+  if (d){ topDay = +d.dataset.day; topDayRound = topRound(); renderTop(); renderTopSheet(); return; }
   if (e.target.closest("#tfFree")){ store.set("elf.topFree", !topFree()); renderTop(); renderTopSheet(); }
 });
 $("#topFilter").addEventListener("click", openTopSheet);
@@ -691,7 +715,7 @@ $("#topFilter").addEventListener("click", openTopSheet);
 
 /* Watchlist: any players, followed privately — saved only on this phone (elf.watch, the old Watch team), never shared or counted */
 const WATCH = "__watch", WATCH_MAX = 20;
-var topPick = "", pTab = "top";                       // which list a tapped player came from: "top" (Players) or "watch" (Watchlist)
+var topPicks = new Set(), topDay = 0, topDayRound = null, pTab = "top";   // Players filter: clubs (none = all), day of the round (0 = all days)                       // which list a tapped player came from: "top" (Players) or "watch" (Watchlist)
 const watchList = () => store.get("elf.watch", []);
 let watchRows = [];
 function watchInfo(p){                         // his game this round, for the line under his name
