@@ -240,6 +240,11 @@
         font-size:10.5px;font-weight:800;display:grid;place-items:center;border:2px solid var(--card)}
   .capt.tc{background:linear-gradient(135deg,#A855F7,#EC4899)}      /* Triple Captain */
   .who{flex:1;min-width:0}
+  /* a player's name with his position (G / F / C) in a small light badge after it */
+  .who b.nmp{display:flex;align-items:center;gap:6px}
+  .who b.nmp .nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .pos{flex:none;display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:5px;background:#FFFFFF26;color:#FFFFFFD9;font-size:10px;font-weight:800;line-height:1;letter-spacing:0}
+
   .who b{display:block;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .who small{margin-top:3px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
   .tv{font-weight:700;color:#C9C9CF}
@@ -667,11 +672,13 @@ function rowHTML({p, i, s}, n){
   const boosted = (wc.tc && isCapt) || (wc.bb && p.slot === "half");   // Triple Captain / Bench Boost players
   return `<div class="p ${s.kind}${boosted ? " wc-card" : ""}" data-i="${i}">
     <div class="phw">${photo(p)}${capt}${s.on ? '<i class="oc" title="On court"></i>' : ""}</div>
-    <div class="who"><b>${esc(p.name)}</b><small>${subline(p, s)}</small></div>
+    <div class="who">${nameHTML(p)}<small>${subline(p, s)}</small></div>
     ${editing ? `<div class="pbtns">${n === WATCH ? "" : `<button class="pbtn more" data-opt="${i}" aria-label="Captain and wild cards">⋯</button>`}<button class="pbtn del" data-del="${i}" aria-label="Remove ${esc(p.name)}">✕</button></div>`
               : `<div class="val${has && p.slot === "zero" ? " struck" : ""}">${s.kind === "live" ? '<i class="live-dot"></i>' : ""}${has ? fmtShort(s.shown) : "–"}</div>`}
   </div>`;
 }
+const posOf = p => { const v = String(p?.pos || "").trim().charAt(0).toUpperCase(); return /^[GFC]$/.test(v) ? v : ""; };
+const nameHTML = p => { const ps = posOf(p); return `<b class="nmp"><span class="nm">${esc(p.name)}</span>${ps ? `<span class="pos" title="${ps === "G" ? "Guard" : ps === "F" ? "Forward" : "Center"}">${ps}</span>` : ""}</b>`; };   // name + position badge
 const emptyHTML = slot => `<div class="p empty" data-add="${slot}"><div class="phw"><div class="ph">+</div></div><div class="who"><b>Empty slot</b></div></div>`;
 const sortKey = r => r.s.kind === "live" ? [0, -r.s.shown] : r.s.kind === "final" ? [1, -r.s.shown]      // by the PIR shown
                    : r.s.kind === "soon" || r.s.kind === "benched" ? [2, 0] : r.s.kind === "up" ? [3, +new Date(r.s.g.u)] : [4, 0];
