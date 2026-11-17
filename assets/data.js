@@ -21,14 +21,14 @@
   // a stored finished copy is still good if the game has settled or we checked it within the hour
   const keep = c => !!c && (Date.now() - (c.ff || 0) > SETTLE || Date.now() - (c.ck || 0) < RECHECK);
   const stamp = (c, v) => ({...v, ff: c?.ff || Date.now(), ck: Date.now()});      // ff = first seen final, ck = last checked
-  try{ Object.keys(localStorage).filter(k => /^elf\.(fbox|stints|box)\.E\d{4}\./.test(k)).forEach(k => localStorage.removeItem(k)); }catch{}   // old copies that never re-checked
+  try{ Object.keys(localStorage).filter(k => /^elf\.(fbox|stints|box)\.E\d{4}\./.test(k) || /^elf\.stints2\./.test(k)).forEach(k => localStorage.removeItem(k)); }catch{}   // old copies that never re-checked
 
   const store = {
     get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch{ return null; } },
     set(k, v){
       try{ localStorage.setItem(k, JSON.stringify(v)); }
       catch{                                   // phone storage full: drop old cached games and try once more
-        try{ Object.keys(localStorage).filter(x => /^elf(demo\.[a-z]+)?\.(fbox|stints|box)2?\./.test(x)).slice(0, 80).forEach(x => localStorage.removeItem(x));
+        try{ Object.keys(localStorage).filter(x => /^elf(demo\.[a-z]+)?\.(fbox|stints|box)[23]?\./.test(x)).slice(0, 80).forEach(x => localStorage.removeItem(x));
              localStorage.setItem(k, JSON.stringify(v)); }catch{}
       }
     }
@@ -132,7 +132,13 @@
       } };
     PERIODS.forEach((k, qi) => period(pbp?.[k] || [], qi * 10, 10));
     const ots = [];
-    (pbp?.ExtraTime || []).forEach(e => { if (e.PLAYTYPE === "BP" || !ots.length) ots.push([]); ots[ots.length - 1].push(e); });
+    // a new overtime starts at a "begin period" (BP) — but the feed can list a few plays (e.g. substitutions) before the first
+    // BP, and those belong to the same overtime, so a BP only opens a new one if the current one already had its BP
+    (pbp?.ExtraTime || []).forEach(e => {
+      const curOt = ots[ots.length - 1];
+      if (!curOt || (e.PLAYTYPE === "BP" && curOt.some(x => x.PLAYTYPE === "BP"))) ots.push([]);
+      ots[ots.length - 1].push(e);
+    });
     ots.forEach((list, i) => period(list, 40 + i * 5, 5));
     if (ots.length) len = 40 + ots.length * 5;
     if (pbp?.Live && b?.q){ const q = +String(b.q).replace(/\D/g, "") || 0; if (q > 4) len = Math.max(len, 40 + (q - 4) * 5); }
@@ -186,7 +192,7 @@
       a: e.POINTS_A, b: e.POINTS_B, n: e.NUMBEROFPLAY})).reverse();
   }
   function stretches(gc){
-    const key = `elf.stints2.${SEASON}.${gc}`;
+    const key = `elf.stints3.${SEASON}.${gc}`;           // v3: finished games kept with the old overtime miscount are recomputed
     const c = store.get(key);
     if (keep(c)) return Promise.resolve(c);
     return once("pbp" + gc, LIVE_TTL, async () => {
