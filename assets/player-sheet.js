@@ -101,7 +101,8 @@
 #psWrap .pbp .tx{flex:1;min-width:0;font-size:14.5px;font-weight:600}
 #psWrap .pbp .tx small{display:block;color:var(--muted);font-size:12px;font-weight:600;margin-top:2px}
 #psWrap .pbp .sc{flex:none;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
-#psWrap .pbp .pt{flex:none;min-width:30px;text-align:right;font-size:15px;font-weight:800;color:var(--win)}
+#psWrap .pbp .pt{flex:none;min-width:30px;text-align:right;font-size:15px;font-weight:800;color:var(--win)}   /* the play's PIR: green +, red − */
+#psWrap .pbp .pt.neg{color:var(--loss, #FF5A4E)}
 #psWrap .pbp .ev.sub .tx{color:var(--muted)}
 #psWrap .pbp .ev.miss .tx{color:#FFFFFFB3}
 #psWrap .mn-top{display:flex;align-items:center;gap:10px}
@@ -623,6 +624,10 @@
     FTM: "Free throw made", FTA: "Free throw missed", D: "Defensive rebound", O: "Offensive rebound", AS: "Assist", ST: "Steal", TO: "Turnover",
     FV: "Block", AG: "Shot blocked", CM: "Foul", RV: "Foul drawn", CMT: "Technical foul", CMU: "Unsportsmanlike foul", OF: "Offensive foul", CMD: "Disqualifying foul", B: "Bench foul"};
   const PBP_PTS = {"2FGM": 2, "3FGM": 3, FTM: 1};
+  // what each play adds to / takes from his PIR (points + rebounds + assists + steals + blocks + fouls drawn
+  // − missed shots − turnovers − shots blocked − fouls); check-ins / -outs count nothing
+  const PBP_PIR = {"2FGM": 2, "3FGM": 3, FTM: 1, "2FGA": -1, "3FGA": -1, FTA: -1, D: 1, O: 1, AS: 1, ST: 1, FV: 1, RV: 1,
+    TO: -1, AG: -1, CM: -1, OF: -1, CMT: -1, CMU: -1, CMD: -1, B: -1};
   async function pbpPane(p, g){
     if (!g || Date.parse(g.u) > Date.now()) return `<div class="empty">The play-by-play shows up once the game starts.</div>`;
     const list = await ElData.plays(g.c, p.code);
@@ -630,12 +635,12 @@
     let per = null, html = "";
     for (const e of list){
       if (e.per !== per){ per = e.per; html += `<div class="ph-h">${esc(per === "Q1" ? "1ST QUARTER" : per === "Q2" ? "2ND QUARTER" : per === "Q3" ? "3RD QUARTER" : per === "Q4" ? "4TH QUARTER" : "OVERTIME " + per.slice(2))}</div>`; }
-      const txt = PBP_TXT[e.type] || e.info || e.type, pts = PBP_PTS[e.type];
+      const txt = PBP_TXT[e.type] || e.info || e.type, pts = PBP_PTS[e.type], pir = PBP_PIR[e.type] || 0;
       const sub = e.type === "IN" || e.type === "OUT", miss = /^(2FGA|3FGA|FTA)$/.test(e.type);
       const extra = e.info && PBP_TXT[e.type] && !/^(IN|OUT)$/.test(e.type) ? e.info.replace(/^.*?\(/, "(") : "";
       html += `<div class="ev${sub ? " sub" : ""}${miss ? " miss" : ""}"><span class="ck">${esc(e.clock || "")}</span>
         <span class="tx">${esc(txt)}${extra && extra !== e.info ? `<small>${esc(extra)}</small>` : ""}</span>
-        ${e.a != null && e.b != null && pts ? `<span class="sc">${esc(e.a)}–${esc(e.b)}</span>` : ""}${pts ? `<span class="pt">+${pts}</span>` : ""}</div>`;
+        ${e.a != null && e.b != null && pts ? `<span class="sc">${esc(e.a)}–${esc(e.b)}</span>` : ""}<span class="pt${pir < 0 ? " neg" : ""}">${pir ? (pir > 0 ? "+" : "−") + Math.abs(pir) : ""}</span></div>`;
     }
     return `<div class="pbp">${html}</div>`;
   }
