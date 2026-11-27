@@ -1,16 +1,15 @@
 // Cloudflare Worker for Euroleague Fantasy.
 // Static pages/assets are served straight from the repo; only these paths run code (see wrangler.jsonc):
 //   /api/state   shared league data (D1)
-//   /api/round   "Start Round X" votes (rounds.js)
 //   /api/news    latest headlines about one player from the chosen portals (news.js)
 //   /api/feedback  anonymous feedback list; the admin page marks items complete (feedback.js)
-//   /api/bn      BasketNews Fantasy roster import: saved team link, import now (bn.js; also run by the 10-min cron)
-//   /api/injuries  basketnews injury report + news check, % chance to play (injuries.js; refreshed by the 10-min cron)
+//   /api/bn      BasketNews Fantasy roster import: saved team link, import now (bn.js; also run by the cron: hourly through a round, every minute around each game day's first tip-off)
+//   /api/injuries  basketnews injury report + news check, % chance to play (injuries.js; refreshed every 10 min by the cron)
 //   /el-api/*    → https://api-live.euroleague.net/*   (players, schedule)
 //   /el-live/*   → https://live.euroleague.net/api/*   (live box scores, play-by-play, game clock)
 // Euroleague's servers don't reliably allow browser calls from other sites, so the Worker fetches for the browser.
 import { getState, postState } from "./state.js";
-import { postRound, scheduledCheck } from "./rounds.js";
+import { scheduledCheck } from "./rounds.js";
 import { getNews } from "./news.js";
 import { handleFeedback } from "./feedback.js";
 import { getInjuries, injuryCheck } from "./injuries.js";
@@ -83,7 +82,6 @@ export default {
       if (request.method === "POST") return postState(request, env);
       return new Response("Method not allowed", { status: 405 });
     }
-    if (url.pathname === "/api/round" && request.method === "POST") return postRound(request, env);
     if (url.pathname === "/api/news" && request.method === "GET") return getNews(request, env, ctx);
     if (url.pathname === "/api/bn") return handleBn(request, env);
     if (url.pathname === "/api/injuries" && request.method === "GET") return getInjuries(request, env, ctx);
@@ -92,9 +90,11 @@ export default {
     if (request.method === "GET" && url.pathname.startsWith("/el-live/")) return forward(url, "/el-live/", "https://live.euroleague.net/api/", env, ctx);
     return env.ASSETS.fetch(request);
   },
+  // every minute: start the next round when it's due (3 h before its first tip-off), then check BasketNews lineups when
+  // their schedule says so (bn.js); injuries every 10 minutes
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(scheduledCheck(env));
-    ctx.waitUntil(injuryCheck(env));
-    ctx.waitUntil(scheduledBn(env));
+    const at = event.scheduledTime || Date.now();
+    ctx.waitUntil((async () => { await scheduledCheck(env); await scheduledBn(env, at); })());
+    if (new Date(at).getUTCMinutes() % 10 === 0) ctx.waitUntil(injuryCheck(env));
   },
 };

@@ -191,15 +191,26 @@ async function run(env, force, dry = 0, prev = false) {   // prev = copy the fin
   return result;
 }
 
-const BEFORE = 3 * 3600e3, AFTER = 1 * 3600e3;
-// first tip-off of each game day of a round (days in Vilnius time; a round often spans Tue–Fri)
+// When the cron (every minute) checks BasketNews for the round's lineups:
+//   • from the round's start (3 h before its first tip-off, when the league moves to it) until its last game is over:
+//     once an hour (counted from the round's start);
+//   • from 15 min before to 15 min after each game day's first tip-off: every minute.
+// Lineups unlock at the round's first tip-off; later days pick up the swaps BasketNews allows between game days.
+const LEAD = 3 * 3600e3, GAME_LEN = 2.5 * 3600e3, BURST = 15 * 60e3;
 function dayTips(games, round) {
   const day = t => new Date(t).toLocaleDateString("en-CA", { timeZone: "Europe/Vilnius" });
   const first = {};
   for (const g of games.filter(g => g.r === round)) { const d = day(g.u); if (!first[d] || g.u < first[d]) first[d] = g.u; }
   return Object.values(first).sort((a, b) => a - b);
 }
-export async function scheduledBn(env) {
+// should the lineups be checked at this minute? (exported so it can be tested)
+export function bnDue(sched, at) {
+  const start = sched.tips[0] - LEAD, end = sched.last + GAME_LEN;
+  if (at < start || at > end) return false;
+  if (sched.tips.some(t => at >= t - BURST && at <= t + BURST)) return true;          // around a game day's first tip-off
+  return Math.floor((at - start) / 60e3) % 60 === 0;                                    // otherwise hourly
+}
+export async function scheduledBn(env, at = Date.now()) {
   if (!env.DB) return;
   try {
     await setup(env.DB);
@@ -207,16 +218,15 @@ export async function scheduledBn(env) {
     if (!cfg.team) return;
     const round = JSON.parse((await env.DB.prepare("SELECT v FROM kv WHERE k = 'league'").first())?.v || "null")?.round;
     if (!round) return;
-    if (!Array.isArray(cfg.tips?.[round])) {                   // the round's game-day tip-offs, looked up once and kept
-      const t = dayTips(await loadGames(), round);
-      if (!t.length) return;
-      cfg.tips = { [round]: t };
+    let sched = cfg.sched?.[round];
+    if (!sched) {                                            // the round's game-day tip-offs and its last game, looked up once and kept
+      const games = await loadGames(), mine = games.filter(g => g.r === round);
+      if (!mine.length) return;
+      sched = { tips: dayTips(games, round), last: Math.max(...mine.map(g => g.u)) };
+      cfg.sched = { [round]: sched }; delete cfg.tips;
       await writeCfg(env.DB, cfg);
     }
-    // check (every 10 min, with the cron) from 3 h before until 1 h after each game day's first tip-off; never in between.
-    // Lineups unlock at the round's first tip-off; later days pick up the swaps BasketNews allows between game days.
-    const now = Date.now();
-    if (!cfg.tips[round].some(t => now >= t - BEFORE && now <= t + AFTER)) return;
+    if (!bnDue(sched, at)) return;
     await importBn(env, { force: true });
   } catch (e) { console.log("bn import failed", e); }
 }

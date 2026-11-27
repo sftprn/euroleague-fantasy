@@ -1,18 +1,16 @@
-// Rounds: which Euroleague round the league is on, "Start Round X" votes, and banking finished rounds.
+// Rounds: which Euroleague round the league is on, and banking finished rounds.
 //
 // league record (D1 key "league"):
-//   { round: 7, votes: [deviceId…], nextTip: <ms of next round's first game>, history: { "7": { totals:{coach:PIR}, at, by } } }
+//   { round: 7, nextTip: <ms of next round's first game>, history: { "7": { totals:{coach:PIR}, at, by } } }
 //
-// A round starts (banking each team's PIR for the finished round into its Total = `base`) when:
-//   • 2 different devices vote for it (POST /api/round), or
-//   • it's 3 hours before the next round's first tip-off (checked on every /api/state read and by a 10-min cron).
+// A round starts by itself (banking each team's PIR for the finished round into its Total = `base`) 3 hours before the
+// next round's first tip-off — checked on every /api/state read and by the cron (every minute). There's no manual start.
 // Banking uses compare-and-swap on the league record, so it can only ever happen once per round.
 import { COACHES, json, newVersion, setup } from "./state.js";
 
 const EL_API = "https://api-live.euroleague.net/v2/competitions/E/seasons/";
 const EL_LIVE = "https://live.euroleague.net/api/";
 const AUTO_BEFORE = 3 * 3600e3;
-const VOTES_NEEDED = 2;
 const season = () => { const d = new Date(); return "E" + (d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1); };
 const r2 = v => Math.round(v * 100) / 100;
 
@@ -68,7 +66,7 @@ async function initLeague(DB) {
   const games = await loadGames(), now = Date.now();
   const started = games.filter(g => g.u <= now);
   const round = started.length ? Math.max(...started.map(g => g.r)) : Math.min(...games.map(g => g.r));
-  const L = { round, votes: [], nextTip: firstTip(games, round + 1), history: {} };
+  const L = { round, nextTip: firstTip(games, round + 1), history: {} };
   await DB.batch([
     DB.prepare("INSERT OR IGNORE INTO kv (k, v) VALUES ('league', ?)").bind(JSON.stringify(L)),
     DB.prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('meta', ?)").bind(JSON.stringify({ v: newVersion() })),
@@ -87,7 +85,7 @@ async function startRound(env, cur, by) {
   await Promise.all(games.filter(g => g.r === round && (clubs.has(g.h) || clubs.has(g.a)))
     .map(async g => { try { boxes[g.c] = await loadBox(g.c); } catch {} }));
   const totals = Object.fromEntries(COACHES.map(n => [n, coachRoundTotal(docs[n], round, games, boxes)]));
-  const next = { round: round + 1, votes: [], nextTip: firstTip(games, round + 2),
+  const next = { round: round + 1, nextTip: firstTip(games, round + 2),
                  history: { ...(L.history || {}), [round]: { totals, at: Date.now(), by, id: crypto.randomUUID() } } };   // id: two simultaneous starts never produce the same record
   const nextRaw = JSON.stringify(next);
   const onlyIfWon = "(SELECT v FROM kv WHERE k = 'league') = ?";
@@ -109,35 +107,7 @@ export async function maybeAutoStart(env) {
   await autoBusy;
 }
 
-// POST /api/round {device, round, vote:true|false}
-export async function postRound(request, env) {
-  if (!env.DB) return json({ error: "D1 database not bound as DB" }, { status: 500 });
-  await setup(env.DB);
-  let body;
-  try { body = await request.json(); } catch { return new Response("Bad JSON", { status: 400 }); }
-  const device = String(body?.device || "");
-  if (!/^[a-z0-9]{8,40}$/.test(device)) return new Response("Bad device", { status: 400 });
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const cur = (await readLeague(env.DB)) || (await initLeague(env.DB));
-    const { L, raw } = cur;
-    if (body.round !== L.round) return json({ league: L, stale: true });   // already moved on
-    const votes = new Set(L.votes || []);
-    if (body.vote) votes.add(device); else votes.delete(device);
-    if (votes.size >= VOTES_NEEDED) {
-      const started = await startRound(env, { L: { ...L, votes: [...votes] }, raw }, "votes");
-      if (started) return json({ started: true, round: L.round + 1 });
-      continue;                                                        // someone else changed it first — re-read
-    }
-    const res = await env.DB.batch([
-      env.DB.prepare("UPDATE kv SET v = ? WHERE k = 'league' AND v = ?").bind(JSON.stringify({ ...L, votes: [...votes] }), raw),
-      env.DB.prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('meta', ?)").bind(JSON.stringify({ v: newVersion() })),
-    ]);
-    if (res[0].meta.changes === 1) return json({ votes: votes.size });
-  }
-  return json({ error: "busy, try again" }, { status: 409 });
-}
-
-// Cron (every 10 min): start the round 3 h before the next one even if nobody has the app open.
+// Cron (every minute): start the round 3 h before the next one even if nobody has the app open.
 export async function scheduledCheck(env) {
   if (!env.DB) return;
   await setup(env.DB);

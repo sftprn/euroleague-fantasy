@@ -1,5 +1,5 @@
 // Shared league state for everyone who opens the site (Cloudflare Worker + D1).
-// GET  /api/state[?since=<v>]  → {v, coaches:{name:{roster, chips, team, base}}, league:{round, votes, …}, settings:{title}}  (204 if nothing changed)
+// GET  /api/state[?since=<v>]  → {v, coaches:{name:{roster, chips, team, base}}, league:{round, nextTip, history}, settings:{title}}  (204 if nothing changed)
 // POST /api/state {coach, data:{roster?, chips?, team?, base?}}  → updates just those fields of that coach, bumps the version
 // Round voting / banking lives in rounds.js.
 // Needs a D1 database bound as `DB` (see wrangler.jsonc). The table is created on first use, and the

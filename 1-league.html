@@ -85,15 +85,6 @@
   .team-input{width:100%;height:42px;border:1.5px solid var(--line);border-radius:16px;background:var(--card-2);color:#fff;
               font:700 16px Inter,system-ui,sans-serif;padding:0 12px}
   .team-input:focus{outline:none;border-color:var(--orange)}
-  /* Start Round X — appears when every game of the round is over; 2 phones start the next round */
-  .start{margin:-2px 0 14px}
-  .start-btn{width:100%;height:48px;border:0;border-radius:16px;background:var(--orange);color:#fff;font:800 16px Inter,system-ui,sans-serif;
-             letter-spacing:.3px;cursor:pointer;box-shadow:0 6px 20px #FF6B1A33;display:flex;align-items:center;justify-content:center;gap:10px;
-             transition:transform .1s,background .15s,box-shadow .15s}
-  .start-btn:active{transform:scale(.98)}
-  .start-btn.voted{background:var(--card);border:2px solid var(--orange);color:var(--orange);box-shadow:none}
-  .start-btn:disabled{opacity:.6}
-  .start-note{text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin-top:8px}
   .seg{height:44px;box-sizing:border-box;display:flex;gap:4px;padding:3px;border-radius:16px;border:1px solid #FFFFFF22;background:#00000080;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);margin-bottom:12px}
   .seg button{flex:1;height:36px;border:0;border-radius:13px;background:transparent;color:#FFFFFF99;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}
   .seg button.on{background:#FFFFFF24;color:#fff}
@@ -990,7 +981,7 @@ async function boot(){
   try{
     games = await loadGames();
     const started = games.filter(g => new Date(g.u) <= new Date());
-    round = Shared.league?.round       // the league's round (moves on with Start Round X)
+    round = Shared.league?.round       // the league's round (the server moves it on 3 h before the next round tips off)
       ?? (started.length ? Math.max(...started.map(g => g.r)) : Math.min(...games.map(g => g.r)));
   }catch{ render(); return; }
   refresh();
